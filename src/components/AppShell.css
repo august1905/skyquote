@@ -1,0 +1,35 @@
+.app-shell {
+	display: flex;
+	min-height: 100vh;
+	background: var(--grey-50);
+	color: var(--grey-900);
+	text-align: left;
+}
+
+.app-shell-main {
+	flex: 1;
+	min-width: 0;
+	padding: 32px 40px 60px;
+	box-sizing: border-box;
+}
+
+.app-shell-main h1 {
+	font-size: 2rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	margin: 0 0 20px;
+}
+
+@media (max-width: 768px) {
+	.app-shell {
+		flex-direction: column;
+	}
+
+	.app-shell-main {
+		padding: 20px 16px 40px;
+	}
+
+	.app-shell-main h1 {
+		font-size: 1.6rem;
+	}
+}

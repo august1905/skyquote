@@ -1,0 +1,320 @@
+.admin-users-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20px;
+}
+
+.admin-users-header h1 {
+	margin: 0;
+}
+
+.admin-users-new-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: var(--orange);
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.9rem;
+	padding: 10px 18px;
+	border-radius: var(--radius-sm);
+	border: none;
+	box-shadow: var(--shadow-resting);
+	cursor: pointer;
+	transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.admin-users-new-button:hover {
+	background: var(--orange-deep);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-glow-orange);
+	opacity: 1;
+}
+
+.admin-users-new-button:active {
+	transform: translateY(0);
+	box-shadow: var(--shadow-resting);
+}
+
+.admin-users-form {
+	background: #fff;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-lg);
+	padding: 24px;
+	box-sizing: border-box;
+	box-shadow: var(--shadow-resting);
+	margin-bottom: 24px;
+}
+
+.admin-users-form-error {
+	background: #fdf1f0;
+	border: 1px solid #f3c9c5;
+	color: #b3413a;
+	font-size: 0.85rem;
+	font-weight: 500;
+	padding: 10px 12px;
+	border-radius: var(--radius-sm);
+	margin: 0 0 16px;
+}
+
+.admin-users-form-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px 20px;
+}
+
+.admin-users-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.admin-users-field label {
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--grey-700);
+}
+
+.admin-users-field input,
+.admin-users-field select {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 12px 14px;
+	border: 1.5px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	font-size: 1rem;
+	font-family: inherit;
+	color: var(--grey-900);
+	background: #fff;
+	min-height: 44px;
+	transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.admin-users-field input:focus,
+.admin-users-field select:focus {
+	outline: none;
+	border-color: var(--sky-blue);
+	box-shadow: 0 0 0 3px rgba(16, 162, 219, 0.2);
+}
+
+.admin-users-form-actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 20px;
+}
+
+.admin-users-primary-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--orange);
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.95rem;
+	padding: 12px 20px;
+	border: none;
+	border-radius: var(--radius-sm);
+	min-height: 44px;
+	cursor: pointer;
+	box-sizing: border-box;
+	transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.admin-users-primary-button:hover:not(:disabled) {
+	background: var(--orange-deep);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-glow-orange);
+}
+
+.admin-users-primary-button:disabled {
+	background: var(--grey-300);
+	cursor: not-allowed;
+}
+
+.admin-users-cancel-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 12px 20px;
+	border: 1.5px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	color: var(--grey-900);
+	font-weight: 600;
+	font-size: 0.95rem;
+	cursor: pointer;
+	box-sizing: border-box;
+	transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.admin-users-cancel-button:hover:not(:disabled) {
+	background: var(--grey-50);
+	border-color: var(--border-strong);
+	opacity: 1;
+}
+
+.admin-users-cancel-button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.admin-users-error {
+	color: var(--grey-700);
+}
+
+.admin-users-table-wrap {
+	background: #fff;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-resting);
+	overflow-x: auto;
+}
+
+.admin-users-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+	text-align: left;
+	padding: 14px 16px;
+	white-space: nowrap;
+}
+
+.admin-users-table th {
+	color: var(--grey-500);
+	font-weight: 600;
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-users-table tbody tr {
+	border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-users-table tbody tr:last-child {
+	border-bottom: none;
+}
+
+.admin-users-row-inactive {
+	color: var(--grey-500);
+}
+
+.admin-users-status-active {
+	color: var(--sky-blue-deep);
+	background: rgba(16, 162, 219, 0.12);
+	font-weight: 600;
+	font-size: 0.8rem;
+	padding: 4px 10px;
+	border-radius: var(--radius-pill);
+}
+
+.admin-users-status-inactive {
+	color: var(--grey-500);
+	background: var(--grey-100);
+	font-weight: 600;
+	font-size: 0.8rem;
+	padding: 4px 10px;
+	border-radius: var(--radius-pill);
+}
+
+.admin-users-actions-cell {
+	text-align: right;
+}
+
+.admin-users-self-note {
+	color: var(--grey-500);
+	font-size: 0.85rem;
+	font-style: italic;
+}
+
+.admin-users-deactivate-button {
+	background: #fff;
+	color: #b3413a;
+	font-weight: 600;
+	font-size: 0.85rem;
+	padding: 7px 14px;
+	border: 1px solid #f3c9c5;
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: background-color var(--transition-fast);
+}
+
+.admin-users-deactivate-button:hover {
+	background: #fdf1f0;
+	opacity: 1;
+}
+
+.admin-users-confirm {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.85rem;
+	color: var(--grey-700);
+	font-weight: 600;
+}
+
+.admin-users-confirm-yes,
+.admin-users-confirm-cancel {
+	font-size: 0.8rem;
+	font-weight: 700;
+	padding: 6px 12px;
+	border-radius: var(--radius-pill);
+	border: none;
+	cursor: pointer;
+	transition: background-color var(--transition-fast);
+}
+
+.admin-users-confirm-yes {
+	background: #ef4444;
+	color: #fff;
+}
+
+.admin-users-confirm-yes:hover:not(:disabled) {
+	background: #d13a3a;
+	opacity: 1;
+}
+
+.admin-users-confirm-cancel {
+	background: var(--grey-100);
+	color: var(--grey-900);
+}
+
+.admin-users-confirm-cancel:hover:not(:disabled) {
+	background: var(--grey-200);
+	opacity: 1;
+}
+
+.admin-users-confirm-yes:disabled,
+.admin-users-confirm-cancel:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+	.admin-users-header {
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+
+	.admin-users-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-users-form-actions {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.admin-users-primary-button,
+	.admin-users-cancel-button {
+		width: 100%;
+	}
+}

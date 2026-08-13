@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Saved Playwright session cookie for the shared test-suite user (see
+# tests/global-setup.js) — regenerated locally, not meant to be committed.
+tests/.auth
+test-results
+playwright-report
+
+# Real, working Data Store logins used by the test suite. This repo is
+# public — these must never be committed. See tests/.env.local.example.
+tests/.env.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
