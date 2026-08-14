@@ -32,3 +32,6 @@ tests/.env.local
 *.njsproj
 *.sln
 *.sw?
+
+# tsc --build incremental state, regenerated locally.
+*.tsbuildinfo

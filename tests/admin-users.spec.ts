@@ -1,15 +1,21 @@
-import { test, expect } from '@playwright/test';
-import { SHARED_USER, TEST_ADMIN, FIXTURE_PASSWORD } from './auth-storage-state.js';
+import { test, expect, type Page } from '@playwright/test';
+import { SHARED_USER, TEST_ADMIN, FIXTURE_PASSWORD, type TestAccount } from './auth-storage-state';
 
-// Same CATALYST_SERVE_PORT fallback as vite.config.js — `catalyst serve`
+// Same CATALYST_SERVE_PORT fallback as vite.config.ts — `catalyst serve`
 // moves off 3000 when another Catalyst project is already serving.
 const BACKEND = `http://localhost:${process.env.CATALYST_SERVE_PORT || '3000'}/server/skyquote_function`;
 
-function uniqueSuffix() {
+interface NewUser extends TestAccount {
+	firstName: string;
+	lastName: string;
+	role?: 'admin' | 'member';
+}
+
+function uniqueSuffix(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-async function logIn(page, { email, password }) {
+async function logIn(page: Page, { email, password }: TestAccount): Promise<void> {
 	await page.goto('/login');
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Password').fill(password);
@@ -17,12 +23,15 @@ async function logIn(page, { email, password }) {
 	await page.waitForURL('**/home');
 }
 
-async function openAdminUsers(page) {
+async function openAdminUsers(page: Page): Promise<void> {
 	await page.goto('/admin/users');
 	await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
 }
 
-async function createUserViaUi(page, { firstName, lastName, email, password, role = 'member' }) {
+async function createUserViaUi(
+	page: Page,
+	{ firstName, lastName, email, password, role = 'member' }: NewUser
+): Promise<void> {
 	await page.getByRole('button', { name: 'New user' }).click();
 	await page.getByLabel('First name').fill(firstName);
 	await page.getByLabel('Last name').fill(lastName);

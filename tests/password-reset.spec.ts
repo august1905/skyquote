@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { FIXTURE_PASSWORD } from './auth-storage-state.js';
+import { FIXTURE_PASSWORD } from './auth-storage-state';
 
 // The reset flow is for logged-out users, so the shared session cookie would
 // only get in the way.

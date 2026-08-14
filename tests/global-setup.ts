@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { request } from '@playwright/test';
-import { STORAGE_STATE_PATH, SHARED_USER, TEST_ADMIN } from './auth-storage-state.js';
+import { STORAGE_STATE_PATH, SHARED_USER, TEST_ADMIN } from './auth-storage-state';
 
 // Signs the shared test user in once per full suite run and saves the
 // session cookie to disk, instead of every test doing its own login (a real
@@ -10,7 +10,7 @@ import { STORAGE_STATE_PATH, SHARED_USER, TEST_ADMIN } from './auth-storage-stat
 // API, logging in as TEST_ADMIN first. See "Test setup" in README.md for how
 // TEST_ADMIN itself gets seeded (that one step can't be automated — an admin
 // is required to create anyone, including the first one).
-export default async function globalSetup() {
+export default async function globalSetup(): Promise<void> {
 	const baseURL = 'http://localhost:5173';
 	const ctx = await request.newContext({ baseURL });
 

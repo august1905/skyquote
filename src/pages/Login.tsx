@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
 import { useAuth } from '../auth/AuthContext';
@@ -8,12 +8,12 @@ import './Auth.css';
 function Login() {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
-	const [status, setStatus] = useState('idle'); // idle | submitting | error
+	const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
 	const [errorMessage, setErrorMessage] = useState('');
 	const navigate = useNavigate();
 	const { refresh } = useAuth();
 
-	async function handleSubmit(event) {
+	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setStatus('submitting');
 		setErrorMessage('');
@@ -24,10 +24,10 @@ function Login() {
 			// first render on /home already knows we're authenticated, instead
 			// of briefly re-checking from a stale "unauthenticated" state.
 			await refresh();
-			navigate('/home');
+			void navigate('/home');
 		} catch (err) {
 			setStatus('error');
-			setErrorMessage(err?.message || 'Login failed. Please try again.');
+			setErrorMessage(err instanceof Error ? err.message : 'Login failed. Please try again.');
 		}
 	}
 
@@ -43,7 +43,7 @@ function Login() {
 					</p>
 				)}
 
-				<form onSubmit={handleSubmit}>
+				<form onSubmit={(e) => void handleSubmit(e)}>
 					<div className="auth-field">
 						<label htmlFor="login-email">Email</label>
 						<input

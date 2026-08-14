@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { SHARED_USER } from './auth-storage-state.js';
+import { SHARED_USER } from './auth-storage-state';
 
 // Unauthenticated by default so the login form itself is under test, not a
 // redirect away from it because of the shared session cookie.

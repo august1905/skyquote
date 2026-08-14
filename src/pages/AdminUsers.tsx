@@ -1,25 +1,25 @@
-import { useEffect, useState } from 'react';
-import { listUsers, createUser, deactivateUser } from '../api/adminUsers';
+import { useEffect, useState, type FormEvent } from 'react';
+import { listUsers, createUser, deactivateUser, type AdminUser, type CreateUserInput } from '../api/adminUsers';
 import { useAuth } from '../auth/AuthContext';
-import { ROLE_LABELS } from '../auth/permissions';
+import { ROLE_LABELS, type Role } from '../auth/permissions';
 import AppShell from '../components/AppShell';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './AdminUsers.css';
 
-const EMPTY_FORM = { firstName: '', lastName: '', email: '', password: '', role: 'member' };
+const EMPTY_FORM: CreateUserInput = { firstName: '', lastName: '', email: '', password: '', role: 'member' };
 
 function AdminUsers() {
 	const { user } = useAuth();
 	const currentUserId = user?.id;
-	const [users, setUsers] = useState([]);
-	const [status, setStatus] = useState('loading'); // loading | ready | error
+	const [users, setUsers] = useState<AdminUser[]>([]);
+	const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 	const [formOpen, setFormOpen] = useState(false);
-	const [form, setForm] = useState(EMPTY_FORM);
+	const [form, setForm] = useState<CreateUserInput>(EMPTY_FORM);
 	const [creating, setCreating] = useState(false);
 	const [formError, setFormError] = useState('');
 	// ROWID of the row currently showing its inline "deactivate?" confirm, or null.
-	const [confirmingId, setConfirmingId] = useState(null);
-	const [deactivatingId, setDeactivatingId] = useState(null);
+	const [confirmingId, setConfirmingId] = useState<string | null>(null);
+	const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
 	const [actionError, setActionError] = useState('');
 
 	function loadUsers() {
@@ -33,14 +33,14 @@ function AdminUsers() {
 	}
 
 	useEffect(() => {
-		loadUsers();
+		void loadUsers();
 	}, []);
 
-	function updateField(field, value) {
+	function updateField<K extends keyof CreateUserInput>(field: K, value: CreateUserInput[K]) {
 		setForm((current) => ({ ...current, [field]: value }));
 	}
 
-	async function handleCreateSubmit(event) {
+	async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setFormError('');
 		setCreating(true);
@@ -50,13 +50,13 @@ function AdminUsers() {
 			setFormOpen(false);
 			await loadUsers();
 		} catch (err) {
-			setFormError(err?.message || 'Could not create user. Please try again.');
+			setFormError(err instanceof Error ? err.message : 'Could not create user. Please try again.');
 		} finally {
 			setCreating(false);
 		}
 	}
 
-	async function handleConfirmDeactivate(id) {
+	async function handleConfirmDeactivate(id: string) {
 		setActionError('');
 		setDeactivatingId(id);
 		try {
@@ -64,7 +64,7 @@ function AdminUsers() {
 			setConfirmingId(null);
 			await loadUsers();
 		} catch (err) {
-			setActionError(err?.message || 'Could not deactivate user. Please try again.');
+			setActionError(err instanceof Error ? err.message : 'Could not deactivate user. Please try again.');
 		} finally {
 			setDeactivatingId(null);
 		}
@@ -87,7 +87,7 @@ function AdminUsers() {
 			</div>
 
 			{formOpen && (
-				<form className="admin-users-form" onSubmit={handleCreateSubmit}>
+				<form className="admin-users-form" onSubmit={(e) => void handleCreateSubmit(e)}>
 					{formError && (
 						<p className="admin-users-form-error" role="alert">
 							{formError}
@@ -137,7 +137,11 @@ function AdminUsers() {
 						</div>
 						<div className="admin-users-field">
 							<label htmlFor="new-user-role">Role</label>
-							<select id="new-user-role" value={form.role} onChange={(e) => updateField('role', e.target.value)}>
+							<select
+								id="new-user-role"
+								value={form.role}
+								onChange={(e) => updateField('role', e.target.value as Role)}
+							>
 								<option value="member">Member</option>
 								<option value="admin">Admin</option>
 							</select>
@@ -207,7 +211,7 @@ function AdminUsers() {
 												<button
 													type="button"
 													className="admin-users-confirm-yes"
-													onClick={() => handleConfirmDeactivate(row.id)}
+													onClick={() => void handleConfirmDeactivate(row.id)}
 													disabled={deactivatingId === row.id}
 												>
 													{deactivatingId === row.id ? 'Deactivating…' : 'Yes'}

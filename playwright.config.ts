@@ -1,5 +1,5 @@
 import { defineConfig } from '@playwright/test';
-import { STORAGE_STATE_PATH } from './tests/auth-storage-state.js';
+import { STORAGE_STATE_PATH } from './tests/auth-storage-state';
 
 // Requires the backend running locally via `catalyst serve` (see spqbackend)
 // in addition to this dev server — there's no mocked backend, tests run
@@ -7,12 +7,12 @@ import { STORAGE_STATE_PATH } from './tests/auth-storage-state.js';
 export default defineConfig({
 	testDir: './tests',
 	fullyParallel: false,
-	// One shared login for the whole run (see global-setup.js) instead of
+	// One shared login for the whole run (see global-setup.ts) instead of
 	// every test logging in itself — Data Store calls are billed, and login
 	// is by far the biggest per-test cost. Tests that need their own login
 	// (or a second, distinct identity) opt out per-file/per-test with
 	// `test.use({ storageState: {...} })`.
-	globalSetup: './tests/global-setup.js',
+	globalSetup: './tests/global-setup.ts',
 	use: {
 		baseURL: 'http://localhost:5173',
 		channel: 'chrome',

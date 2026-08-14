@@ -17,7 +17,7 @@ function Sidebar() {
 			// gone/expired, and leaving the user stranded on a page they can no
 			// longer load anything into is worse than a best-effort sign-out.
 			await refresh();
-			navigate('/login');
+			void navigate('/login');
 		}
 	}
 
@@ -53,7 +53,7 @@ function Sidebar() {
 						{user.first_name} {user.last_name}
 					</p>
 				)}
-				<button type="button" className="app-sidebar-logout" onClick={handleLogout}>
+				<button type="button" className="app-sidebar-logout" onClick={() => void handleLogout()}>
 					Log out
 				</button>
 			</div>

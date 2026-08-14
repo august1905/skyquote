@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { confirmPasswordReset, requestPasswordReset } from '../api/auth';
 import Logo from '../components/Logo';
@@ -11,10 +11,10 @@ const MIN_PASSWORD_LENGTH = 8;
 // POST /auth/password-reset/request), so neither does this.
 function RequestForm() {
 	const [email, setEmail] = useState('');
-	const [status, setStatus] = useState('idle'); // idle | submitting | sent | error
+	const [status, setStatus] = useState<'idle' | 'submitting' | 'sent' | 'error'>('idle');
 	const [errorMessage, setErrorMessage] = useState('');
 
-	async function handleSubmit(event) {
+	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setStatus('submitting');
 		setErrorMessage('');
@@ -24,7 +24,7 @@ function RequestForm() {
 			setStatus('sent');
 		} catch (err) {
 			setStatus('error');
-			setErrorMessage(err?.message || 'Could not send the reset email. Please try again.');
+			setErrorMessage(err instanceof Error ? err.message : 'Could not send the reset email. Please try again.');
 		}
 	}
 
@@ -53,7 +53,7 @@ function RequestForm() {
 				</p>
 			)}
 
-			<form onSubmit={handleSubmit}>
+			<form onSubmit={(e) => void handleSubmit(e)}>
 				<div className="auth-field">
 					<label htmlFor="reset-email">Email</label>
 					<input
@@ -82,15 +82,14 @@ function RequestForm() {
 // validated up front — doing so would turn this page into an oracle for
 // whether a guessed token is real, and the confirm call has to re-check it
 // anyway.
-// eslint-disable-next-line react/prop-types -- no PropTypes elsewhere in this codebase
-function ConfirmForm({ token }) {
+function ConfirmForm({ token }: { token: string }) {
 	const [password, setPassword] = useState('');
 	const [confirmPassword, setConfirmPassword] = useState('');
-	const [status, setStatus] = useState('idle'); // idle | submitting | error
+	const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
 	const [errorMessage, setErrorMessage] = useState('');
 	const navigate = useNavigate();
 
-	async function handleSubmit(event) {
+	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
 		if (password !== confirmPassword) {
@@ -107,10 +106,10 @@ function ConfirmForm({ token }) {
 			// The reset dropped every session this account had, so there's
 			// nothing to be logged into — send them to log in with the new
 			// password rather than into the app.
-			navigate('/login');
+			void navigate('/login');
 		} catch (err) {
 			setStatus('error');
-			setErrorMessage(err?.message || 'Could not reset your password. Please try again.');
+			setErrorMessage(err instanceof Error ? err.message : 'Could not reset your password. Please try again.');
 		}
 	}
 
@@ -124,7 +123,7 @@ function ConfirmForm({ token }) {
 				</p>
 			)}
 
-			<form onSubmit={handleSubmit}>
+			<form onSubmit={(e) => void handleSubmit(e)}>
 				<div className="auth-field">
 					<label htmlFor="reset-password">New password</label>
 					<input
