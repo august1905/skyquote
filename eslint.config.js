@@ -51,7 +51,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['vite.config.ts', 'playwright.config.ts', 'tests/**/*.ts'],
+    files: ['vite.config.ts', 'vitest.config.ts', 'playwright.config.ts', 'tests/**/*.ts'],
     extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       globals: globals.node,
