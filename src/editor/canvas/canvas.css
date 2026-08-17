@@ -1,0 +1,97 @@
+.canvas {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 32px;
+	padding: 32px;
+}
+
+/* Letter @96dpi. min-height, not height — phase 1 doesn't paginate, so
+   content taller than one physical page just grows the frame rather than
+   being clipped or silently lost. */
+.canvas-page {
+	background: #fff;
+	width: 816px;
+	min-height: 1056px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+	padding: 48px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	box-sizing: border-box;
+}
+
+.canvas-page-name {
+	border: none;
+	font-weight: 600;
+	font-size: 0.85rem;
+	color: #666;
+	margin-bottom: 12px;
+	padding: 4px 0;
+}
+
+.canvas-page-name:focus {
+	outline: 1px solid #ccc;
+}
+
+.canvas-page-blocks {
+	display: flex;
+	flex-direction: column;
+}
+
+.canvas-block {
+	position: relative;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	padding: 4px 8px;
+	cursor: pointer;
+}
+
+.canvas-block-selected {
+	border-color: #4a7dfc;
+}
+
+.canvas-block-dragging {
+	opacity: 0.5;
+}
+
+.canvas-block-toolbar {
+	position: absolute;
+	top: -32px;
+	right: 0;
+	display: flex;
+	gap: 4px;
+	background: #222;
+	border-radius: 4px;
+	padding: 4px;
+	z-index: 10;
+}
+
+.canvas-block-toolbar button {
+	background: transparent;
+	color: #fff;
+	border: none;
+	font-size: 0.8rem;
+	cursor: pointer;
+	padding: 2px 6px;
+	border-radius: 3px;
+}
+
+.canvas-block-toolbar button:hover {
+	background: rgba(255, 255, 255, 0.15);
+}
+
+.canvas-block-drag-handle {
+	cursor: grab;
+}
+
+.canvas-add-block {
+	align-self: flex-start;
+	margin-top: 12px;
+	background: none;
+	border: 1px dashed #999;
+	border-radius: 4px;
+	padding: 6px 12px;
+	cursor: pointer;
+	color: #555;
+}

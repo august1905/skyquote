@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, Page, PageId, TemplateBody } from '../types';
+import type { Block, BlockId, Page, PageId, TemplateBody, TextBlock } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -92,19 +92,21 @@ export function reindexPageOrder(body: Draft<TemplateBody>): void {
 	});
 }
 
+export function createBlankTextBlock(): TextBlock {
+	return {
+		id: crypto.randomUUID(),
+		type: 'text',
+		locked: false,
+		style: {},
+		doc: { type: 'doc', content: [{ type: 'paragraph', content: [] }] },
+	};
+}
+
 export function createBlankPage(name: string): Page {
 	return {
 		id: crypto.randomUUID(),
 		name,
 		order: 0, // corrected by reindexPageOrder once inserted
-		blocks: [
-			{
-				id: crypto.randomUUID(),
-				type: 'text',
-				locked: false,
-				style: {},
-				doc: { type: 'doc', content: [{ type: 'paragraph', content: [] }] },
-			},
-		],
+		blocks: [createBlankTextBlock()],
 	};
 }

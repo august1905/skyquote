@@ -4,6 +4,7 @@ import PasswordReset from './pages/PasswordReset';
 import Home from './pages/Home';
 import Documents from './pages/Documents';
 import Templates from './pages/Templates';
+import TemplateEditor from './pages/TemplateEditor';
 import Contacts from './pages/Contacts';
 import AdminUsers from './pages/AdminUsers';
 import RequireAuth from './auth/RequireAuth';
@@ -49,6 +50,14 @@ function App() {
 						element={
 							<RequireAuth>
 								<Templates />
+							</RequireAuth>
+						}
+					/>
+					<Route
+						path="/templates/:id/edit"
+						element={
+							<RequireAuth>
+								<TemplateEditor />
 							</RequireAuth>
 						}
 					/>
