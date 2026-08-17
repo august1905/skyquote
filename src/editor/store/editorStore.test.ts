@@ -119,6 +119,42 @@ describe('runCommand / undo / redo', () => {
 	});
 });
 
+describe('editSeq', () => {
+	it('increments on runCommand, undo, and redo — including coalesced commands', () => {
+		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		expect(useEditorStore.getState().editSeq).toBe(1);
+
+		useEditorStore.getState().runCommand(renamePage('page-1', 'a'), { coalesceKey: 'name' });
+		useEditorStore.getState().runCommand(renamePage('page-1', 'ab'), { coalesceKey: 'name' });
+		expect(useEditorStore.getState().editSeq).toBe(3);
+
+		useEditorStore.getState().undo();
+		expect(useEditorStore.getState().editSeq).toBe(4);
+
+		useEditorStore.getState().redo();
+		expect(useEditorStore.getState().editSeq).toBe(5);
+	});
+
+	it('resets to 0 on loadTemplate', () => {
+		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().loadTemplate(makeMeta(), makeBody());
+		expect(useEditorStore.getState().editSeq).toBe(0);
+	});
+});
+
+describe('advanceSavedMeta', () => {
+	it('updates meta but leaves dirty untouched, unlike markSaved', () => {
+		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		expect(useEditorStore.getState().dirty).toBe(true);
+
+		useEditorStore.getState().advanceSavedMeta(makeMeta({ version: 2 }));
+
+		const state = useEditorStore.getState();
+		expect(state.meta?.version).toBe(2);
+		expect(state.dirty).toBe(true);
+	});
+});
+
 describe('coalescing', () => {
 	it('collapses same-key commands within the idle window into a single undo entry', () => {
 		vi.useFakeTimers();

@@ -28,10 +28,28 @@ interface EditorState {
 	redoStack: Command[];
 	lastCommandAt: number | null;
 	lastCoalesceKey: string | null;
+	/**
+	 * Increments on every runCommand/undo/redo, including coalesced ones —
+	 * unlike `lastCommandAt` (which undo/redo reset to `null`, so two undos in
+	 * a row don't produce a *change* a `useEffect` dependency array would
+	 * notice), this is monotonic and never collides. Autosave depends on this
+	 * to reliably re-arm its debounce timer and to detect "did a newer edit
+	 * land after I captured this snapshot to save" — see useAutosave.ts.
+	 */
+	editSeq: number;
 
 	loadTemplate: (meta: TemplateMeta, body: TemplateBody) => void;
 	/** Called once autosave's PUT resolves — advances `meta` without touching `body` or the undo history. */
 	markSaved: (meta: TemplateMeta) => void;
+	/**
+	 * Advances `meta` (the server bumps `version`/`updatedAt` on every save)
+	 * WITHOUT clearing `dirty` — for when a save's response arrives after
+	 * newer local edits were already made. Those edits were never part of
+	 * the body that request sent, so they must stay marked unsaved; the next
+	 * autosave attempt still needs the fresh `version` this save returned,
+	 * or it would fail every subsequent save with a stale-version conflict.
+	 */
+	advanceSavedMeta: (meta: TemplateMeta) => void;
 	runCommand: (command: Command, options?: { coalesceKey?: string }) => void;
 	endCoalescing: () => void;
 	undo: () => void;
@@ -49,6 +67,7 @@ export const useEditorStore = create<EditorState>()(
 		redoStack: [],
 		lastCommandAt: null,
 		lastCoalesceKey: null,
+		editSeq: 0,
 
 		loadTemplate: (meta, body) =>
 			set((state) => {
@@ -60,12 +79,18 @@ export const useEditorStore = create<EditorState>()(
 				state.redoStack = [];
 				state.lastCommandAt = null;
 				state.lastCoalesceKey = null;
+				state.editSeq = 0;
 			}),
 
 		markSaved: (meta) =>
 			set((state) => {
 				state.meta = meta;
 				state.dirty = false;
+			}),
+
+		advanceSavedMeta: (meta) =>
+			set((state) => {
+				state.meta = meta;
 			}),
 
 		runCommand: (command, options) =>
@@ -98,6 +123,7 @@ export const useEditorStore = create<EditorState>()(
 				state.dirty = true;
 				state.lastCommandAt = now;
 				state.lastCoalesceKey = coalesceKey;
+				state.editSeq += 1;
 			}),
 
 		endCoalescing: () =>
@@ -119,6 +145,7 @@ export const useEditorStore = create<EditorState>()(
 				state.dirty = true;
 				state.lastCommandAt = null;
 				state.lastCoalesceKey = null;
+				state.editSeq += 1;
 			}),
 
 		redo: () =>
@@ -132,6 +159,7 @@ export const useEditorStore = create<EditorState>()(
 				state.dirty = true;
 				state.lastCommandAt = null;
 				state.lastCoalesceKey = null;
+				state.editSeq += 1;
 			}),
 
 		select: (selection) =>

@@ -19,5 +19,27 @@
 
 .template-editor-header-actions {
 	display: flex;
+	align-items: center;
 	gap: 8px;
+}
+
+.template-editor-autosave-status {
+	font-size: 0.8rem;
+	color: #777;
+	margin-right: 4px;
+}
+
+.template-editor-autosave-status[data-status='error'] {
+	color: #b91c1c;
+}
+
+.template-editor-conflict-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 24px;
+	background: #fef3c7;
+	color: #78350f;
+	font-size: 0.9rem;
 }
