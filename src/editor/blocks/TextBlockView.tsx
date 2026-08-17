@@ -1,20 +1,53 @@
-import type { RichTextDoc, RichTextNode, TextBlock } from '../types';
+import { EditorContent, useEditor, type JSONContent } from '@tiptap/react';
+import { StarterKit } from '@tiptap/starter-kit';
+import { useEffect } from 'react';
+import type { RichTextDoc, TextBlock } from '../types';
+import { setBlockDoc } from '../commands';
+import { useEditorStore } from '../store/editorStore';
 import type { BlockViewProps } from './types';
 
-// Placeholder read-only render — step 7 replaces this with a real Tiptap
-// instance per block (§5). Kept deliberately dumb: it only needs to prove the
-// registry wires a block to a component, not implement editing.
-function plainTextOfNode(node: RichTextNode): string {
-	if (node.text !== undefined) return node.text;
-	if (!node.content) return '';
-	return node.content.map(plainTextOfNode).join('');
+// `@tiptap/react`'s JSONContent and our structural RichTextDoc describe the
+// same ProseMirror doc JSON — this domain model deliberately doesn't import
+// Tiptap types (see types.ts), so the boundary is a cast, not a converter.
+function toJSONContent(doc: RichTextDoc): JSONContent {
+	return doc;
 }
 
-function plainTextOfDoc(doc: RichTextDoc): string {
-	return doc.content.map(plainTextOfNode).join('\n');
+function toRichTextDoc(doc: JSONContent): RichTextDoc {
+	return doc as RichTextDoc;
 }
 
-export function TextBlockView({ block }: BlockViewProps<TextBlock>) {
-	const text = plainTextOfDoc(block.doc);
-	return <div className="block-text">{text.length > 0 ? text : <em>Empty text block</em>}</div>;
+export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
+	const runCommand = useEditorStore((s) => s.runCommand);
+	const endCoalescing = useEditorStore((s) => s.endCoalescing);
+
+	const editor = useEditor({
+		extensions: [
+			// This app owns undo/redo (the command stack) so the whole
+			// TemplateBody stays the unit of undo, not just this one editor's
+			// ProseMirror history — otherwise Ctrl+Z inside a focused block
+			// would fight with the toolbar's undo button.
+			StarterKit.configure({ undoRedo: false }),
+		],
+		content: toJSONContent(block.doc),
+		onUpdate: ({ editor: e }) => {
+			runCommand(setBlockDoc(pageId, block.id, toRichTextDoc(e.getJSON())), { coalesceKey: block.id });
+		},
+		onBlur: () => endCoalescing(),
+	});
+
+	// Keeps this editor in sync with changes that didn't originate from it —
+	// undo/redo, or (once cross-page moves land) another block's edit landing
+	// here via drag. The stringify comparison is cheap at block-doc size and
+	// avoids the alternative of threading an "origin" flag through the store.
+	useEffect(() => {
+		if (!editor) return;
+		const current = JSON.stringify(editor.getJSON());
+		const incoming = JSON.stringify(block.doc);
+		if (current !== incoming) {
+			editor.commands.setContent(toJSONContent(block.doc), { emitUpdate: false });
+		}
+	}, [editor, block.doc]);
+
+	return <EditorContent editor={editor} className="block-text" />;
 }

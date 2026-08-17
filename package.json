@@ -14,6 +14,9 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
+    "@tiptap/pm": "^3.30.1",
+    "@tiptap/react": "^3.30.1",
+    "@tiptap/starter-kit": "^3.30.1",
     "immer": "^11.1.16",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

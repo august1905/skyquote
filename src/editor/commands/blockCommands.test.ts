@@ -1,7 +1,8 @@
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
+import type { RichTextDoc } from '../types';
 import type { Command } from './types';
-import { deleteBlock, duplicateBlock, insertBlock, moveBlock } from './blockCommands';
+import { deleteBlock, duplicateBlock, insertBlock, moveBlock, setBlockDoc } from './blockCommands';
 import { makeBody, makeTextBlock } from './testFixtures';
 
 // Every test below applies a command and its inverse in two SEPARATE
@@ -94,6 +95,52 @@ describe('duplicateBlock', () => {
 			inverse.apply(draft);
 		});
 		expect(afterUndo).toEqual(original);
+	});
+});
+
+describe('setBlockDoc', () => {
+	it('replaces the doc; its inverse restores the original', () => {
+		const original = makeBody();
+		const newDoc: RichTextDoc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'edited' }] }] };
+		let inverse!: Command;
+
+		const afterEdit = produce(original, (draft) => {
+			inverse = setBlockDoc('page-1', 'block-1', newDoc).apply(draft);
+		});
+
+		const editedBlock = afterEdit.pages[0]?.blocks[0];
+		if (editedBlock?.type !== 'text') throw new Error('expected a text block');
+		expect(editedBlock.doc).toEqual(newDoc);
+
+		const afterUndo = produce(afterEdit, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(afterUndo).toEqual(original);
+	});
+
+	it('throws for a block that is not a text block', () => {
+		const original = makeBody();
+		const nonTextBlock = {
+			id: 'block-image',
+			type: 'image' as const,
+			locked: false,
+			style: {},
+			assetId: 'asset-1',
+			url: 'https://example.com/a.png',
+			alt: '',
+			width: 100,
+			height: 100,
+			shape: 'rect' as const,
+		};
+		const withImage = produce(original, (draft) => {
+			draft.pages[0]?.blocks.push(nonTextBlock);
+		});
+
+		expect(() =>
+			produce(withImage, (draft) => {
+				setBlockDoc('page-1', 'block-image', { type: 'doc', content: [] }).apply(draft);
+			})
+		).toThrow(/is a image block, not text/);
 	});
 });
 
