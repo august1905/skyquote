@@ -5,6 +5,7 @@ import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
 import { useAutosave, type AutosaveStatus } from '../editor/autosave/useAutosave';
 import { useEditorStore } from '../editor/store/editorStore';
 import { RightRail } from '../editor/rightrail/RightRail';
+import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import AppShell from '../components/AppShell';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './TemplateEditor.css';
@@ -81,7 +82,7 @@ function TemplateEditor() {
 		<AppShell>
 			<div className="template-editor">
 				<div className="template-editor-header">
-					<h1>{meta.name}</h1>
+					<TemplateNameEditor />
 					<div className="template-editor-header-actions">
 						<span className="template-editor-autosave-status" data-status={autosaveStatus}>
 							{autosaveStatus === 'conflict' ? '' : AUTOSAVE_STATUS_LABEL[autosaveStatus]}

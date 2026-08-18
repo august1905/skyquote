@@ -1,7 +1,8 @@
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react';
-import { StarterKit } from '@tiptap/starter-kit';
 import { useEffect } from 'react';
 import type { RichTextDoc } from '../types';
+import { richTextExtensions } from '../richtext/richTextExtensions';
+import { setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 
 function toJSONContent(doc: RichTextDoc): JSONContent {
 	return doc;
@@ -28,10 +29,11 @@ interface TableCellEditorProps {
  */
 export function TableCellEditor({ doc, onChange, onBlur, locked }: TableCellEditorProps) {
 	const editor = useEditor({
-		extensions: [StarterKit.configure({ undoRedo: false })],
+		extensions: richTextExtensions(),
 		content: toJSONContent(doc),
 		editable: !locked,
 		onUpdate: ({ editor: e }) => onChange(toRichTextDoc(e.getJSON())),
+		onFocus: ({ editor: e }) => setActiveRichTextEditor(e),
 		onBlur,
 	});
 

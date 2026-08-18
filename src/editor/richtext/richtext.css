@@ -1,0 +1,114 @@
+.rt-variable-chip {
+	display: inline-block;
+	position: relative;
+}
+
+.rt-variable-chip-button {
+	display: inline;
+	background: #fff3c4;
+	border: 1px solid #e8d382;
+	border-radius: 4px;
+	padding: 0 4px;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	line-height: 1.4;
+}
+
+.rt-variable-chip-selected .rt-variable-chip-button {
+	outline: 2px solid #2563eb;
+	outline-offset: 1px;
+}
+
+.rt-variable-popover {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 20;
+	margin-top: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 220px;
+	padding: 10px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	font-size: 0.8rem;
+	white-space: normal;
+}
+
+.rt-variable-popover label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	color: #555;
+}
+
+.rt-variable-popover select,
+.rt-variable-popover input {
+	padding: 4px 6px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.8rem;
+}
+
+.rt-variable-popover-actions {
+	display: flex;
+	justify-content: space-between;
+}
+
+.rt-variable-popover-actions button {
+	padding: 4px 8px;
+	border: 1px solid #ddd;
+	background: #f5f5f5;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.8rem;
+}
+
+.rt-suggestion-list {
+	display: flex;
+	flex-direction: column;
+	min-width: 220px;
+	max-height: 240px;
+	overflow-y: auto;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	font-size: 0.85rem;
+	padding: 4px;
+}
+
+.rt-suggestion-item {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+	padding: 6px 8px;
+	border: none;
+	background: transparent;
+	border-radius: 4px;
+	cursor: pointer;
+	text-align: left;
+}
+
+.rt-suggestion-item-label {
+	font-weight: 500;
+}
+
+.rt-suggestion-item-key {
+	font-size: 0.75rem;
+	color: #777;
+}
+
+.rt-suggestion-item-active {
+	background: #dbe6ff;
+}
+
+.rt-suggestion-empty {
+	padding: 6px 8px;
+	color: #777;
+}

@@ -1,9 +1,10 @@
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react';
-import { StarterKit } from '@tiptap/starter-kit';
 import { useEffect } from 'react';
 import type { RichTextDoc, TextBlock } from '../types';
 import { setBlockDoc } from '../commands';
 import { useEditorStore } from '../store/editorStore';
+import { richTextExtensions } from '../richtext/richTextExtensions';
+import { setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 import type { BlockViewProps } from './types';
 
 // `@tiptap/react`'s JSONContent and our structural RichTextDoc describe the
@@ -22,13 +23,7 @@ export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
 
 	const editor = useEditor({
-		extensions: [
-			// This app owns undo/redo (the command stack) so the whole
-			// TemplateBody stays the unit of undo, not just this one editor's
-			// ProseMirror history — otherwise Ctrl+Z inside a focused block
-			// would fight with the toolbar's undo button.
-			StarterKit.configure({ undoRedo: false }),
-		],
+		extensions: richTextExtensions(),
 		content: toJSONContent(block.doc),
 		// §4.3: "Locked blocks are non-editable." Enforced here rather than
 		// only in the command layer — `editable: false` blocks ProseMirror's
@@ -39,6 +34,7 @@ export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
 		onUpdate: ({ editor: e }) => {
 			runCommand(setBlockDoc(pageId, block.id, toRichTextDoc(e.getJSON())), { coalesceKey: block.id });
 		},
+		onFocus: ({ editor: e }) => setActiveRichTextEditor(e),
 		onBlur: () => endCoalescing(),
 	});
 

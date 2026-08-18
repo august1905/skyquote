@@ -216,3 +216,129 @@
 	cursor: pointer;
 	font-size: 0.85rem;
 }
+
+.variables-panel {
+	width: 280px;
+	padding: 12px;
+	border-right: 1px solid #e2e2e2;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	overflow-y: auto;
+}
+
+.variables-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.variables-panel-header h2 {
+	font-size: 0.95rem;
+	margin: 0;
+}
+
+.variables-panel-header button {
+	border: none;
+	background: transparent;
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+	color: #777;
+}
+
+.variables-panel-group h3 {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: #888;
+	margin: 0 0 4px;
+}
+
+.variables-panel-group ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.variables-panel-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.variables-panel-insert {
+	flex: 1;
+	text-align: left;
+	padding: 6px 8px;
+	border: none;
+	background: transparent;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+
+.variables-panel-insert:hover {
+	background: #f0f0f0;
+}
+
+.variables-panel-remove {
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	color: #999;
+	font-size: 0.9rem;
+	padding: 2px 6px;
+}
+
+.variables-panel-add {
+	align-self: flex-start;
+	padding: 6px 10px;
+	border: 1px solid #ddd;
+	background: #fff;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+
+.variables-panel-create {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 8px;
+	border: 1px solid #e2e2e2;
+	border-radius: 6px;
+}
+
+.variables-panel-create label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: 0.8rem;
+	color: #555;
+}
+
+.variables-panel-create input,
+.variables-panel-create select {
+	padding: 4px 6px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.85rem;
+}
+
+.variables-panel-create-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.variables-panel-create-actions button {
+	padding: 5px 10px;
+	border: 1px solid #ddd;
+	background: #f5f5f5;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.85rem;
+}

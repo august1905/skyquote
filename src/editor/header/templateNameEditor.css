@@ -1,0 +1,67 @@
+.template-name-display {
+	margin: 0;
+}
+
+.template-name-display-button {
+	all: unset;
+	cursor: text;
+	font: inherit;
+	color: inherit;
+}
+
+.template-name-chip {
+	background: #fff3c4;
+	border: 1px solid #e8d382;
+	border-radius: 4px;
+	padding: 0 4px;
+}
+
+.template-name-edit {
+	position: relative;
+}
+
+.template-name-edit input {
+	font: inherit;
+	font-weight: inherit;
+	padding: 2px 6px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	min-width: 240px;
+}
+
+.template-name-picker {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 30;
+	margin: 4px 0 0;
+	padding: 4px;
+	list-style: none;
+	width: 260px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	font-size: 0.85rem;
+}
+
+.template-name-picker button {
+	display: block;
+	width: 100%;
+	text-align: left;
+	padding: 6px 8px;
+	border: none;
+	background: transparent;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+
+.template-name-picker button:hover {
+	background: #dbe6ff;
+}
+
+.template-name-picker-key {
+	color: #777;
+	font-size: 0.75rem;
+}

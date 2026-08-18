@@ -66,6 +66,15 @@ interface EditorState {
 	 * or it would fail every subsequent save with a stale-version conflict.
 	 */
 	advanceSavedMeta: (meta: TemplateMeta) => void;
+	/**
+	 * `TemplateMeta.name` lives on the Data Store row, not `TemplateBody` — it
+	 * isn't part of the command/undo stack (§9.1 scopes undo to the body), so
+	 * this just marks dirty and bumps `editSeq` directly, the same way any
+	 * body edit does, so `useAutosave` picks it up on its normal debounce.
+	 * `saveTemplate` already sends `meta.name` on every save (see
+	 * useAutosave.ts) — this only needed a way to change it locally first.
+	 */
+	renameTemplate: (name: string) => void;
 	runCommand: (command: Command, options?: { coalesceKey?: string }) => void;
 	endCoalescing: () => void;
 	undo: () => void;
@@ -107,6 +116,14 @@ export const useEditorStore = create<EditorState>()(
 		advanceSavedMeta: (meta) =>
 			set((state) => {
 				state.meta = meta;
+			}),
+
+		renameTemplate: (name) =>
+			set((state) => {
+				if (!state.meta) return;
+				state.meta.name = name;
+				state.dirty = true;
+				state.editSeq += 1;
 			}),
 
 		runCommand: (command, options) =>
