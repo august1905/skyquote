@@ -10,7 +10,7 @@
    content taller than one physical page just grows the frame rather than
    being clipped or silently lost. */
 .canvas-page {
-	background: #fff;
+	background: var(--theme-page-background, #fff);
 	width: 816px;
 	min-height: 1056px;
 	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
@@ -37,6 +37,33 @@
 .canvas-page-blocks {
 	display: flex;
 	flex-direction: column;
+	gap: var(--theme-spacing, 0);
+}
+
+/* §3's Theme panel: fonts + text/heading color, applied wherever a block
+   renders rich text — text blocks and table cells alike. Heading elements
+   (h1–h6, from Tiptap's StarterKit) get the heading font/color; everything
+   else gets the body font/color. */
+.block-text .ProseMirror,
+.block-table-cell .ProseMirror {
+	font-family: var(--theme-body-font, inherit);
+	color: var(--theme-text-color, inherit);
+}
+
+.block-text .ProseMirror h1,
+.block-text .ProseMirror h2,
+.block-text .ProseMirror h3,
+.block-text .ProseMirror h4,
+.block-text .ProseMirror h5,
+.block-text .ProseMirror h6,
+.block-table-cell .ProseMirror h1,
+.block-table-cell .ProseMirror h2,
+.block-table-cell .ProseMirror h3,
+.block-table-cell .ProseMirror h4,
+.block-table-cell .ProseMirror h5,
+.block-table-cell .ProseMirror h6 {
+	font-family: var(--theme-heading-font, inherit);
+	color: var(--theme-primary-color, inherit);
 }
 
 .canvas-block {

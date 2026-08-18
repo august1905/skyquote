@@ -335,6 +335,27 @@ export interface Page {
 	background?: { color?: string; imageUrl?: string };
 }
 
+/**
+ * §3's Theme panel: "Fonts, color palette, heading styles, spacing, page
+ * background. Applies template-wide." Stored inline on `TemplateSettings`
+ * rather than as a separate entity `TemplateMeta.themeId` could reference —
+ * a real, shared, reusable Theme table is a bigger feature (a new Catalyst
+ * Data Store resource, out of scope without asking first); this is the
+ * per-template subset of that idea, needing no backend resource at all.
+ * `themeId` stays unused for now. Revisit together if themes ever need to be
+ * shared across templates.
+ */
+export interface Theme {
+	headingFont: string;
+	bodyFont: string;
+	/** Accent color — headings, by default. */
+	primaryColor: string;
+	textColor: string;
+	pageBackgroundColor: string;
+	/** px gap between blocks with no margin of their own. */
+	baseSpacing: number;
+}
+
 export interface TemplateSettings {
 	pageSize: 'LETTER' | 'A4';
 	orientation: 'portrait' | 'landscape';
@@ -344,6 +365,7 @@ export interface TemplateSettings {
 	header?: Block[];
 	footer?: Block[];
 	showPageNumbers: boolean;
+	theme: Theme;
 }
 
 // ─── Template: the Data Store row vs. the Stratus body ───────────────────────

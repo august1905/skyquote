@@ -1,8 +1,19 @@
-import type { ColumnsBlock, ImageBlock, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
+import type { ColumnsBlock, ImageBlock, TableBlock, TableCell, TemplateBody, TemplateSettings, TextBlock, VideoBlock } from '../types';
+import { defaultTheme } from './themeCommands';
 
 // Shared across command/store tests. Not a .test.ts file itself — vitest's
 // include glob (src/**/*.test.ts) skips it, so it can export plain helpers
 // without also being collected as a (empty) test suite.
+
+function makeSettings(): TemplateSettings {
+	return {
+		pageSize: 'LETTER',
+		orientation: 'portrait',
+		margins: { top: 0, right: 0, bottom: 0, left: 0 },
+		showPageNumbers: false,
+		theme: defaultTheme(),
+	};
+}
 
 export function makeTextBlock(id: string, text = ''): TextBlock {
 	return {
@@ -43,12 +54,7 @@ export function makeBody(): TemplateBody {
 		],
 		roles: [],
 		variables: [],
-		settings: {
-			pageSize: 'LETTER',
-			orientation: 'portrait',
-			margins: { top: 0, right: 0, bottom: 0, left: 0 },
-			showPageNumbers: false,
-		},
+		settings: makeSettings(),
 	};
 }
 
@@ -92,12 +98,7 @@ export function makeBodyWithTable(): TemplateBody {
 		],
 		roles: [],
 		variables: [],
-		settings: {
-			pageSize: 'LETTER',
-			orientation: 'portrait',
-			margins: { top: 0, right: 0, bottom: 0, left: 0 },
-			showPageNumbers: false,
-		},
+		settings: makeSettings(),
 	};
 }
 
@@ -130,12 +131,7 @@ export function makeBodyWithImage(): TemplateBody {
 		],
 		roles: [],
 		variables: [],
-		settings: {
-			pageSize: 'LETTER',
-			orientation: 'portrait',
-			margins: { top: 0, right: 0, bottom: 0, left: 0 },
-			showPageNumbers: false,
-		},
+		settings: makeSettings(),
 	};
 }
 
@@ -166,12 +162,7 @@ export function makeBodyWithVideo(): TemplateBody {
 		],
 		roles: [],
 		variables: [],
-		settings: {
-			pageSize: 'LETTER',
-			orientation: 'portrait',
-			margins: { top: 0, right: 0, bottom: 0, left: 0 },
-			showPageNumbers: false,
-		},
+		settings: makeSettings(),
 	};
 }
 
@@ -193,11 +184,6 @@ export function makeBodyWithColumns(): TemplateBody {
 		],
 		roles: [],
 		variables: [],
-		settings: {
-			pageSize: 'LETTER',
-			orientation: 'portrait',
-			margins: { top: 0, right: 0, bottom: 0, left: 0 },
-			showPageNumbers: false,
-		},
+		settings: makeSettings(),
 	};
 }

@@ -1,0 +1,90 @@
+.right-rail-wrapper {
+	display: flex;
+	height: 100%;
+	border-left: 1px solid #e2e2e2;
+	flex-shrink: 0;
+}
+
+.right-rail {
+	display: flex;
+	flex-direction: column;
+	width: 44px;
+	padding-top: 8px;
+	gap: 4px;
+	background: #fafafa;
+}
+
+.right-rail-icon {
+	width: 36px;
+	height: 36px;
+	margin: 0 4px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	font-size: 1.1rem;
+	cursor: pointer;
+}
+
+.right-rail-icon:hover {
+	background: #ececec;
+}
+
+.right-rail-icon-active {
+	background: #dbe6ff;
+}
+
+.theme-panel {
+	width: 260px;
+	padding: 12px;
+	border-right: 1px solid #e2e2e2;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	overflow-y: auto;
+}
+
+.theme-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.theme-panel-header h2 {
+	font-size: 0.95rem;
+	margin: 0;
+}
+
+.theme-panel-header button {
+	border: none;
+	background: transparent;
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+	color: #777;
+}
+
+.theme-panel-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 0.85rem;
+}
+
+.theme-panel-row span {
+	color: #555;
+}
+
+.theme-panel-row input[type='text'] {
+	width: 130px;
+	padding: 4px 6px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+}
+
+.theme-panel-row input[type='number'] {
+	width: 60px;
+	padding: 4px 6px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+}

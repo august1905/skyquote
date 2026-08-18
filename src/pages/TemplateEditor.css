@@ -4,6 +4,17 @@
 	height: 100%;
 }
 
+.template-editor-body {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.template-editor-canvas-area {
+	flex: 1;
+	overflow-y: auto;
+}
+
 .template-editor-header {
 	display: flex;
 	align-items: center;

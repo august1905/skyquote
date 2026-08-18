@@ -44,6 +44,21 @@ describe('loadTemplate', () => {
 		expect(state.undoStack).toHaveLength(0);
 		expect(state.redoStack).toHaveLength(0);
 	});
+
+	it('backfills a default theme for a body written before Theme existed, without touching one that already has it', () => {
+		const bodyWithoutTheme = makeBody();
+		// @ts-expect-error — simulating a real pre-existing Stratus body that
+		// predates this field; TS itself would never let new code omit it.
+		delete bodyWithoutTheme.settings.theme;
+
+		useEditorStore.getState().loadTemplate(makeMeta(), bodyWithoutTheme);
+		expect(useEditorStore.getState().body?.settings.theme).toBeDefined();
+
+		const bodyWithCustomTheme = makeBody();
+		bodyWithCustomTheme.settings.theme = { ...bodyWithCustomTheme.settings.theme, primaryColor: '#123456' };
+		useEditorStore.getState().loadTemplate(makeMeta(), bodyWithCustomTheme);
+		expect(useEditorStore.getState().body?.settings.theme.primaryColor).toBe('#123456');
+	});
 });
 
 describe('runCommand / undo / redo', () => {

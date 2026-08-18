@@ -4,6 +4,7 @@ import { getTemplate } from '../api/templates';
 import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
 import { useAutosave, type AutosaveStatus } from '../editor/autosave/useAutosave';
 import { useEditorStore } from '../editor/store/editorStore';
+import { RightRail } from '../editor/rightrail/RightRail';
 import AppShell from '../components/AppShell';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './TemplateEditor.css';
@@ -101,7 +102,12 @@ function TemplateEditor() {
 						</button>
 					</div>
 				)}
-				<TemplateCanvas />
+				<div className="template-editor-body">
+					<div className="template-editor-canvas-area">
+						<TemplateCanvas />
+					</div>
+					<RightRail />
+				</div>
 			</div>
 		</AppShell>
 	);

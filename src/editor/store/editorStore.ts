@@ -2,6 +2,22 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { BlockId, PageId, TemplateBody, TemplateMeta } from '../types';
 import type { Command } from '../commands/types';
+import { defaultTheme } from '../commands/themeCommands';
+
+/**
+ * Backfills fields that didn't exist when a template's Stratus body was
+ * written — currently just `settings.theme` (added after several real
+ * templates already existed without it). `getTemplate`'s response is
+ * trusted as `TemplateBody`-shaped without runtime validation the same way
+ * the rest of this app trusts its API responses; this is the one place that
+ * guarantee could actually be false for an existing document, so it's
+ * checked here rather than making every theme-reading component handle a
+ * possibly-missing value.
+ */
+function normalizeBody(body: TemplateBody): TemplateBody {
+	if (body.settings.theme) return body;
+	return { ...body, settings: { ...body.settings, theme: defaultTheme() } };
+}
 
 // Spec §9.1.
 const MAX_UNDO_DEPTH = 100;
@@ -72,7 +88,7 @@ export const useEditorStore = create<EditorState>()(
 		loadTemplate: (meta, body) =>
 			set((state) => {
 				state.meta = meta;
-				state.body = body;
+				state.body = normalizeBody(body);
 				state.selection = null;
 				state.dirty = false;
 				state.undoStack = [];
