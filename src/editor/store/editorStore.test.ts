@@ -33,7 +33,7 @@ beforeEach(() => {
 
 describe('loadTemplate', () => {
 	it('resets selection, dirty, and both stacks', () => {
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 		expect(useEditorStore.getState().undoStack).toHaveLength(1);
 
 		useEditorStore.getState().loadTemplate(makeMeta(), makeBody());
@@ -48,7 +48,7 @@ describe('loadTemplate', () => {
 
 describe('runCommand / undo / redo', () => {
 	it('runs a command, marks dirty, and pushes exactly one undo entry', () => {
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 
 		const state = useEditorStore.getState();
 		expect(state.dirty).toBe(true);
@@ -58,7 +58,7 @@ describe('runCommand / undo / redo', () => {
 
 	it('undo restores the prior state and moves the command to redoStack', () => {
 		const before = useEditorStore.getState().body;
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 
 		useEditorStore.getState().undo();
 
@@ -69,7 +69,7 @@ describe('runCommand / undo / redo', () => {
 	});
 
 	it('redo re-applies the command and moves it back to undoStack', () => {
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 		const afterRun = useEditorStore.getState().body;
 		useEditorStore.getState().undo();
 
@@ -82,11 +82,11 @@ describe('runCommand / undo / redo', () => {
 	});
 
 	it('a new command after undo clears the redo stack — redo only makes sense with nothing done since', () => {
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 		useEditorStore.getState().undo();
 		expect(useEditorStore.getState().redoStack).toHaveLength(1);
 
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('y')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('y')));
 
 		expect(useEditorStore.getState().redoStack).toHaveLength(0);
 	});
@@ -121,7 +121,7 @@ describe('runCommand / undo / redo', () => {
 
 describe('editSeq', () => {
 	it('increments on runCommand, undo, and redo — including coalesced commands', () => {
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 		expect(useEditorStore.getState().editSeq).toBe(1);
 
 		useEditorStore.getState().runCommand(renamePage('page-1', 'a'), { coalesceKey: 'name' });
@@ -136,7 +136,7 @@ describe('editSeq', () => {
 	});
 
 	it('resets to 0 on loadTemplate', () => {
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 		useEditorStore.getState().loadTemplate(makeMeta(), makeBody());
 		expect(useEditorStore.getState().editSeq).toBe(0);
 	});
@@ -144,7 +144,7 @@ describe('editSeq', () => {
 
 describe('advanceSavedMeta', () => {
 	it('updates meta but leaves dirty untouched, unlike markSaved', () => {
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')));
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')));
 		expect(useEditorStore.getState().dirty).toBe(true);
 
 		useEditorStore.getState().advanceSavedMeta(makeMeta({ version: 2 }));
@@ -202,7 +202,7 @@ describe('coalescing', () => {
 		vi.setSystemTime(0);
 
 		useEditorStore.getState().runCommand(renamePage('page-1', 'A'), { coalesceKey: 'name' });
-		useEditorStore.getState().runCommand(insertBlock('page-1', 0, makeTextBlock('x')), { coalesceKey: 'insert' });
+		useEditorStore.getState().runCommand(insertBlock({ pageId: 'page-1' }, 0, makeTextBlock('x')), { coalesceKey: 'insert' });
 
 		expect(useEditorStore.getState().undoStack).toHaveLength(2);
 	});

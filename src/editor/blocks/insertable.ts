@@ -1,5 +1,6 @@
 import type { Block, BlockType } from '../types';
-import { createBlankTextBlock, createPageBreakBlock } from '../commands';
+import { createBlankTextBlock, createColumnsBlock, createPageBreakBlock } from '../commands';
+import { isContainerBlockType } from '../commands/blockTree';
 
 export interface InsertableBlockKind {
 	type: BlockType;
@@ -18,4 +19,15 @@ export interface InsertableBlockKind {
 export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'text', label: 'Text', create: createBlankTextBlock },
 	{ type: 'page_break', label: 'Page break', create: createPageBreakBlock },
+	{ type: 'columns', label: 'Columns (2)', create: () => createColumnsBlock(2) },
 ];
+
+/**
+ * Same list, minus anything that would nest a container inside a container —
+ * for the "+ Add block" menu rendered *inside* a column. `insertBlock`
+ * already throws on this (§4.4 caps nesting at depth 2), so this is a UX
+ * nicety on top of a real enforced boundary, not the boundary itself.
+ */
+export const COLUMN_INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = INSERTABLE_BLOCK_KINDS.filter(
+	(kind) => !isContainerBlockType(kind.type)
+);

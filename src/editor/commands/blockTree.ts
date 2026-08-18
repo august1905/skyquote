@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, Page, PageBreakBlock, PageId, TemplateBody, TextBlock } from '../types';
+import type { Block, BlockId, BlockType, ColumnsBlock, Page, PageBreakBlock, PageId, TemplateBody, TextBlock } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -14,23 +14,105 @@ export function findPage(body: Draft<TemplateBody>, pageId: PageId): Draft<Page>
 	return page;
 }
 
-export function findBlockIndex(page: Draft<Page>, blockId: BlockId): number {
-	const index = page.blocks.findIndex((b) => b.id === blockId);
-	if (index === -1) throw new Error(`findBlockIndex: no block with id ${blockId} on page ${page.id}`);
-	return index;
-}
-
 /**
- * Reads `page.blocks[index]` with a real runtime check rather than an `as`
+ * Reads `blocks[index]` with a real runtime check rather than an `as`
  * assertion — `noUncheckedIndexedAccess` types every array index as possibly
  * `undefined`, and the point of that flag (see PROJECT_CONTEXT.md) is to
  * force this check to actually happen, not to be cast away because the
- * caller "knows" the index came from findBlockIndex.
+ * caller "knows" the index is valid.
  */
-export function blockAt(page: Draft<Page>, index: number): Draft<Block> {
-	const block = page.blocks[index];
-	if (!block) throw new Error(`blockAt: no block at index ${index} on page ${page.id}`);
+export function blockAt(blocks: Draft<Block>[], index: number): Draft<Block> {
+	const block = blocks[index];
+	if (!block) throw new Error(`blockAt: no block at index ${index}`);
 	return block;
+}
+
+/**
+ * Block types that hold their own nested block arrays. `columns` is the only
+ * one that actually exists yet — `smart_content` (§4.4 also caps its nesting
+ * at depth 2) isn't built, so there's nothing real to recurse into there.
+ * Extend {@link locateBlock}/{@link resolveContainerBlocks}/
+ * {@link containerBlocksOf}/`cloneBlockWithNewIds`'s `reassignIds` together
+ * when it lands.
+ */
+const CONTAINER_BLOCK_TYPES: BlockType[] = ['columns'];
+
+export function isContainerBlockType(type: BlockType): boolean {
+	return CONTAINER_BLOCK_TYPES.includes(type);
+}
+
+/**
+ * Addresses either a page's own top-level blocks, or one column of a
+ * `ColumnsBlock` on that page. §4.4 caps nesting at depth 2, so a column's
+ * contents are never themselves addressed via a `parent` — there's only ever
+ * one level of `parent` here, never a chain of them.
+ */
+export interface BlockContainer {
+	pageId: PageId;
+	parent?: { columnsBlockId: BlockId; column: number };
+}
+
+/**
+ * Resolves a `BlockContainer` to the actual mutable array it names, inside an
+ * Immer draft — used by every command that inserts into or moves blocks
+ * between containers.
+ */
+export function resolveContainerBlocks(draft: Draft<TemplateBody>, container: BlockContainer): Draft<Block>[] {
+	const page = findPage(draft, container.pageId);
+	if (!container.parent) return page.blocks;
+	const parentIndex = page.blocks.findIndex((b) => b.id === container.parent!.columnsBlockId);
+	const parentBlock = parentIndex === -1 ? undefined : page.blocks[parentIndex];
+	if (!parentBlock || parentBlock.type !== 'columns') {
+		throw new Error(`resolveContainerBlocks: no columns block with id ${container.parent.columnsBlockId} on page ${container.pageId}`);
+	}
+	const column = parentBlock.columns[container.parent.column];
+	if (!column) {
+		throw new Error(`resolveContainerBlocks: column ${container.parent.column} out of range on columns block ${container.parent.columnsBlockId}`);
+	}
+	return column;
+}
+
+/**
+ * The read-only counterpart to {@link resolveContainerBlocks}, operating on
+ * plain (non-draft) template state — for call sites like the canvas's drag
+ * handler that only need to look something up, never mutate it.
+ */
+export function containerBlocksOf(pages: Page[], container: BlockContainer): Block[] | undefined {
+	const page = pages.find((p) => p.id === container.pageId);
+	if (!page) return undefined;
+	if (!container.parent) return page.blocks;
+	const parentBlock = page.blocks.find((b) => b.id === container.parent!.columnsBlockId);
+	if (!parentBlock || parentBlock.type !== 'columns') return undefined;
+	return parentBlock.columns[container.parent.column];
+}
+
+/**
+ * Finds a block anywhere on a page — its top-level `blocks`, or inside any
+ * column of any top-level `ColumnsBlock` — and reports which `BlockContainer`
+ * it lives in alongside the mutable array and index, so callers (delete,
+ * duplicate, setBlockDoc, move) don't need to know in advance whether the id
+ * they were given is nested or not.
+ */
+export function locateBlock(
+	page: Draft<Page>,
+	blockId: BlockId
+): { container: BlockContainer; blocks: Draft<Block>[]; index: number } {
+	const topIndex = page.blocks.findIndex((b) => b.id === blockId);
+	if (topIndex !== -1) {
+		return { container: { pageId: page.id }, blocks: page.blocks, index: topIndex };
+	}
+	for (const block of page.blocks) {
+		if (block.type !== 'columns') continue;
+		for (let column = 0; column < block.columns.length; column++) {
+			const columnBlocks = block.columns[column];
+			if (!columnBlocks) continue;
+			const index = columnBlocks.findIndex((b) => b.id === blockId);
+			if (index !== -1) {
+				return { container: { pageId: page.id, parent: { columnsBlockId: block.id, column } }, blocks: columnBlocks, index };
+			}
+		}
+	}
+	throw new Error(`locateBlock: no block with id ${blockId} on page ${page.id}`);
 }
 
 export function pageAt(body: Draft<TemplateBody>, index: number): Draft<Page> {
@@ -61,7 +143,7 @@ export function snapshot<T>(draftValue: Draft<T>): T {
 }
 
 export function cloneBlockWithNewIds(block: Block): Block {
-	// Deep clone via structuredClone first so mutating the id below can't
+	// Deep clone via structuredClone first so mutating ids below can't
 	// accidentally alias the source block's nested objects (style, doc, etc.)
 	// — relevant for duplicateBlock, whose source block may itself still be
 	// live in the draft.
@@ -70,8 +152,27 @@ export function cloneBlockWithNewIds(block: Block): Block {
 	// suffix to stay unique) isn't handled here — phase 1 has no FieldBlock
 	// content yet. Revisit when field duplication is actually exercised.
 	const cloned = structuredClone(block);
-	cloned.id = crypto.randomUUID();
+	reassignIds(cloned);
 	return cloned;
+}
+
+/**
+ * Reassigns ids through the whole subtree, not just the top block. Every
+ * block id must be unique across the *entire* document (`locateBlock`
+ * searches by id alone, with no notion of "search only inside this specific
+ * columns block") — cloning a `ColumnsBlock` without re-idding the blocks
+ * nested in its columns would leave two different top-level blocks each
+ * containing a child with the same id, and `locateBlock` would always resolve
+ * that id to whichever one it finds first, silently making the other
+ * permanently unreachable.
+ */
+function reassignIds(block: Block): void {
+	block.id = crypto.randomUUID();
+	if (block.type === 'columns') {
+		for (const column of block.columns) {
+			for (const child of column) reassignIds(child);
+		}
+	}
 }
 
 export function findPageIndex(body: Draft<TemplateBody>, pageId: PageId): number {
@@ -104,6 +205,18 @@ export function createBlankTextBlock(): TextBlock {
 
 export function createPageBreakBlock(): PageBreakBlock {
 	return { id: crypto.randomUUID(), type: 'page_break', locked: false, style: {} };
+}
+
+/** Equal-width columns, each seeded with one blank text block (§4.5: 2–4 columns). */
+export function createColumnsBlock(columnCount: 2 | 3 | 4 = 2): ColumnsBlock {
+	return {
+		id: crypto.randomUUID(),
+		type: 'columns',
+		locked: false,
+		style: {},
+		widths: Array.from({ length: columnCount }, () => 1 / columnCount),
+		columns: Array.from({ length: columnCount }, () => [createBlankTextBlock()]),
+	};
 }
 
 export function createBlankPage(name: string): Page {

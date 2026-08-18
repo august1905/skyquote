@@ -3,6 +3,7 @@ import type { Block, BlockType } from '../types';
 import type { BlockRegistryEntry, BlockViewProps } from './types';
 import { TextBlockView } from './TextBlockView';
 import { PageBreakBlockView } from './PageBreakBlockView';
+import { ColumnsBlockView } from './ColumnsBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 
 // UnsupportedBlockView only ever reads `block.type`, which every Block union
@@ -29,7 +30,7 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	toc: unsupported('Table of contents'),
 	page_break: { label: 'Page break', View: PageBreakBlockView },
 	smart_content: unsupported('Smart content'),
-	columns: unsupported('Columns'),
+	columns: { label: 'Columns', View: ColumnsBlockView },
 	field: unsupported('Field'),
 };
 

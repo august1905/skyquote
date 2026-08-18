@@ -1,9 +1,10 @@
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
-import type { RichTextDoc } from '../types';
+import type { ColumnsBlock, RichTextDoc } from '../types';
 import type { Command } from './types';
 import { deleteBlock, duplicateBlock, insertBlock, moveBlock, setBlockDoc } from './blockCommands';
-import { makeBody, makeTextBlock } from './testFixtures';
+import { createColumnsBlock } from './blockTree';
+import { makeBody, makeBodyWithColumns, makeTextBlock } from './testFixtures';
 
 // Every test below applies a command and its inverse in two SEPARATE
 // produce() calls — matching how the real editor store uses them (each
@@ -20,7 +21,7 @@ describe('insertBlock / deleteBlock', () => {
 		let inverse!: Command;
 
 		const afterInsert = produce(original, (draft) => {
-			inverse = insertBlock('page-1', 1, newBlock).apply(draft);
+			inverse = insertBlock({ pageId: 'page-1' }, 1, newBlock).apply(draft);
 		});
 
 		expect(afterInsert.pages[0]?.blocks.map((b) => b.id)).toEqual(['block-1', 'block-new', 'block-2']);
@@ -150,7 +151,7 @@ describe('moveBlock', () => {
 		let inverse!: Command;
 
 		const afterMove = produce(original, (draft) => {
-			inverse = moveBlock('page-1', 'block-1', 'page-1', 1).apply(draft);
+			inverse = moveBlock('page-1', 'block-1', { pageId: 'page-1' }, 1).apply(draft);
 		});
 		expect(afterMove.pages[0]?.blocks.map((b) => b.id)).toEqual(['block-2', 'block-1']);
 
@@ -165,7 +166,7 @@ describe('moveBlock', () => {
 		let inverse!: Command;
 
 		const afterMove = produce(original, (draft) => {
-			inverse = moveBlock('page-1', 'block-2', 'page-2', 0).apply(draft);
+			inverse = moveBlock('page-1', 'block-2', { pageId: 'page-2' }, 0).apply(draft);
 		});
 		expect(afterMove.pages[0]?.blocks.map((b) => b.id)).toEqual(['block-1']);
 		expect(afterMove.pages[1]?.blocks.map((b) => b.id)).toEqual(['block-2', 'block-3']);
@@ -174,5 +175,140 @@ describe('moveBlock', () => {
 			inverse.apply(draft);
 		});
 		expect(afterUndo).toEqual(original);
+	});
+});
+
+// These exercise the generalized addressing that makes a ColumnsBlock's
+// nested children reachable through the exact same commands top-level
+// blocks use — no per-block-type branching anywhere in blockCommands.ts.
+describe('nested blocks (Columns)', () => {
+	it('insertBlock places a block inside a specific column; its inverse removes exactly that', () => {
+		const original = makeBodyWithColumns();
+		const newBlock = makeTextBlock('block-new', 'inserted');
+		let inverse!: Command;
+
+		const container = { pageId: 'page-1', parent: { columnsBlockId: 'columns-1', column: 0 } };
+		const afterInsert = produce(original, (draft) => {
+			inverse = insertBlock(container, 1, newBlock).apply(draft);
+		});
+
+		const columnsBlock = afterInsert.pages[0]?.blocks[0] as ColumnsBlock;
+		expect(columnsBlock.columns[0]?.map((b) => b.id)).toEqual(['col0-block-1', 'block-new']);
+		expect(columnsBlock.columns[1]?.map((b) => b.id)).toEqual(['col1-block-1']);
+
+		const afterUndo = produce(afterInsert, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(afterUndo).toEqual(original);
+	});
+
+	it('deleteBlock/duplicateBlock/setBlockDoc find a block nested in a column by id alone, same as a top-level block', () => {
+		const original = makeBodyWithColumns();
+
+		const afterEdit = produce(original, (draft) => {
+			setBlockDoc('page-1', 'col1-block-1', { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'edited' }] }] }).apply(
+				draft
+			);
+		});
+		const editedColumns = afterEdit.pages[0]?.blocks[0] as ColumnsBlock;
+		const editedBlock = editedColumns.columns[1]?.[0];
+		if (editedBlock?.type !== 'text') throw new Error('expected a text block');
+		expect(editedBlock.doc.content[0]?.content?.[0]?.text).toBe('edited');
+		// The other column is untouched.
+		expect(editedColumns.columns[0]).toEqual(original.pages[0]?.blocks[0] && (original.pages[0].blocks[0] as ColumnsBlock).columns[0]);
+
+		let duplicateInverse!: Command;
+		const afterDuplicate = produce(original, (draft) => {
+			duplicateInverse = duplicateBlock('page-1', 'col0-block-1').apply(draft);
+		});
+		const dupedColumns = afterDuplicate.pages[0]?.blocks[0] as ColumnsBlock;
+		expect(dupedColumns.columns[0]?.map((b) => b.id)).toEqual(['col0-block-1', expect.stringMatching(/.+/)]);
+		expect(dupedColumns.columns[0]?.[1]?.id).not.toBe('col0-block-1');
+		const afterDuplicateUndo = produce(afterDuplicate, (draft) => {
+			duplicateInverse.apply(draft);
+		});
+		expect(afterDuplicateUndo).toEqual(original);
+
+		let deleteInverse!: Command;
+		const afterDelete = produce(original, (draft) => {
+			deleteInverse = deleteBlock('page-1', 'col0-block-1').apply(draft);
+		});
+		const afterDeleteColumns = afterDelete.pages[0]?.blocks[0] as ColumnsBlock;
+		expect(afterDeleteColumns.columns[0]).toEqual([]);
+		const afterDeleteUndo = produce(afterDelete, (draft) => {
+			deleteInverse.apply(draft);
+		});
+		expect(afterDeleteUndo).toEqual(original);
+	});
+
+	it('moveBlock reorders within the same column', () => {
+		const original = produce(makeBodyWithColumns(), (draft) => {
+			const columnsBlock = draft.pages[0]?.blocks[0] as ColumnsBlock;
+			columnsBlock.columns[0]?.push(makeTextBlock('col0-block-2', 'left-2'));
+		});
+		let inverse!: Command;
+
+		const toContainer = { pageId: 'page-1', parent: { columnsBlockId: 'columns-1', column: 0 } };
+		const afterMove = produce(original, (draft) => {
+			inverse = moveBlock('page-1', 'col0-block-1', toContainer, 1).apply(draft);
+		});
+		const movedColumns = afterMove.pages[0]?.blocks[0] as ColumnsBlock;
+		expect(movedColumns.columns[0]?.map((b) => b.id)).toEqual(['col0-block-2', 'col0-block-1']);
+
+		const afterUndo = produce(afterMove, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(afterUndo).toEqual(original);
+	});
+
+	it('insertBlock rejects placing a columns block inside a column — §4.4 caps nesting at depth 2', () => {
+		const original = makeBodyWithColumns();
+		const container = { pageId: 'page-1', parent: { columnsBlockId: 'columns-1', column: 0 } };
+
+		expect(() =>
+			produce(original, (draft) => {
+				insertBlock(container, 0, createColumnsBlock(2)).apply(draft);
+			})
+		).toThrow(/cannot place a columns block inside a column/);
+	});
+
+	it('moveBlock rejects moving a columns block into a column — §4.4 caps nesting at depth 2', () => {
+		const original = produce(makeBodyWithColumns(), (draft) => {
+			draft.pages[0]?.blocks.push(createColumnsBlock(2));
+		});
+		const nestedColumnsId = (original.pages[0]?.blocks[1] as ColumnsBlock).id;
+		const toContainer = { pageId: 'page-1', parent: { columnsBlockId: 'columns-1', column: 0 } };
+
+		expect(() =>
+			produce(original, (draft) => {
+				moveBlock('page-1', nestedColumnsId, toContainer, 0).apply(draft);
+			})
+		).toThrow(/cannot place a columns block inside a column/);
+	});
+
+	it('duplicating a ColumnsBlock reassigns ids through its nested children too, so both copies stay independently addressable', () => {
+		const original = makeBodyWithColumns();
+
+		const afterDuplicate = produce(original, (draft) => {
+			duplicateBlock('page-1', 'columns-1').apply(draft);
+		});
+		const [sourceColumns, clonedColumns] = afterDuplicate.pages[0]?.blocks as [ColumnsBlock, ColumnsBlock];
+		const sourceChildIds = sourceColumns.columns.flat().map((b) => b.id);
+		const clonedChildIds = clonedColumns.columns.flat().map((b) => b.id);
+
+		// No id collisions between the two copies' nested children.
+		expect(new Set([...sourceChildIds, ...clonedChildIds]).size).toBe(sourceChildIds.length + clonedChildIds.length);
+
+		// Editing a nested block in the clone doesn't touch the source's —
+		// this is exactly what would break if the clone still shared ids.
+		const clonedFirstChildId = clonedColumns.columns[0]?.[0]?.id;
+		if (!clonedFirstChildId) throw new Error('expected a cloned child block');
+		const afterEdit = produce(afterDuplicate, (draft) => {
+			setBlockDoc('page-1', clonedFirstChildId, { type: 'doc', content: [] }).apply(draft);
+		});
+		const stillSourceColumns = afterEdit.pages[0]?.blocks[0] as ColumnsBlock;
+		const untouchedChild = stillSourceColumns.columns[0]?.[0];
+		if (untouchedChild?.type !== 'text') throw new Error('expected a text block');
+		expect(untouchedChild.doc.content).not.toEqual([]);
 	});
 });

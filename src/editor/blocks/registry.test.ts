@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { allBlockTypes, blockTypeLabel, getBlockRegistryEntry } from './registry';
 import { TextBlockView } from './TextBlockView';
 import { PageBreakBlockView } from './PageBreakBlockView';
+import { ColumnsBlockView } from './ColumnsBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 import type { BlockType } from '../types';
 
@@ -25,6 +26,7 @@ const ALL_BLOCK_TYPES: BlockType[] = [
 const REAL_VIEWS: Record<string, unknown> = {
 	text: TextBlockView,
 	page_break: PageBreakBlockView,
+	columns: ColumnsBlockView,
 };
 
 describe('allBlockTypes', () => {

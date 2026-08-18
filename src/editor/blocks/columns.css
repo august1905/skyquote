@@ -1,0 +1,21 @@
+.block-columns {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+}
+
+.block-column {
+	min-width: 0;
+	min-height: 48px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 4px;
+	border: 1px dashed #e5e5e5;
+	border-radius: 4px;
+}
+
+.block-column .canvas-add-block-menu {
+	align-self: stretch;
+	margin-top: 4px;
+}
