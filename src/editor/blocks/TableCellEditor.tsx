@@ -15,6 +15,8 @@ interface TableCellEditorProps {
 	doc: RichTextDoc;
 	onChange: (doc: RichTextDoc) => void;
 	onBlur: () => void;
+	/** §4.3: a locked table's cells are non-editable too — the whole block locks, not individual cells. */
+	locked: boolean;
 }
 
 /**
@@ -24,10 +26,11 @@ interface TableCellEditorProps {
  * columns); not load-tested for a large spreadsheet-sized table — see
  * BUILD_STATUS.md.
  */
-export function TableCellEditor({ doc, onChange, onBlur }: TableCellEditorProps) {
+export function TableCellEditor({ doc, onChange, onBlur, locked }: TableCellEditorProps) {
 	const editor = useEditor({
 		extensions: [StarterKit.configure({ undoRedo: false })],
 		content: toJSONContent(doc),
+		editable: !locked,
 		onUpdate: ({ editor: e }) => onChange(toRichTextDoc(e.getJSON())),
 		onBlur,
 	});
@@ -43,6 +46,12 @@ export function TableCellEditor({ doc, onChange, onBlur }: TableCellEditorProps)
 			editor.commands.setContent(toJSONContent(doc), { emitUpdate: false });
 		}
 	}, [editor, doc]);
+
+	// See TextBlockView's identical effect for why `editable` needs its own
+	// effect rather than relying on the option above alone.
+	useEffect(() => {
+		editor?.setEditable(!locked);
+	}, [editor, locked]);
 
 	return <EditorContent editor={editor} className="block-table-cell" />;
 }

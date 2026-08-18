@@ -30,6 +30,12 @@ export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
 			StarterKit.configure({ undoRedo: false }),
 		],
 		content: toJSONContent(block.doc),
+		// §4.3: "Locked blocks are non-editable." Enforced here rather than
+		// only in the command layer — `editable: false` blocks ProseMirror's
+		// own contenteditable input at the source, not just the resulting
+		// setBlockDoc call (which has no locked check itself; content editing
+		// isn't gated by a command-layer throw the way delete/move are).
+		editable: !block.locked,
 		onUpdate: ({ editor: e }) => {
 			runCommand(setBlockDoc(pageId, block.id, toRichTextDoc(e.getJSON())), { coalesceKey: block.id });
 		},
@@ -48,6 +54,13 @@ export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
 			editor.commands.setContent(toJSONContent(block.doc), { emitUpdate: false });
 		}
 	}, [editor, block.doc]);
+
+	// `useEditor`'s `editable` option only takes effect at creation — toggling
+	// Lock on an already-mounted block wouldn't otherwise update a live
+	// editor's contenteditable state until it happened to remount.
+	useEffect(() => {
+		editor?.setEditable(!block.locked);
+	}, [editor, block.locked]);
 
 	return <EditorContent editor={editor} className="block-text" />;
 }

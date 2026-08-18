@@ -65,7 +65,7 @@ export function ImageBlockView({ pageId, block, selected }: BlockViewProps<Image
 				className={`block-image${isCircle ? ' block-image-circle' : ''}`}
 				style={{ width: frameWidth, height: frameHeight }}
 			/>
-			{selected && (
+			{selected && !block.locked && (
 				<button
 					type="button"
 					className="block-image-resize-handle"
@@ -80,6 +80,7 @@ export function ImageBlockView({ pageId, block, selected }: BlockViewProps<Image
 						className="block-image-alt-input"
 						placeholder="Alt text (required)"
 						value={block.alt}
+						disabled={block.locked}
 						onChange={(e) => runCommand(setImageAlt(pageId, block.id, e.target.value), { coalesceKey: `alt-${block.id}` })}
 						onBlur={endCoalescing}
 					/>
@@ -87,6 +88,7 @@ export function ImageBlockView({ pageId, block, selected }: BlockViewProps<Image
 						<input
 							type="checkbox"
 							checked={isCircle}
+							disabled={block.locked}
 							onChange={(e) => runCommand(setImageShape(pageId, block.id, e.target.checked ? 'circle' : 'rect'))}
 						/>
 						Circle

@@ -1,5 +1,5 @@
 import type { Draft } from 'immer';
-import type { Block, BlockId, PageId, RichTextDoc, TemplateBody } from '../types';
+import type { Block, BlockId, BlockStyle, PageId, RichTextDoc, TemplateBody } from '../types';
 import type { Command } from './types';
 import {
 	blockAt,
@@ -37,10 +37,17 @@ export function deleteBlock(pageId: PageId, blockId: BlockId): Command {
 		apply(draft: Draft<TemplateBody>) {
 			const page = findPage(draft, pageId);
 			const { container, blocks, index } = locateBlock(page, blockId);
+			const target = blockAt(blocks, index);
+			// §4.3: "Locked blocks are non-editable, non-draggable, non-
+			// deletable." Enforced here, not just by disabling the Delete
+			// button — see moveBlock's identical reasoning below.
+			if (target.locked) {
+				throw new Error(`deleteBlock: block ${blockId} is locked`);
+			}
 			// Read before mutating: snapshot() detaches this from the draft so
 			// insertBlock's closure below can safely outlive this producer run —
 			// see blockTree.ts's comment on snapshot() for why that matters.
-			const removed = snapshot<Block>(blockAt(blocks, index));
+			const removed = snapshot<Block>(target);
 			blocks.splice(index, 1);
 			return insertBlock(container, index, removed);
 		},
@@ -111,6 +118,13 @@ export function moveBlock(fromPageId: PageId, blockId: BlockId, toContainer: Blo
 			const { container: fromContainer, blocks: fromBlocks, index: fromIndex } = locateBlock(fromPage, blockId);
 			const moved = snapshot<Block>(blockAt(fromBlocks, fromIndex));
 
+			// §4.3: "Locked blocks are non-editable, non-draggable, non-
+			// deletable." The canvas also disables the drag handle itself (see
+			// SortableBlock) so this is defense-in-depth, not the only guard —
+			// same two-layer pattern as the nesting-depth check just below.
+			if (moved.locked) {
+				throw new Error(`moveBlock: block ${blockId} is locked`);
+			}
 			if (toContainer.parent && isContainerBlockType(moved.type)) {
 				throw new Error(`moveBlock: cannot place a ${moved.type} block inside a column — §4.4 caps nesting depth at 2`);
 			}
@@ -123,6 +137,42 @@ export function moveBlock(fromPageId: PageId, blockId: BlockId, toContainer: Blo
 			// undo stack's invariant guarantees nothing else has touched this
 			// page between this apply and its own undo being popped.
 			return moveBlock(toContainer.pageId, blockId, fromContainer, fromIndex);
+		},
+	};
+}
+
+/**
+ * Replaces a block's `style` wholesale, generic over every block type —
+ * `style: BlockStyle` lives on `BlockBase`, so unlike `setBlockDoc` this
+ * needs no type check. Meant to be run through `runCommand` with a
+ * `coalesceKey` of the block's id while a settings-popover text/number input
+ * is being typed into, the same way `renamePage` coalesces per-keystroke
+ * renames — see `BlockSettingsPopover`.
+ */
+export function setBlockStyle(pageId: PageId, blockId: BlockId, style: BlockStyle): Command {
+	return {
+		name: 'setBlockStyle',
+		apply(draft: Draft<TemplateBody>) {
+			const page = findPage(draft, pageId);
+			const { blocks, index } = locateBlock(page, blockId);
+			const block = blockAt(blocks, index);
+			const previousStyle = snapshot<BlockStyle>(block.style);
+			block.style = style;
+			return setBlockStyle(pageId, blockId, previousStyle);
+		},
+	};
+}
+
+/** §4.3's Lock control — toggles `locked`, enforced by `deleteBlock`/`moveBlock` above and by the canvas disabling drag on a locked block. */
+export function toggleBlockLock(pageId: PageId, blockId: BlockId): Command {
+	return {
+		name: 'toggleBlockLock',
+		apply(draft: Draft<TemplateBody>) {
+			const page = findPage(draft, pageId);
+			const { blocks, index } = locateBlock(page, blockId);
+			const block = blockAt(blocks, index);
+			block.locked = !block.locked;
+			return toggleBlockLock(pageId, blockId);
 		},
 	};
 }

@@ -1,8 +1,8 @@
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
-import type { ColumnsBlock, RichTextDoc } from '../types';
+import type { ColumnsBlock, RichTextDoc, TextBlock } from '../types';
 import type { Command } from './types';
-import { deleteBlock, duplicateBlock, insertBlock, moveBlock, setBlockDoc } from './blockCommands';
+import { deleteBlock, duplicateBlock, insertBlock, moveBlock, setBlockDoc, setBlockStyle, toggleBlockLock } from './blockCommands';
 import { createColumnsBlock } from './blockTree';
 import { makeBody, makeBodyWithColumns, makeTextBlock } from './testFixtures';
 
@@ -310,5 +310,75 @@ describe('nested blocks (Columns)', () => {
 		const untouchedChild = stillSourceColumns.columns[0]?.[0];
 		if (untouchedChild?.type !== 'text') throw new Error('expected a text block');
 		expect(untouchedChild.doc.content).not.toEqual([]);
+	});
+});
+
+describe('setBlockStyle', () => {
+	it('replaces style wholesale, generic over any block type; its inverse restores the original', () => {
+		const original = makeBody();
+		let inverse!: Command;
+
+		const afterEdit = produce(original, (draft) => {
+			inverse = setBlockStyle('page-1', 'block-1', { backgroundColor: '#ff0000', width: 0.5 }).apply(draft);
+		});
+		expect(afterEdit.pages[0]?.blocks[0]?.style).toEqual({ backgroundColor: '#ff0000', width: 0.5 });
+
+		const afterUndo = produce(afterEdit, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(afterUndo).toEqual(original);
+	});
+});
+
+describe('toggleBlockLock', () => {
+	it('toggles locked; its inverse toggles it back', () => {
+		const original = makeBody();
+		expect(original.pages[0]?.blocks[0]?.locked).toBe(false);
+		let inverse!: Command;
+
+		const afterLock = produce(original, (draft) => {
+			inverse = toggleBlockLock('page-1', 'block-1').apply(draft);
+		});
+		expect(afterLock.pages[0]?.blocks[0]?.locked).toBe(true);
+
+		const afterUndo = produce(afterLock, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(afterUndo).toEqual(original);
+	});
+});
+
+describe('locked blocks (§4.3: non-draggable, non-deletable)', () => {
+	function lockedBody() {
+		return produce(makeBody(), (draft) => {
+			(draft.pages[0]?.blocks[0] as TextBlock).locked = true;
+		});
+	}
+
+	it('deleteBlock refuses to remove a locked block', () => {
+		const original = lockedBody();
+		expect(() =>
+			produce(original, (draft) => {
+				deleteBlock('page-1', 'block-1').apply(draft);
+			})
+		).toThrow(/block-1 is locked/);
+	});
+
+	it('moveBlock refuses to move a locked block', () => {
+		const original = lockedBody();
+		expect(() =>
+			produce(original, (draft) => {
+				moveBlock('page-1', 'block-1', { pageId: 'page-1' }, 1).apply(draft);
+			})
+		).toThrow(/block-1 is locked/);
+	});
+
+	it('duplicateBlock is still allowed on a locked block (only delete/move are restricted)', () => {
+		const original = lockedBody();
+		const afterDuplicate = produce(original, (draft) => {
+			duplicateBlock('page-1', 'block-1').apply(draft);
+		});
+		expect(afterDuplicate.pages[0]?.blocks).toHaveLength(3);
+		expect(afterDuplicate.pages[0]?.blocks[1]?.locked).toBe(true);
 	});
 });

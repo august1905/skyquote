@@ -45,6 +45,7 @@ export function TableBlockView({ pageId, block, selected }: BlockViewProps<Table
 								<td key={columnIndex}>
 									<TableCellEditor
 										doc={cell.doc}
+										locked={block.locked}
 										onChange={(doc) =>
 											runCommand(setCellDoc(pageId, block.id, rowIndex, columnIndex, doc), {
 												coalesceKey: `${block.id}-${rowIndex}-${columnIndex}`,
@@ -58,7 +59,7 @@ export function TableBlockView({ pageId, block, selected }: BlockViewProps<Table
 					))}
 				</tbody>
 			</table>
-			{selected && (
+			{selected && !block.locked && (
 				<div className="block-table-controls">
 					<button type="button" onClick={stopAnd(() => runCommand(addRow(pageId, block.id, rowCount)))}>
 						+ Row

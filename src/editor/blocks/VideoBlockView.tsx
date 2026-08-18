@@ -63,6 +63,7 @@ export function VideoBlockView({ pageId, block, selected }: BlockViewProps<Video
 						<input
 							type="checkbox"
 							checked={block.autoplay}
+							disabled={block.locked}
 							onChange={(e) => runCommand(setVideoAutoplay(pageId, block.id, e.target.checked))}
 						/>
 						Autoplay
