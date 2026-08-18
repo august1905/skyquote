@@ -6,6 +6,8 @@ import { useAutosave, type AutosaveStatus } from '../editor/autosave/useAutosave
 import { useEditorStore } from '../editor/store/editorStore';
 import { RightRail } from '../editor/rightrail/RightRail';
 import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
+import { HeaderTotal } from '../editor/header/HeaderTotal';
+import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
 import { ValidationIndicator } from '../editor/validation/ValidationIndicator';
 import AppShell from '../components/AppShell';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -85,6 +87,8 @@ function TemplateEditor() {
 				<div className="template-editor-header">
 					<TemplateNameEditor />
 					<div className="template-editor-header-actions">
+						<HeaderTotal />
+						<PreviewRoleToggle />
 						<ValidationIndicator />
 						<span className="template-editor-autosave-status" data-status={autosaveStatus}>
 							{autosaveStatus === 'conflict' ? '' : AUTOSAVE_STATUS_LABEL[autosaveStatus]}

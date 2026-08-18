@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { BlockId, PageId, TemplateBody, TemplateMeta } from '../types';
+import type { BlockId, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
 import type { Command } from '../commands/types';
 import { defaultTheme } from '../commands/themeCommands';
 
@@ -46,6 +46,21 @@ interface EditorState {
 	 * unchanged — they only ever care about the one anchor block.
 	 */
 	multiSelectedBlockIds: BlockId[];
+	/**
+	 * §6.1 rule 3's "Preview as {role}" mode — null means "not previewing" (the normal
+	 * authoring canvas). When set to a role id, that role's fillable fields
+	 * render as live, fillable inputs instead of their normal inert preview
+	 * (§6.1 rule 3: "clicking configures, it does not fill" — this is the one
+	 * exception). Nothing entered while previewing is persisted anywhere —
+	 * there's no `Document`/recipient record yet to save it into (phase 4's
+	 * still-not-built, resource-gated piece) — and every other part of the
+	 * editor (block selection, settings, other roles' fields) stays exactly as
+	 * it is outside preview. A fuller "recipient-view" render mode (hiding
+	 * authoring chrome entirely, per §14's `render/` shared-renderer idea) is
+	 * a bigger, separate piece of work — this is deliberately scoped to just
+	 * the field-interactivity half of §5's own description.
+	 */
+	previewRoleId: RoleId | null;
 	/** True since the last load/save — i.e. there's something for autosave to pick up. */
 	dirty: boolean;
 
@@ -99,6 +114,7 @@ interface EditorState {
 	 */
 	toggleMultiSelect: (pageId: PageId, blockId: BlockId) => void;
 	clearMultiSelection: () => void;
+	setPreviewRoleId: (roleId: RoleId | null) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -107,6 +123,7 @@ export const useEditorStore = create<EditorState>()(
 		body: null,
 		selection: null,
 		multiSelectedBlockIds: [],
+		previewRoleId: null,
 		dirty: false,
 		undoStack: [],
 		redoStack: [],
@@ -120,6 +137,7 @@ export const useEditorStore = create<EditorState>()(
 				state.body = normalizeBody(body);
 				state.selection = null;
 				state.multiSelectedBlockIds = [];
+				state.previewRoleId = null;
 				state.dirty = false;
 				state.undoStack = [];
 				state.redoStack = [];
@@ -238,6 +256,11 @@ export const useEditorStore = create<EditorState>()(
 		clearMultiSelection: () =>
 			set((state) => {
 				state.multiSelectedBlockIds = [];
+			}),
+
+		setPreviewRoleId: (roleId) =>
+			set((state) => {
+				state.previewRoleId = roleId;
 			}),
 	}))
 );

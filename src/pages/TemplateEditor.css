@@ -34,6 +34,25 @@
 	gap: 8px;
 }
 
+.template-editor-header-total {
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: #222;
+}
+
+.preview-role-toggle {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.8rem;
+	color: #555;
+}
+
+.preview-role-toggle-active {
+	color: #2563eb;
+	font-weight: 600;
+}
+
 .template-editor-autosave-status {
 	font-size: 0.8rem;
 	color: #777;

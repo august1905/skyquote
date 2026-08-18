@@ -220,6 +220,25 @@ describe('multi-select (§4.2)', () => {
 	});
 });
 
+describe('previewRoleId (§6.1 rule 3: "Preview as {role}")', () => {
+	it('starts null (not previewing)', () => {
+		expect(useEditorStore.getState().previewRoleId).toBeNull();
+	});
+
+	it('setPreviewRoleId sets and clears it', () => {
+		useEditorStore.getState().setPreviewRoleId('role-a');
+		expect(useEditorStore.getState().previewRoleId).toBe('role-a');
+		useEditorStore.getState().setPreviewRoleId(null);
+		expect(useEditorStore.getState().previewRoleId).toBeNull();
+	});
+
+	it('loadTemplate resets it back to null', () => {
+		useEditorStore.getState().setPreviewRoleId('role-a');
+		useEditorStore.getState().loadTemplate(makeMeta(), makeBody());
+		expect(useEditorStore.getState().previewRoleId).toBeNull();
+	});
+});
+
 describe('coalescing', () => {
 	it('collapses same-key commands within the idle window into a single undo entry', () => {
 		vi.useFakeTimers();

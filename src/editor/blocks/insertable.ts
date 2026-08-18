@@ -1,5 +1,16 @@
 import type { Block, BlockType, FieldType, FillableField, RoleId } from '../types';
-import { createBlankTextBlock, createColumnsBlock, createField, createFieldBlock, createImageBlock, createPageBreakBlock, createTableBlock, createVideoBlock } from '../commands';
+import {
+	createBlankTextBlock,
+	createColumnsBlock,
+	createField,
+	createFieldBlock,
+	createImageBlock,
+	createPageBreakBlock,
+	createPricingTableBlock,
+	createQuoteBuilderBlock,
+	createTableBlock,
+	createVideoBlock,
+} from '../commands';
 import { isContainerBlockType } from '../commands/blockTree';
 import { assetFileRelativePath, uploadImageAsset } from '../../api/assets';
 import { fetchOEmbed } from './videoEmbed';
@@ -57,6 +68,8 @@ export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'page_break', label: 'Page break', create: createPageBreakBlock },
 	{ type: 'columns', label: 'Columns (2)', create: () => createColumnsBlock(2) },
 	{ type: 'table', label: 'Table (2×2)', create: () => createTableBlock(2, 2) },
+	{ type: 'pricing_table', label: 'Pricing table', create: createPricingTableBlock },
+	{ type: 'quote_builder', label: 'Quote builder', create: createQuoteBuilderBlock },
 	{ type: 'image', label: 'Image', createFromFile: createImageBlockFromFile, fileAccept: 'image/png,image/jpeg,image/gif,image/webp' },
 	{
 		type: 'video',

@@ -1,5 +1,6 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
+import type { Block, BlockId, BlockType, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
+import { ZERO_MONEY } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -302,6 +303,53 @@ export function createVideoBlock(params: { provider: VideoBlock['provider']; url
 /** A standalone field block (§6.2) — "used for large signature areas and `billing_details`". */
 export function createFieldBlock(field: FillableField): FieldBlock {
 	return { id: crypto.randomUUID(), type: 'field', locked: false, style: {}, field };
+}
+
+/** A blank row, for both `PricingTableBlock.items` and a `QuoteBuilderBlock` group's `options` — both are `PricingItem[]`, so one factory serves both. */
+export function createBlankPricingItem(sectionId: string | null = null): PricingItem {
+	return {
+		id: crypto.randomUUID(),
+		sectionId,
+		name: '',
+		description: '',
+		qty: 1,
+		price: ZERO_MONEY,
+		optional: false,
+		selected: true,
+		customFields: {},
+	};
+}
+
+/**
+ * §7's currency defaults to `'USD'`, matching `routes/templates.js`'s own
+ * hardcoded default for a new template — `TemplateMeta.currency` isn't
+ * surfaced or editable anywhere in the editor yet (see BUILD_STATUS.md), so
+ * there's nothing else to read a "the template's currency" value from at
+ * creation time. Revisit once that surfaces.
+ */
+export function createPricingTableBlock(): PricingTableBlock {
+	return {
+		id: crypto.randomUUID(),
+		type: 'pricing_table',
+		locked: false,
+		style: {},
+		currency: 'USD',
+		columns: [],
+		sections: [],
+		items: [],
+		settings: {
+			allowRecipientQtyEdit: false,
+			allowRecipientSelectOptional: false,
+			showSubtotal: true,
+			showDiscount: true,
+			showTax: true,
+			showTotal: true,
+		},
+	};
+}
+
+export function createQuoteBuilderBlock(): QuoteBuilderBlock {
+	return { id: crypto.randomUUID(), type: 'quote_builder', locked: false, style: {}, currency: 'USD', groups: [] };
 }
 
 export function createBlankPage(name: string): Page {

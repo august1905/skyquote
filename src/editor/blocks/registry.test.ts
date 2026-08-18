@@ -7,6 +7,8 @@ import { TableBlockView } from './TableBlockView';
 import { ImageBlockView } from './ImageBlockView';
 import { VideoBlockView } from './VideoBlockView';
 import { FieldBlockView } from './FieldBlockView';
+import { PricingTableBlockView } from './PricingTableBlockView';
+import { QuoteBuilderBlockView } from './QuoteBuilderBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 import type { BlockType } from '../types';
 
@@ -35,6 +37,8 @@ const REAL_VIEWS: Record<string, unknown> = {
 	image: ImageBlockView,
 	video: VideoBlockView,
 	field: FieldBlockView,
+	pricing_table: PricingTableBlockView,
+	quote_builder: QuoteBuilderBlockView,
 };
 
 describe('allBlockTypes', () => {

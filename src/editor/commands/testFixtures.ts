@@ -1,4 +1,5 @@
-import type { ColumnsBlock, FieldBlock, FillableField, ImageBlock, RichTextNode, TableBlock, TableCell, TemplateBody, TemplateSettings, TextBlock, VideoBlock } from '../types';
+import type { ColumnsBlock, FieldBlock, FillableField, ImageBlock, PricingItem, PricingTableBlock, QuoteBuilderBlock, RichTextNode, TableBlock, TableCell, TemplateBody, TemplateSettings, TextBlock, VideoBlock } from '../types';
+import { money } from '../types';
 import { defaultTheme } from './themeCommands';
 
 // Shared across command/store tests. Not a .test.ts file itself — vitest's
@@ -236,6 +237,68 @@ export function makeBodyWithFields(): TemplateBody {
 			{ id: 'role-a', name: 'Role A', color: '#111', order: 0, isSender: false },
 			{ id: 'role-b', name: 'Role B', color: '#222', order: 1, isSender: false },
 		],
+		variables: [],
+		settings: makeSettings(),
+	};
+}
+
+export function makePricingItem(id: string, overrides: Partial<PricingItem> = {}): PricingItem {
+	return {
+		id,
+		sectionId: null,
+		name: `Item ${id}`,
+		description: '',
+		qty: 1,
+		price: money(1000),
+		optional: false,
+		selected: true,
+		customFields: {},
+		...overrides,
+	};
+}
+
+export function makePricingTableBlock(id: string, items: PricingItem[] = [], overrides: Partial<PricingTableBlock> = {}): PricingTableBlock {
+	return {
+		id,
+		type: 'pricing_table',
+		locked: false,
+		style: {},
+		currency: 'USD',
+		columns: [],
+		sections: [],
+		items,
+		settings: {
+			allowRecipientQtyEdit: false,
+			allowRecipientSelectOptional: false,
+			showSubtotal: true,
+			showDiscount: true,
+			showTax: true,
+			showTotal: true,
+		},
+		...overrides,
+	};
+}
+
+/** A page with a lone `PricingTableBlock` ("pricing-1") holding one item — for exercising item/section/settings commands. */
+export function makeBodyWithPricingTable(): TemplateBody {
+	return {
+		pages: [{ id: 'page-1', name: 'Page 1', order: 0, blocks: [makePricingTableBlock('pricing-1', [makePricingItem('item-1')])] }],
+		roles: [],
+		variables: [],
+		settings: makeSettings(),
+	};
+}
+
+export function makeQuoteBuilderBlock(id: string, groups: QuoteBuilderBlock['groups'] = []): QuoteBuilderBlock {
+	return { id, type: 'quote_builder', locked: false, style: {}, currency: 'USD', groups };
+}
+
+/** A page with a lone `QuoteBuilderBlock` ("quote-1") holding one group with one option — for exercising group/option commands. */
+export function makeBodyWithQuoteBuilder(): TemplateBody {
+	const group = { id: 'group-1', name: 'Frequency', selection: 'single' as const, required: true, options: [makePricingItem('option-1')] };
+	return {
+		pages: [{ id: 'page-1', name: 'Page 1', order: 0, blocks: [makeQuoteBuilderBlock('quote-1', [group])] }],
+		roles: [],
 		variables: [],
 		settings: makeSettings(),
 	};

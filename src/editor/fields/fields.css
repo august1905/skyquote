@@ -142,9 +142,45 @@
 	font-size: 0.8rem;
 }
 
+.field-block-live-toggle {
+	font: inherit;
+	cursor: pointer;
+	color: #555;
+	background: #fff;
+}
+
+.field-block-live-marked {
+	border-color: #2563eb;
+	color: #2563eb;
+	background: #eff6ff;
+}
+
+.field-block-live-upload {
+	position: relative;
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.field-block-live-file-input {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.field-block-billing {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
 .rt-field-chip {
 	display: inline-block;
 	position: relative;
+}
+
+.rt-field-chip-live {
+	vertical-align: middle;
 }
 
 .rt-field-chip-button {

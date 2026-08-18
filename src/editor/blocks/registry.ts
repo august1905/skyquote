@@ -8,6 +8,8 @@ import { TableBlockView } from './TableBlockView';
 import { ImageBlockView } from './ImageBlockView';
 import { VideoBlockView } from './VideoBlockView';
 import { FieldBlockView } from './FieldBlockView';
+import { PricingTableBlockView } from './PricingTableBlockView';
+import { QuoteBuilderBlockView } from './QuoteBuilderBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 
 // UnsupportedBlockView only ever reads `block.type`, which every Block union
@@ -29,8 +31,8 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	image: { label: 'Image', View: ImageBlockView },
 	video: { label: 'Video', View: VideoBlockView },
 	table: { label: 'Table', View: TableBlockView },
-	pricing_table: unsupported('Pricing table'),
-	quote_builder: unsupported('Quote builder'),
+	pricing_table: { label: 'Pricing table', View: PricingTableBlockView },
+	quote_builder: { label: 'Quote builder', View: QuoteBuilderBlockView },
 	toc: unsupported('Table of contents'),
 	page_break: { label: 'Page break', View: PageBreakBlockView },
 	smart_content: unsupported('Smart content'),
