@@ -258,3 +258,71 @@ test.describe('Image block', () => {
 		await expect(page.locator('.block-image')).toHaveCount(0);
 	});
 });
+
+// Real oEmbed calls to youtube.com/vimeo.com — no mocking, matching this
+// suite's convention, but a real dependency on those services and this
+// environment's outbound network access being available. The two videos
+// below were picked for permanence: the first YouTube video ever uploaded,
+// and Blender's Creative-Commons-licensed Big Buck Bunny on Vimeo.
+test.describe('Video block', () => {
+	test('resolves a pasted YouTube URL via oEmbed, click-to-plays, toggles autoplay, and persists', async ({ page }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://www.youtube.com/watch?v=jNQXAC9IVRw');
+		await page.getByRole('button', { name: 'Video', exact: true }).click();
+
+		const thumbnail = page.locator('.block-video-thumbnail img');
+		await expect(thumbnail).toHaveAttribute('src', 'https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg');
+
+		// Clicking the thumbnail both selects the block (its controls appear,
+		// same "content click also selects" convention as every other block
+		// type) and starts playback — a single action, matching how clicking a
+		// text block both selects it and places a cursor.
+		await page.locator('.block-video-thumbnail').click();
+		await expect(page.locator('.block-video-embed')).toHaveAttribute('src', 'https://www.youtube.com/embed/jNQXAC9IVRw');
+
+		// The controls (including Autoplay) stay visible under the now-playing
+		// embed as long as the block is selected — toggling it updates the
+		// already-live iframe's src in place.
+		await page.getByLabel('Autoplay').check();
+		await expect(page.locator('.block-video-embed')).toHaveAttribute('src', 'https://www.youtube.com/embed/jNQXAC9IVRw?autoplay=1');
+
+		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await page.reload();
+
+		// Reloading resets the click-to-play state (never persisted) back to
+		// the static thumbnail.
+		await expect(page.locator('.block-video-thumbnail img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg');
+	});
+
+	test('resolves a pasted Vimeo URL via oEmbed', async ({ page }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://vimeo.com/1084537');
+		await page.getByRole('button', { name: 'Video', exact: true }).click();
+
+		await expect(page.locator('.block-video-thumbnail img')).toHaveAttribute('src', /vimeocdn\.com/);
+
+		await page.locator('.block-video-thumbnail').click();
+		await expect(page.locator('.block-video-embed')).toHaveAttribute('src', 'https://player.vimeo.com/video/1084537');
+	});
+
+	test('rejects an unsupported provider URL with a clear error', async ({ page }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://example.com/some-video');
+		await page.getByRole('button', { name: 'Video', exact: true }).click();
+
+		await expect(page.getByRole('alert')).toContainText(/Only YouTube and Vimeo/);
+		await expect(page.locator('.block-video-wrapper')).toHaveCount(0);
+	});
+});

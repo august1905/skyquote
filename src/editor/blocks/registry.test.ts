@@ -5,6 +5,7 @@ import { PageBreakBlockView } from './PageBreakBlockView';
 import { ColumnsBlockView } from './ColumnsBlockView';
 import { TableBlockView } from './TableBlockView';
 import { ImageBlockView } from './ImageBlockView';
+import { VideoBlockView } from './VideoBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 import type { BlockType } from '../types';
 
@@ -31,6 +32,7 @@ const REAL_VIEWS: Record<string, unknown> = {
 	columns: ColumnsBlockView,
 	table: TableBlockView,
 	image: ImageBlockView,
+	video: VideoBlockView,
 };
 
 describe('allBlockTypes', () => {

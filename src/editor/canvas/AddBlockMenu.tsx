@@ -16,8 +16,9 @@ interface AddBlockMenuProps {
 // lightweight stand-in reachable from the page itself.
 export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBlockMenuProps) {
 	const [open, setOpen] = useState(false);
-	const [status, setStatus] = useState<'idle' | 'uploading' | 'error'>('idle');
+	const [status, setStatus] = useState<'idle' | 'working' | 'error'>('idle');
 	const [errorMessage, setErrorMessage] = useState('');
+	const [urlDraft, setUrlDraft] = useState('');
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -29,17 +30,17 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 		return () => document.removeEventListener('mousedown', handleOutsideClick);
 	}, [open]);
 
-	// Only `createFromFile` kinds (currently just Image) hit this — it awaits
-	// a real upload (see uploadImageAsset), so there's a real "uploading"
-	// state to show and a real failure mode (too large, wrong format, network)
-	// to surface, unlike the synchronous `create()` kinds.
-	async function handleFileSelected(kind: InsertableBlockKind, file: File) {
-		if (!kind.createFromFile) return;
+	// Shared by both async kinds (`createFromFile` — Image's real upload —
+	// and `createFromUrl` — Video's oEmbed fetch): a real "working" state to
+	// show, and a real failure mode (too large/wrong format/network for
+	// Image; unsupported provider/not-found for Video) to surface, unlike the
+	// synchronous `create()` kinds.
+	async function resolveAndInsert(kind: InsertableBlockKind, run: () => Promise<Block>) {
 		setOpen(false);
-		setStatus('uploading');
+		setStatus('working');
 		setErrorMessage('');
 		try {
-			const block = await kind.createFromFile(file);
+			const block = await run();
 			onInsert(block);
 			setStatus('idle');
 		} catch (err) {
@@ -48,30 +49,65 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 		}
 	}
 
+	function handleUrlSubmit(kind: InsertableBlockKind) {
+		if (!kind.createFromUrl) return;
+		const url = urlDraft.trim();
+		if (!url) return;
+		setUrlDraft('');
+		void resolveAndInsert(kind, () => kind.createFromUrl!(url));
+	}
+
 	return (
 		<div className="canvas-add-block-menu" ref={containerRef}>
-			<button type="button" className="canvas-add-block" onClick={() => setOpen((o) => !o)} disabled={status === 'uploading'}>
-				{status === 'uploading' ? 'Uploading…' : '+ Add block'}
+			<button type="button" className="canvas-add-block" onClick={() => setOpen((o) => !o)} disabled={status === 'working'}>
+				{status === 'working' ? 'Adding…' : '+ Add block'}
 			</button>
 			{open && (
 				<div className="canvas-add-block-options" role="menu">
-					{kinds.map((kind) =>
-						kind.createFromFile ? (
-							<label key={kind.type} role="menuitem" className="canvas-add-block-file-option">
-								{kind.label}
-								<input
-									type="file"
-									accept={kind.fileAccept}
-									className="canvas-add-block-file-input"
-									onChange={(e) => {
-										const file = e.target.files?.[0];
-										// Reset so picking the same file twice in a row still fires onChange.
-										e.target.value = '';
-										if (file) void handleFileSelected(kind, file);
+					{kinds.map((kind) => {
+						if (kind.createFromFile) {
+							return (
+								<label key={kind.type} role="menuitem" className="canvas-add-block-file-option">
+									{kind.label}
+									<input
+										type="file"
+										accept={kind.fileAccept}
+										className="canvas-add-block-file-input"
+										onChange={(e) => {
+											const file = e.target.files?.[0];
+											// Reset so picking the same file twice in a row still fires onChange.
+											e.target.value = '';
+											if (file) void resolveAndInsert(kind, () => kind.createFromFile!(file));
+										}}
+									/>
+								</label>
+							);
+						}
+						if (kind.createFromUrl) {
+							return (
+								<form
+									key={kind.type}
+									className="canvas-add-block-url-option"
+									onSubmit={(e) => {
+										e.preventDefault();
+										handleUrlSubmit(kind);
 									}}
-								/>
-							</label>
-						) : (
+								>
+									<input
+										type="url"
+										className="canvas-add-block-url-input"
+										placeholder={kind.urlPlaceholder ?? 'Paste a URL'}
+										value={urlDraft}
+										onChange={(e) => setUrlDraft(e.target.value)}
+										onClick={(e) => e.stopPropagation()}
+									/>
+									<button type="submit" disabled={!urlDraft.trim()}>
+										{kind.label}
+									</button>
+								</form>
+							);
+						}
+						return (
 							<button
 								key={kind.type}
 								type="button"
@@ -83,8 +119,8 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 							>
 								{kind.label}
 							</button>
-						)
-					)}
+						);
+					})}
 				</div>
 			)}
 			{status === 'error' && (

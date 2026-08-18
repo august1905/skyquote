@@ -1,7 +1,8 @@
 import type { Block, BlockType } from '../types';
-import { createBlankTextBlock, createColumnsBlock, createImageBlock, createPageBreakBlock, createTableBlock } from '../commands';
+import { createBlankTextBlock, createColumnsBlock, createImageBlock, createPageBreakBlock, createTableBlock, createVideoBlock } from '../commands';
 import { isContainerBlockType } from '../commands/blockTree';
 import { assetFileRelativePath, uploadImageAsset } from '../../api/assets';
+import { fetchOEmbed } from './videoEmbed';
 
 // Page content is 816px wide minus 48px padding on each side (canvas.css) —
 // an upload at its full natural pixel size could badly overflow that, so
@@ -22,15 +23,24 @@ async function createImageBlockFromFile(file: File): Promise<Block> {
 	return createImageBlock({ assetId: asset.id, url: assetFileRelativePath(asset.id), alt: '', width, height });
 }
 
+async function createVideoBlockFromUrl(url: string): Promise<Block> {
+	const { provider, thumbnailUrl } = await fetchOEmbed(url);
+	return createVideoBlock({ provider, url, thumbnailUrl });
+}
+
 export interface InsertableBlockKind {
 	type: BlockType;
 	label: string;
-	/** Exactly one of `create`/`createFromFile` is set, matched by whether the block type can be synthesized blank or needs a source file first — see `ImageBlock`'s entry below. */
+	/** Exactly one of `create`/`createFromFile`/`createFromUrl` is set, matched by whether the block type can be synthesized blank, needs a source file first, or needs a pasted URL resolved first — see the Image/Video entries below. */
 	create?: () => Block;
 	/** File-picker-driven creation (currently just Image) — `AddBlockMenu` renders these as a hidden file input instead of a plain button, and awaits the upload before inserting. */
 	createFromFile?: (file: File) => Promise<Block>;
 	/** Passed through to the file input's `accept` attribute; only meaningful alongside `createFromFile`. */
 	fileAccept?: string;
+	/** URL-driven creation (currently just Video) — `AddBlockMenu` renders these as an inline text input + submit button instead of a plain button. */
+	createFromUrl?: (url: string) => Promise<Block>;
+	/** Placeholder text for the URL input; only meaningful alongside `createFromUrl`. */
+	urlPlaceholder?: string;
 }
 
 /**
@@ -47,6 +57,12 @@ export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'columns', label: 'Columns (2)', create: () => createColumnsBlock(2) },
 	{ type: 'table', label: 'Table (2×2)', create: () => createTableBlock(2, 2) },
 	{ type: 'image', label: 'Image', createFromFile: createImageBlockFromFile, fileAccept: 'image/png,image/jpeg,image/gif,image/webp' },
+	{
+		type: 'video',
+		label: 'Video',
+		createFromUrl: createVideoBlockFromUrl,
+		urlPlaceholder: 'Paste a YouTube or Vimeo URL',
+	},
 ];
 
 /**

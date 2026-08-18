@@ -142,6 +142,35 @@
 	display: none;
 }
 
+.canvas-add-block-url-option {
+	display: flex;
+	gap: 4px;
+	padding: 6px 8px;
+}
+
+.canvas-add-block-url-input {
+	flex: 1;
+	min-width: 0;
+	padding: 4px 6px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.85rem;
+}
+
+.canvas-add-block-url-option button {
+	padding: 4px 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #f2f2f2;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+
+.canvas-add-block-url-option button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 .canvas-add-block-error {
 	margin: 4px 0 0;
 	font-size: 0.8rem;

@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, ColumnsBlock, ImageBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
+import type { Block, BlockId, BlockType, ColumnsBlock, ImageBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -263,6 +263,26 @@ export function createImageBlock(params: { assetId: string; url: string; alt: st
 		width: params.width,
 		height: params.height,
 		shape: 'rect',
+	};
+}
+
+/**
+ * Same "no blank version" shape as `createImageBlock` — a `VideoBlock` only
+ * ever comes from a pasted URL that's already been resolved to oEmbed
+ * metadata (see `blocks/insertable.ts`'s `createFromUrl`). `provider` is
+ * `'upload'` for a self-hosted video file, but nothing constructs one that
+ * way yet — no upload/playback UI exists for it (see BUILD_STATUS.md).
+ */
+export function createVideoBlock(params: { provider: VideoBlock['provider']; url: string; thumbnailUrl: string }): VideoBlock {
+	return {
+		id: crypto.randomUUID(),
+		type: 'video',
+		locked: false,
+		style: {},
+		provider: params.provider,
+		url: params.url,
+		thumbnailUrl: params.thumbnailUrl,
+		autoplay: false,
 	};
 }
 

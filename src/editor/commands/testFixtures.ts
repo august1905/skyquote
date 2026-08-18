@@ -1,4 +1,4 @@
-import type { ColumnsBlock, ImageBlock, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
+import type { ColumnsBlock, ImageBlock, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
 
 // Shared across command/store tests. Not a .test.ts file itself — vitest's
 // include glob (src/**/*.test.ts) skips it, so it can export plain helpers
@@ -126,6 +126,42 @@ export function makeBodyWithImage(): TemplateBody {
 				name: 'Page 1',
 				order: 0,
 				blocks: [makeImageBlock('image-1')],
+			},
+		],
+		roles: [],
+		variables: [],
+		settings: {
+			pageSize: 'LETTER',
+			orientation: 'portrait',
+			margins: { top: 0, right: 0, bottom: 0, left: 0 },
+			showPageNumbers: false,
+		},
+	};
+}
+
+export function makeVideoBlock(id: string, overrides: Partial<VideoBlock> = {}): VideoBlock {
+	return {
+		id,
+		type: 'video',
+		locked: false,
+		style: {},
+		provider: 'youtube',
+		url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+		thumbnailUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+		autoplay: false,
+		...overrides,
+	};
+}
+
+/** A page with a lone VideoBlock ("video-1") — for exercising the autoplay-toggle command. */
+export function makeBodyWithVideo(): TemplateBody {
+	return {
+		pages: [
+			{
+				id: 'page-1',
+				name: 'Page 1',
+				order: 0,
+				blocks: [makeVideoBlock('video-1')],
 			},
 		],
 		roles: [],
