@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, ColumnsBlock, Page, PageBreakBlock, PageId, TemplateBody, TextBlock } from '../types';
+import type { Block, BlockId, BlockType, ColumnsBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -216,6 +216,30 @@ export function createColumnsBlock(columnCount: 2 | 3 | 4 = 2): ColumnsBlock {
 		style: {},
 		widths: Array.from({ length: columnCount }, () => 1 / columnCount),
 		columns: Array.from({ length: columnCount }, () => [createBlankTextBlock()]),
+	};
+}
+
+export function createBlankCell(): TableCell {
+	return { doc: { type: 'doc', content: [{ type: 'paragraph', content: [] }] }, colspan: 1, rowspan: 1, style: {} };
+}
+
+/**
+ * A cell has no `id` of its own (§2.1 — `TableCell` isn't a `Block`; cells are
+ * addressed by row/column position, never independently selected, reordered,
+ * or duplicated the way blocks are). That's also why `cloneBlockWithNewIds`'s
+ * `reassignIds` never needs a `table` case: duplicating a `TableBlock` only
+ * ever needs a new id on the block itself, exactly like any other id-less-
+ * content block.
+ */
+export function createTableBlock(rowCount: 2 | 3 | 4 | 5 = 2, columnCount: 2 | 3 | 4 = 2): TableBlock {
+	return {
+		id: crypto.randomUUID(),
+		type: 'table',
+		locked: false,
+		style: {},
+		rows: Array.from({ length: rowCount }, () => ({ cells: Array.from({ length: columnCount }, () => createBlankCell()) })),
+		columnWidths: Array.from({ length: columnCount }, () => 1 / columnCount),
+		headerRow: true,
 	};
 }
 

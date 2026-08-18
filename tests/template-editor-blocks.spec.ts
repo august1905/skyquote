@@ -123,3 +123,73 @@ test.describe('Columns block', () => {
 		await expect(columns.nth(1).locator('.ProseMirror')).toHaveCount(1);
 	});
 });
+
+test.describe('Table block', () => {
+	test('cells are independently editable, row/column add-remove work, header-row toggles, and it all persists', async ({ page }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByRole('menuitem', { name: 'Table (2×2)' }).click();
+
+		const cells = page.locator('.block-table-cell');
+		await expect(cells).toHaveCount(4);
+		await expect(page.locator('.block-table-header-row')).toHaveCount(1);
+
+		// Cell content is independent per cell.
+		await cells.nth(0).click();
+		await page.keyboard.type('A1');
+		await cells.nth(3).click();
+		await page.keyboard.type('D2');
+		await expect(cells.nth(0)).toContainText('A1');
+		await expect(cells.nth(3)).toContainText('D2');
+		await expect(cells.nth(1)).toHaveText('');
+
+		// Clicking into a cell also selected the table block itself (the click
+		// bubbles up to its SortableBlock) — its row/column controls now show.
+		await page.getByRole('button', { name: '+ Row' }).click();
+		await expect(page.locator('.block-table tbody tr')).toHaveCount(3);
+		await expect(cells).toHaveCount(6);
+
+		await page.getByRole('button', { name: '+ Column' }).click();
+		await expect(cells).toHaveCount(9);
+
+		await page.getByRole('button', { name: '− Column' }).click();
+		await expect(cells).toHaveCount(6);
+		await page.getByRole('button', { name: '− Row' }).click();
+		await expect(cells).toHaveCount(4);
+
+		// addRow/addColumn/removeRow/removeColumn above only ever acted on the
+		// LAST row/column, so cell (0,0)'s content was never touched.
+		await expect(cells.nth(0)).toContainText('A1');
+
+		await page.getByLabel('Header row').uncheck();
+		await expect(page.locator('.block-table-header-row')).toHaveCount(0);
+
+		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await page.reload();
+
+		await expect(page.locator('.block-table-cell')).toHaveCount(4);
+		await expect(page.locator('.block-table-cell').first()).toContainText('A1');
+		await expect(page.locator('.block-table-header-row')).toHaveCount(0);
+	});
+
+	test('the last row and the last column cannot be removed', async ({ page }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByRole('menuitem', { name: 'Table (2×2)' }).click();
+		await page.locator('.block-table-cell').first().click();
+
+		await page.getByRole('button', { name: '− Row' }).click();
+		await expect(page.locator('.block-table tbody tr')).toHaveCount(1);
+		await expect(page.getByRole('button', { name: '− Row' })).toBeDisabled();
+
+		await page.getByRole('button', { name: '− Column' }).click();
+		await expect(page.locator('.block-table-cell')).toHaveCount(1);
+		await expect(page.getByRole('button', { name: '− Column' })).toBeDisabled();
+	});
+});

@@ -1,4 +1,4 @@
-import type { ColumnsBlock, TemplateBody, TextBlock } from '../types';
+import type { ColumnsBlock, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
 
 // Shared across command/store tests. Not a .test.ts file itself — vitest's
 // include glob (src/**/*.test.ts) skips it, so it can export plain helpers
@@ -39,6 +39,55 @@ export function makeBody(): TemplateBody {
 				name: 'Page 2',
 				order: 1,
 				blocks: [makeTextBlock('block-3', 'third')],
+			},
+		],
+		roles: [],
+		variables: [],
+		settings: {
+			pageSize: 'LETTER',
+			orientation: 'portrait',
+			margins: { top: 0, right: 0, bottom: 0, left: 0 },
+			showPageNumbers: false,
+		},
+	};
+}
+
+export function makeCell(text = ''): TableCell {
+	return {
+		doc: { type: 'doc', content: text ? [{ type: 'paragraph', content: [{ type: 'text', text }] }] : [] },
+		colspan: 1,
+		rowspan: 1,
+		style: {},
+	};
+}
+
+export function makeTableBlock(id: string, rows: TableCell[][]): TableBlock {
+	const columnCount = rows[0]?.length ?? 0;
+	return {
+		id,
+		type: 'table',
+		locked: false,
+		style: {},
+		rows: rows.map((cells) => ({ cells })),
+		columnWidths: Array.from({ length: columnCount }, () => 1 / columnCount),
+		headerRow: true,
+	};
+}
+
+/** A page with a lone 2×2 TableBlock ("table-1") — for exercising cell/row/column addressing. */
+export function makeBodyWithTable(): TemplateBody {
+	return {
+		pages: [
+			{
+				id: 'page-1',
+				name: 'Page 1',
+				order: 0,
+				blocks: [
+					makeTableBlock('table-1', [
+						[makeCell('r0c0'), makeCell('r0c1')],
+						[makeCell('r1c0'), makeCell('r1c1')],
+					]),
+				],
 			},
 		],
 		roles: [],

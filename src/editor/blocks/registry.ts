@@ -4,6 +4,7 @@ import type { BlockRegistryEntry, BlockViewProps } from './types';
 import { TextBlockView } from './TextBlockView';
 import { PageBreakBlockView } from './PageBreakBlockView';
 import { ColumnsBlockView } from './ColumnsBlockView';
+import { TableBlockView } from './TableBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 
 // UnsupportedBlockView only ever reads `block.type`, which every Block union
@@ -24,7 +25,7 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	text: { label: 'Text', View: TextBlockView },
 	image: unsupported('Image'),
 	video: unsupported('Video'),
-	table: unsupported('Table'),
+	table: { label: 'Table', View: TableBlockView },
 	pricing_table: unsupported('Pricing table'),
 	quote_builder: unsupported('Quote builder'),
 	toc: unsupported('Table of contents'),

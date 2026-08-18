@@ -1,5 +1,5 @@
 import type { Block, BlockType } from '../types';
-import { createBlankTextBlock, createColumnsBlock, createPageBreakBlock } from '../commands';
+import { createBlankTextBlock, createColumnsBlock, createPageBreakBlock, createTableBlock } from '../commands';
 import { isContainerBlockType } from '../commands/blockTree';
 
 export interface InsertableBlockKind {
@@ -20,6 +20,7 @@ export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'text', label: 'Text', create: createBlankTextBlock },
 	{ type: 'page_break', label: 'Page break', create: createPageBreakBlock },
 	{ type: 'columns', label: 'Columns (2)', create: () => createColumnsBlock(2) },
+	{ type: 'table', label: 'Table (2×2)', create: () => createTableBlock(2, 2) },
 ];
 
 /**
