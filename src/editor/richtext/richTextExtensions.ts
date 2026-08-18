@@ -1,7 +1,8 @@
 import { StarterKit } from '@tiptap/starter-kit';
 import type { AnyExtension } from '@tiptap/core';
 import { VariableNode } from './variableNode';
-import { VariableSuggestion } from './variableSuggestion';
+import { FillableFieldNode } from './fieldNode';
+import { InsertSuggestion } from './insertSuggestion';
 
 /**
  * Shared by every rich-text surface (`TextBlockView`, `TableCellEditor`) so
@@ -16,6 +17,7 @@ export function richTextExtensions(): AnyExtension[] {
 		// ProseMirror history.
 		StarterKit.configure({ undoRedo: false }),
 		VariableNode,
-		VariableSuggestion,
+		FillableFieldNode,
+		InsertSuggestion,
 	];
 }

@@ -253,6 +253,39 @@
 	color: #c0392b;
 }
 
+.canvas-add-block-fields-section {
+	display: flex;
+	flex-direction: column;
+	border-top: 1px solid #eee;
+	margin-top: 4px;
+	padding-top: 4px;
+}
+
+.canvas-add-block-fields-hint {
+	margin: 0;
+	padding: 8px 12px;
+	font-size: 0.8rem;
+	color: #777;
+	max-width: 200px;
+}
+
+.canvas-add-block-fields-role {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 12px 8px;
+	font-size: 0.8rem;
+	color: #555;
+}
+
+.canvas-add-block-fields-role select {
+	flex: 1;
+	padding: 2px 4px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.8rem;
+}
+
 .block-page-break {
 	display: flex;
 	align-items: center;

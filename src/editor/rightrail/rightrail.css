@@ -207,6 +207,50 @@
 	border-radius: 4px;
 }
 
+.roles-panel-removal-prompt {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 10px;
+	border: 1px solid #e8c37a;
+	background: #fff8e8;
+	border-radius: 6px;
+	font-size: 0.8rem;
+}
+
+.roles-panel-removal-prompt p {
+	margin: 0;
+	color: #555;
+}
+
+.roles-panel-removal-reassign {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.roles-panel-removal-reassign select {
+	flex: 1;
+	padding: 3px 5px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+}
+
+.roles-panel-removal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.roles-panel-removal-actions button {
+	padding: 5px 8px;
+	border: 1px solid #ddd;
+	background: #fff;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.75rem;
+}
+
 .roles-panel-add {
 	align-self: flex-start;
 	padding: 6px 10px;

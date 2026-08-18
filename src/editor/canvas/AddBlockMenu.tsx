@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { INSERTABLE_BLOCK_KINDS, type InsertableBlockKind } from '../blocks/insertable';
-import type { Block } from '../types';
+import { INSERTABLE_BLOCK_KINDS, INSERTABLE_FIELD_KINDS, createFieldBlockOfType, type InsertableBlockKind } from '../blocks/insertable';
+import { useEditorStore } from '../store/editorStore';
+import { collectAllFields } from '../fields/collectFields';
+import type { Block, Role } from '../types';
 import './canvas.css';
+
+// A stable, module-level empty-array reference — see the `roles` selector
+// below for why a fresh `[]` literal on every render would be a problem.
+const EMPTY_ROLES: Role[] = [];
 
 interface AddBlockMenuProps {
 	onInsert: (block: Block) => void;
@@ -20,6 +26,19 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 	const [errorMessage, setErrorMessage] = useState('');
 	const [urlDraft, setUrlDraft] = useState('');
 	const containerRef = useRef<HTMLDivElement>(null);
+	const body = useEditorStore((s) => s.body);
+	// `body?.roles` directly (not `?? []`) — the store's own array reference
+	// is stable across renders when unchanged; a fallback literal `[]` would
+	// be a brand-new reference every render whenever `body` is momentarily
+	// undefined, defeating the effect below's dependency check.
+	const roles = useEditorStore((s) => s.body?.roles) ?? EMPTY_ROLES;
+	const [fieldRoleId, setFieldRoleId] = useState(roles[0]?.id ?? '');
+
+	// Keep the selected role valid as roles are added/removed elsewhere
+	// (Recipients panel) while this menu happens to be open.
+	useEffect(() => {
+		if (!roles.some((r) => r.id === fieldRoleId)) setFieldRoleId(roles[0]?.id ?? '');
+	}, [roles, fieldRoleId]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -121,6 +140,38 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 							</button>
 						);
 					})}
+					<div className="canvas-add-block-fields-section">
+						{roles.length === 0 ? (
+							<p className="canvas-add-block-fields-hint">Add a role (Recipients / Roles panel) before placing fields.</p>
+						) : (
+							<>
+								<label className="canvas-add-block-fields-role">
+									<span>Fields for</span>
+									<select value={fieldRoleId} onChange={(e) => setFieldRoleId(e.target.value)} onClick={(e) => e.stopPropagation()}>
+										{roles.map((role) => (
+											<option key={role.id} value={role.id}>
+												{role.name}
+											</option>
+										))}
+									</select>
+								</label>
+								{INSERTABLE_FIELD_KINDS.map((kind) => (
+									<button
+										key={kind.fieldType}
+										type="button"
+										role="menuitem"
+										onClick={() => {
+											if (!body) return;
+											onInsert(createFieldBlockOfType(kind.fieldType, fieldRoleId, collectAllFields(body)));
+											setOpen(false);
+										}}
+									>
+										{kind.label}
+									</button>
+								))}
+							</>
+						)}
+					</div>
 				</div>
 			)}
 			{status === 'error' && (

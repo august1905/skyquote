@@ -7,6 +7,7 @@ import { ColumnsBlockView } from './ColumnsBlockView';
 import { TableBlockView } from './TableBlockView';
 import { ImageBlockView } from './ImageBlockView';
 import { VideoBlockView } from './VideoBlockView';
+import { FieldBlockView } from './FieldBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 
 // UnsupportedBlockView only ever reads `block.type`, which every Block union
@@ -34,7 +35,7 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	page_break: { label: 'Page break', View: PageBreakBlockView },
 	smart_content: unsupported('Smart content'),
 	columns: { label: 'Columns', View: ColumnsBlockView },
-	field: unsupported('Field'),
+	field: { label: 'Field', View: FieldBlockView },
 };
 
 /**

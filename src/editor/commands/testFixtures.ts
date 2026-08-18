@@ -1,4 +1,4 @@
-import type { ColumnsBlock, ImageBlock, TableBlock, TableCell, TemplateBody, TemplateSettings, TextBlock, VideoBlock } from '../types';
+import type { ColumnsBlock, FieldBlock, FillableField, ImageBlock, RichTextNode, TableBlock, TableCell, TemplateBody, TemplateSettings, TextBlock, VideoBlock } from '../types';
 import { defaultTheme } from './themeCommands';
 
 // Shared across command/store tests. Not a .test.ts file itself — vitest's
@@ -161,6 +161,81 @@ export function makeBodyWithVideo(): TemplateBody {
 			},
 		],
 		roles: [],
+		variables: [],
+		settings: makeSettings(),
+	};
+}
+
+export function makeField(id: string, roleId: string, overrides: Partial<FillableField> = {}): FillableField {
+	return { id, type: 'text', roleId, name: `Text field ${id}`, required: false, ...overrides };
+}
+
+/** An inline `fillableField` atom node, the same shape Tiptap serializes one to. */
+export function makeFieldNode(field: FillableField): RichTextNode {
+	return { type: 'fillableField', attrs: { field } };
+}
+
+export function makeFieldBlock(id: string, field: FillableField): FieldBlock {
+	return { id, type: 'field', locked: false, style: {}, field };
+}
+
+/**
+ * Fields in every location `collectAllFields`/`fieldCommands.ts`'s walkers
+ * need to handle: inline in a text block's doc, inline in a table cell's
+ * doc, a standalone `FieldBlock`, and inline nested inside a `ColumnsBlock`'s
+ * column — for exercising the whole-tree field walkers.
+ */
+export function makeBodyWithFields(): TemplateBody {
+	const inlineInText = makeField('field-text', 'role-a');
+	const inlineInCell = makeField('field-cell', 'role-b');
+	const standalone = makeField('field-standalone', 'role-a');
+	const inlineInColumn = makeField('field-column', 'role-b');
+
+	const textBlock: TextBlock = {
+		id: 'block-text',
+		type: 'text',
+		locked: false,
+		style: {},
+		doc: { type: 'doc', content: [{ type: 'paragraph', content: [makeFieldNode(inlineInText)] }] },
+	};
+
+	const tableBlock: TableBlock = {
+		id: 'block-table',
+		type: 'table',
+		locked: false,
+		style: {},
+		rows: [{ cells: [{ doc: { type: 'doc', content: [{ type: 'paragraph', content: [makeFieldNode(inlineInCell)] }] }, colspan: 1, rowspan: 1, style: {} }] }],
+		columnWidths: [1],
+		headerRow: true,
+	};
+
+	const fieldBlock = makeFieldBlock('block-field', standalone);
+
+	const columnsBlock: ColumnsBlock = {
+		id: 'block-columns',
+		type: 'columns',
+		locked: false,
+		style: {},
+		widths: [1],
+		columns: [
+			[
+				{
+					id: 'block-column-text',
+					type: 'text',
+					locked: false,
+					style: {},
+					doc: { type: 'doc', content: [{ type: 'paragraph', content: [makeFieldNode(inlineInColumn)] }] },
+				},
+			],
+		],
+	};
+
+	return {
+		pages: [{ id: 'page-1', name: 'Page 1', order: 0, blocks: [textBlock, tableBlock, fieldBlock, columnsBlock] }],
+		roles: [
+			{ id: 'role-a', name: 'Role A', color: '#111', order: 0, isSender: false },
+			{ id: 'role-b', name: 'Role B', color: '#222', order: 1, isSender: false },
+		],
 		variables: [],
 		settings: makeSettings(),
 	};

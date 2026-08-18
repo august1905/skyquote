@@ -1,0 +1,169 @@
+.field-block {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 12px;
+	border: 1.5px dashed #999;
+	border-radius: 6px;
+	cursor: pointer;
+	background: rgba(0, 0, 0, 0.02);
+}
+
+.field-block-type {
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: #777;
+}
+
+.field-block-name {
+	font-size: 0.75rem;
+	color: #555;
+}
+
+.field-block-required {
+	color: #c0392b;
+}
+
+.field-block-box {
+	height: 48px;
+	border: 1px dashed #bbb;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #999;
+	font-size: 0.8rem;
+	background: #fff;
+}
+
+.field-block-box-small {
+	height: 32px;
+}
+
+.field-block-inline {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.85rem;
+}
+
+.field-block-options {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.field-block input,
+.field-block select {
+	font-size: 0.85rem;
+	padding: 4px 6px;
+}
+
+/*
+ * Disabled form controls don't dispatch a `click` event at all in Chromium
+ * (a real browser behavior, not a Playwright artifact) — without this, a
+ * click landing on the preview's own disabled input/select/radio (which
+ * covers most of a text/date/checkbox/radio/dropdown field's visible area)
+ * would never bubble to `.field-block`'s own onClick, making "click the
+ * field to configure it" (§6.1 rule 3) work only when the user happens to
+ * click the surrounding padding instead of the control itself.
+ */
+.field-block input:disabled,
+.field-block select:disabled {
+	pointer-events: none;
+}
+
+.field-settings-popover {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 20;
+	margin-top: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 260px;
+	padding: 12px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	font-size: 0.85rem;
+	white-space: normal;
+	cursor: default;
+}
+
+.field-settings-type-label {
+	font-weight: 600;
+	font-size: 0.8rem;
+	color: #555;
+}
+
+.field-settings-row {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	color: #555;
+}
+
+.field-settings-row input[type='text'],
+.field-settings-row select,
+.field-settings-row textarea {
+	padding: 4px 6px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.85rem;
+}
+
+.field-settings-options textarea {
+	min-height: 60px;
+	resize: vertical;
+}
+
+.field-settings-warning {
+	margin: 0;
+	color: #c0392b;
+	font-size: 0.75rem;
+}
+
+.field-settings-actions {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.field-settings-actions button {
+	padding: 5px 10px;
+	border: 1px solid #ddd;
+	background: #f5f5f5;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.8rem;
+}
+
+.rt-field-chip {
+	display: inline-block;
+	position: relative;
+}
+
+.rt-field-chip-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	border: 1px solid;
+	border-radius: 999px;
+	padding: 1px 8px;
+	font: inherit;
+	font-size: 0.85em;
+	cursor: pointer;
+}
+
+.rt-field-chip-required {
+	color: #c0392b;
+}
+
+.rt-field-chip-selected .rt-field-chip-button {
+	outline: 2px solid #2563eb;
+	outline-offset: 1px;
+}

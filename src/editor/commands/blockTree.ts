@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, ColumnsBlock, ImageBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
+import type { Block, BlockId, BlockType, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -297,6 +297,11 @@ export function createVideoBlock(params: { provider: VideoBlock['provider']; url
 		thumbnailUrl: params.thumbnailUrl,
 		autoplay: false,
 	};
+}
+
+/** A standalone field block (§6.2) — "used for large signature areas and `billing_details`". */
+export function createFieldBlock(field: FillableField): FieldBlock {
+	return { id: crypto.randomUUID(), type: 'field', locked: false, style: {}, field };
 }
 
 export function createBlankPage(name: string): Page {

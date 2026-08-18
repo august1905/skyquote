@@ -1,8 +1,9 @@
-import type { Block, BlockType } from '../types';
-import { createBlankTextBlock, createColumnsBlock, createImageBlock, createPageBreakBlock, createTableBlock, createVideoBlock } from '../commands';
+import type { Block, BlockType, FieldType, FillableField, RoleId } from '../types';
+import { createBlankTextBlock, createColumnsBlock, createField, createFieldBlock, createImageBlock, createPageBreakBlock, createTableBlock, createVideoBlock } from '../commands';
 import { isContainerBlockType } from '../commands/blockTree';
 import { assetFileRelativePath, uploadImageAsset } from '../../api/assets';
 import { fetchOEmbed } from './videoEmbed';
+import { FIELD_TYPES, FIELD_TYPE_LABELS } from '../fields/fieldTypes';
 
 // Page content is 816px wide minus 48px padding on each side (canvas.css) —
 // an upload at its full natural pixel size could badly overflow that, so
@@ -74,3 +75,22 @@ export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 export const COLUMN_INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = INSERTABLE_BLOCK_KINDS.filter(
 	(kind) => !isContainerBlockType(kind.type)
 );
+
+/**
+ * §3's "FILLABLE FIELDS FOR" palette — standalone placement (§6.2), a
+ * `FieldBlock` per §6.3's ten types. A separate list/interface from
+ * `InsertableBlockKind` rather than folding fields into it: every field kind
+ * needs a target `roleId` at creation time (never optional, §6.1 rule 1),
+ * which no other insertable kind does — `AddBlockMenu` renders these under
+ * their own role-selector, not the plain block list.
+ */
+export interface InsertableFieldKind {
+	fieldType: FieldType;
+	label: string;
+}
+
+export const INSERTABLE_FIELD_KINDS: InsertableFieldKind[] = FIELD_TYPES.map((fieldType) => ({ fieldType, label: FIELD_TYPE_LABELS[fieldType] }));
+
+export function createFieldBlockOfType(fieldType: FieldType, roleId: RoleId, existingFields: FillableField[]): Block {
+	return createFieldBlock(createField(fieldType, roleId, existingFields));
+}

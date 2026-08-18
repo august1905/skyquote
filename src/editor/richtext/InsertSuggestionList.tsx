@@ -1,24 +1,22 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import type { VariableDef } from '../types';
+import type { InsertSuggestionItem } from './insertSuggestion';
 
-export interface VariableSuggestionListRef {
+export interface InsertSuggestionListRef {
 	onKeyDown: (props: { event: KeyboardEvent }) => boolean;
 }
 
-interface VariableSuggestionListProps {
-	items: VariableDef[];
-	command: (item: VariableDef) => void;
+interface InsertSuggestionListProps {
+	items: InsertSuggestionItem[];
+	command: (item: InsertSuggestionItem) => void;
 }
 
 /**
- * The `[` picker's dropdown (§4.1: "filter as you type, navigate with
- * arrows, insert on Enter, dismiss on Escape" — Escape is handled by the
- * extension itself, since it needs to close the whole suggestion, not just
- * this list). Only variables today; fillable fields extend this same list
- * once they exist (§4.1: "typing `[` opens a combobox for variables and
- * fields" — see BUILD_STATUS.md).
+ * The `[` picker's dropdown (§4.1: "a combobox for variables and fields...
+ * filter as you type, navigate with arrows, insert on Enter, dismiss on
+ * Escape" — Escape is handled by the extension itself, since it needs to
+ * close the whole suggestion, not just this list).
  */
-export const VariableSuggestionList = forwardRef<VariableSuggestionListRef, VariableSuggestionListProps>((props, ref) => {
+export const InsertSuggestionList = forwardRef<InsertSuggestionListRef, InsertSuggestionListProps>((props, ref) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 
 	useEffect(() => setSelectedIndex(0), [props.items]);
@@ -50,7 +48,7 @@ export const VariableSuggestionList = forwardRef<VariableSuggestionListRef, Vari
 	if (props.items.length === 0) {
 		return (
 			<div className="rt-suggestion-list">
-				<div className="rt-suggestion-empty">No matching variables</div>
+				<div className="rt-suggestion-empty">No matches</div>
 			</div>
 		);
 	}
@@ -66,10 +64,10 @@ export const VariableSuggestionList = forwardRef<VariableSuggestionListRef, Vari
 					onClick={() => selectItem(index)}
 				>
 					<span className="rt-suggestion-item-label">{item.label}</span>
-					<span className="rt-suggestion-item-key">{item.key}</span>
+					<span className="rt-suggestion-item-key">{item.subtitle}</span>
 				</button>
 			))}
 		</div>
 	);
 });
-VariableSuggestionList.displayName = 'VariableSuggestionList';
+InsertSuggestionList.displayName = 'InsertSuggestionList';
