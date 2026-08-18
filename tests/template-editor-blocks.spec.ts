@@ -1,4 +1,9 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { test, expect } from '@playwright/test';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEST_IMAGE_PATH = path.join(__dirname, 'fixtures', 'test-image.png');
 
 // Real backend, no mocking. Home for phase 2's per-block-type coverage as
 // the block catalog (§15 phase 2) grows — one describe per block type.
@@ -191,5 +196,65 @@ test.describe('Table block', () => {
 		await page.getByRole('button', { name: '− Column' }).click();
 		await expect(page.locator('.block-table-cell')).toHaveCount(1);
 		await expect(page.getByRole('button', { name: '− Column' })).toBeDisabled();
+	});
+});
+
+test.describe('Image block', () => {
+	test('uploads a real file through the backend, resizes, toggles circle shape, edits alt text, and persists', async ({ page }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.locator('.canvas-add-block-options input[type="file"]').setInputFiles(TEST_IMAGE_PATH);
+
+		const image = page.locator('.block-image');
+		await expect(image).toBeVisible();
+
+		// Selecting it (clicking its content, same as any other block) reveals
+		// the resize handle / alt-text / shape controls.
+		await page.locator('.block-image-wrapper').click();
+		const altInput = page.getByPlaceholder('Alt text (required)');
+		await altInput.fill('A test logo');
+		await expect(altInput).toHaveValue('A test logo');
+
+		await page.getByLabel('Circle').check();
+		await expect(image).toHaveClass(/block-image-circle/);
+
+		const handle = page.getByRole('button', { name: 'Resize image' });
+		const before = await image.boundingBox();
+		if (!before) throw new Error('expected the image to have a bounding box');
+		await handle.hover();
+		await page.mouse.down();
+		await page.mouse.move(before.x + before.width + 60, before.y + before.height, { steps: 10 });
+		await page.mouse.up();
+
+		const after = await image.boundingBox();
+		if (!after) throw new Error('expected the image to have a bounding box after resizing');
+		expect(after.width).toBeGreaterThan(before.width);
+
+		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await page.reload();
+
+		const imageAfterReload = page.locator('.block-image');
+		await expect(imageAfterReload).toHaveCount(1);
+		await expect(imageAfterReload).toHaveClass(/block-image-circle/);
+		await expect(imageAfterReload).toHaveAttribute('alt', 'A test logo');
+	});
+
+	test('rejects a file whose bytes are not actually a recognized image, regardless of its declared type', async ({ page }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.locator('.canvas-add-block-options input[type="file"]').setInputFiles({
+			name: 'not-an-image.png',
+			mimeType: 'image/png',
+			buffer: Buffer.from('this is not actually a png'),
+		});
+
+		await expect(page.getByRole('alert')).toContainText(/not a recognized/i);
+		await expect(page.locator('.block-image')).toHaveCount(0);
 	});
 });

@@ -127,6 +127,27 @@
 	background: #f2f2f2;
 }
 
+.canvas-add-block-file-option {
+	display: block;
+	padding: 8px 12px;
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.canvas-add-block-file-option:hover {
+	background: #f2f2f2;
+}
+
+.canvas-add-block-file-input {
+	display: none;
+}
+
+.canvas-add-block-error {
+	margin: 4px 0 0;
+	font-size: 0.8rem;
+	color: #c0392b;
+}
+
 .block-page-break {
 	display: flex;
 	align-items: center;

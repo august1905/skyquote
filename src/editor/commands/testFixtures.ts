@@ -1,4 +1,4 @@
-import type { ColumnsBlock, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
+import type { ColumnsBlock, ImageBlock, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
 
 // Shared across command/store tests. Not a .test.ts file itself — vitest's
 // include glob (src/**/*.test.ts) skips it, so it can export plain helpers
@@ -88,6 +88,44 @@ export function makeBodyWithTable(): TemplateBody {
 						[makeCell('r1c0'), makeCell('r1c1')],
 					]),
 				],
+			},
+		],
+		roles: [],
+		variables: [],
+		settings: {
+			pageSize: 'LETTER',
+			orientation: 'portrait',
+			margins: { top: 0, right: 0, bottom: 0, left: 0 },
+			showPageNumbers: false,
+		},
+	};
+}
+
+export function makeImageBlock(id: string, overrides: Partial<ImageBlock> = {}): ImageBlock {
+	return {
+		id,
+		type: 'image',
+		locked: false,
+		style: {},
+		assetId: 'asset-1',
+		url: '/assets/asset-1/file',
+		alt: '',
+		width: 200,
+		height: 100,
+		shape: 'rect',
+		...overrides,
+	};
+}
+
+/** A page with a lone ImageBlock ("image-1") — for exercising size/alt/shape commands. */
+export function makeBodyWithImage(): TemplateBody {
+	return {
+		pages: [
+			{
+				id: 'page-1',
+				name: 'Page 1',
+				order: 0,
+				blocks: [makeImageBlock('image-1')],
 			},
 		],
 		roles: [],

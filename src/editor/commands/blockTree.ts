@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, ColumnsBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
+import type { Block, BlockId, BlockType, ColumnsBlock, ImageBlock, Page, PageBreakBlock, PageId, TableBlock, TableCell, TemplateBody, TextBlock } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -240,6 +240,29 @@ export function createTableBlock(rowCount: 2 | 3 | 4 | 5 = 2, columnCount: 2 | 3
 		rows: Array.from({ length: rowCount }, () => ({ cells: Array.from({ length: columnCount }, () => createBlankCell()) })),
 		columnWidths: Array.from({ length: columnCount }, () => 1 / columnCount),
 		headerRow: true,
+	};
+}
+
+/**
+ * There's no "blank" image the way every other block type has — an
+ * `ImageBlock` is only ever created from an already-uploaded asset (see
+ * `src/api/assets.ts` and `blocks/insertable.ts`'s `createFromFile`), so
+ * this takes the asset's own identity/dimensions as params rather than
+ * generating placeholder content. `url` is expected to be a relative API
+ * path, not a resolved absolute URL — see `assetFileRelativePath`.
+ */
+export function createImageBlock(params: { assetId: string; url: string; alt: string; width: number; height: number }): ImageBlock {
+	return {
+		id: crypto.randomUUID(),
+		type: 'image',
+		locked: false,
+		style: {},
+		assetId: params.assetId,
+		url: params.url,
+		alt: params.alt,
+		width: params.width,
+		height: params.height,
+		shape: 'rect',
 	};
 }
 
