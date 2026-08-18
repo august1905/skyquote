@@ -88,3 +88,131 @@
 	border: 1px solid #ddd;
 	border-radius: 4px;
 }
+
+.roles-panel {
+	width: 300px;
+	padding: 12px;
+	border-right: 1px solid #e2e2e2;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	overflow-y: auto;
+}
+
+.roles-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.roles-panel-header h2 {
+	font-size: 0.95rem;
+	margin: 0;
+}
+
+.roles-panel-header button {
+	border: none;
+	background: transparent;
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+	color: #777;
+}
+
+.roles-panel-empty {
+	font-size: 0.85rem;
+	color: #777;
+	margin: 0;
+}
+
+.roles-panel-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.roles-panel-row {
+	border: 1px solid #e2e2e2;
+	border-radius: 6px;
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.roles-panel-row-main {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.roles-panel-row-main input[type='color'] {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	flex-shrink: 0;
+}
+
+.roles-panel-row-main input[type='text'] {
+	flex: 1;
+	min-width: 0;
+	padding: 4px 6px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.85rem;
+}
+
+.roles-panel-row-move {
+	display: flex;
+	gap: 2px;
+}
+
+.roles-panel-row-move button {
+	width: 22px;
+	height: 22px;
+	border: 1px solid #ddd;
+	background: #fff;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.75rem;
+}
+
+.roles-panel-row-move button:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.roles-panel-row-details {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 0.8rem;
+	color: #555;
+}
+
+.roles-panel-row-details label {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.roles-panel-row-details input[type='number'] {
+	width: 48px;
+	padding: 2px 4px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+}
+
+.roles-panel-add {
+	align-self: flex-start;
+	padding: 6px 10px;
+	border: 1px solid #ddd;
+	background: #fff;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.85rem;
+}

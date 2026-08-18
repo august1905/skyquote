@@ -137,9 +137,22 @@ export function pageAt(body: Draft<TemplateBody>, index: number): Draft<Page> {
  * only needs the proxy to still be valid at push-time. `current()` resolves
  * a draft to a plain, detached snapshot, which is what every command below
  * uses before storing anything in its returned inverse.
+ *
+ * `current()` has a second sharp edge of its own: if `draftValue` was never
+ * actually *modified* within the producer that's running right now, it
+ * short-circuits and returns `state.base_` verbatim — the literal object
+ * from the *previous* produce's output, which autoFreeze already deep-froze.
+ * Splicing that exact reference into an array later (every delete/remove
+ * command's inverse re-inserts its snapshot this way) and then writing to
+ * one of its own properties — e.g. a reindex loop correcting `.order` —
+ * throws "Cannot assign to read only property". Reproduced against the
+ * plain, already-shipped `deletePage`+undo with no roles/fields involved at
+ * all, so this isn't specific to any one command. `structuredClone`
+ * guarantees a fresh, unfrozen, fully detached copy regardless of which path
+ * `current()` took internally.
  */
 export function snapshot<T>(draftValue: Draft<T>): T {
-	return current(draftValue);
+	return structuredClone(current(draftValue));
 }
 
 export function cloneBlockWithNewIds(block: Block): Block {

@@ -6,5 +6,6 @@ export { addColumn, addRow, removeColumn, removeRow, setCellDoc, toggleHeaderRow
 export { setImageAlt, setImageShape, setImageSize } from './imageCommands';
 export { setVideoAutoplay } from './videoCommands';
 export { defaultTheme, setTheme } from './themeCommands';
+export { addRole, createRole, defaultRoleColor, moveRole, nextRoleName, recolorRole, removeRole, renameRole, setIsSender, setSigningOrder } from './roleCommands';
 export { containerBlocksOf } from './blockTree';
 export { createBlankPage, createBlankTextBlock, createColumnsBlock, createImageBlock, createPageBreakBlock, createTableBlock, createVideoBlock } from './blockTree';

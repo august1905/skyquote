@@ -42,6 +42,39 @@ describe('addPage / deletePage', () => {
 	});
 });
 
+describe('addPage / deletePage regression: reindexing over an already-frozen, untouched sibling', () => {
+	it('add page A, add page B before it, then delete+undo B — across separate chained produce calls, not one', () => {
+		// Regression test for a real bug: `current()` short-circuits to the
+		// literal (already autoFreeze-frozen) base object when a draft was
+		// never modified within its own producer. `deletePage`'s inverse
+		// re-splices that exact snapshot back into the array, and
+		// `reindexPageOrder` then writes `.order` on every page in it,
+		// including the just-spliced-in one — which throws
+		// "Cannot assign to read only property" once each produce() call here
+		// is genuinely separate (as every real command application is),
+		// rather than nested inside one shared producer the way a single
+		// `produce(original, ...)` call in a test can accidentally paper
+		// over. Fixed by `snapshot()` (blockTree.ts) always returning a
+		// `structuredClone`d, guaranteed-unfrozen copy.
+		const pageA = createBlankPage('A');
+		const pageB = createBlankPage('B');
+		let body = makeBody();
+		body = produce(body, (draft) => void addPage(0, pageA).apply(draft));
+		body = produce(body, (draft) => void addPage(0, pageB).apply(draft));
+
+		let inverse!: Command;
+		const afterDelete = produce(body, (draft) => {
+			inverse = deletePage(pageB.id).apply(draft);
+		});
+		expect(afterDelete.pages.map((p) => p.id)).not.toContain(pageB.id);
+
+		const afterUndo = produce(afterDelete, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(afterUndo.pages.map((p) => p.id)).toEqual(body.pages.map((p) => p.id));
+	});
+});
+
 describe('renamePage', () => {
 	it('renames the page; its inverse restores the previous name', () => {
 		const original = makeBody();
