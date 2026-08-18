@@ -170,6 +170,56 @@ describe('advanceSavedMeta', () => {
 	});
 });
 
+describe('multi-select (§4.2)', () => {
+	it('a shift-click with nothing selected yet just becomes a normal single selection', () => {
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-1');
+		const state = useEditorStore.getState();
+		expect(state.selection).toEqual({ pageId: 'page-1', blockId: 'block-1' });
+		expect(state.multiSelectedBlockIds).toEqual([]);
+	});
+
+	it('subsequent shift-clicks add to the multi-selection; shift-clicking the anchor is a no-op', () => {
+		useEditorStore.getState().select({ pageId: 'page-1', blockId: 'block-1' });
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-2');
+		expect(useEditorStore.getState().multiSelectedBlockIds).toEqual(['block-2']);
+
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-1');
+		expect(useEditorStore.getState().multiSelectedBlockIds).toEqual(['block-2']);
+	});
+
+	it('shift-clicking an already-multi-selected block toggles it back out', () => {
+		useEditorStore.getState().select({ pageId: 'page-1', blockId: 'block-1' });
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-2');
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-2');
+		expect(useEditorStore.getState().multiSelectedBlockIds).toEqual([]);
+	});
+
+	it('a plain select() (a non-shift click) always clears the multi-selection', () => {
+		useEditorStore.getState().select({ pageId: 'page-1', blockId: 'block-1' });
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-2');
+		expect(useEditorStore.getState().multiSelectedBlockIds).toHaveLength(1);
+
+		useEditorStore.getState().select({ pageId: 'page-1', blockId: 'block-2' });
+		expect(useEditorStore.getState().multiSelectedBlockIds).toEqual([]);
+	});
+
+	it('clearMultiSelection empties it without touching the anchor', () => {
+		useEditorStore.getState().select({ pageId: 'page-1', blockId: 'block-1' });
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-2');
+		useEditorStore.getState().clearMultiSelection();
+		const state = useEditorStore.getState();
+		expect(state.multiSelectedBlockIds).toEqual([]);
+		expect(state.selection).toEqual({ pageId: 'page-1', blockId: 'block-1' });
+	});
+
+	it('loadTemplate resets the multi-selection', () => {
+		useEditorStore.getState().select({ pageId: 'page-1', blockId: 'block-1' });
+		useEditorStore.getState().toggleMultiSelect('page-1', 'block-2');
+		useEditorStore.getState().loadTemplate(makeMeta(), makeBody());
+		expect(useEditorStore.getState().multiSelectedBlockIds).toEqual([]);
+	});
+});
+
 describe('coalescing', () => {
 	it('collapses same-key commands within the idle window into a single undo entry', () => {
 		vi.useFakeTimers();

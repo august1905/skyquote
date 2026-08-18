@@ -9,9 +9,10 @@ import './canvas.css';
 interface PageFrameProps {
 	page: Page;
 	selectedBlockId: BlockId | null;
+	multiSelectedBlockIds: BlockId[];
 }
 
-export function PageFrame({ page, selectedBlockId }: PageFrameProps) {
+export function PageFrame({ page, selectedBlockId, multiSelectedBlockIds }: PageFrameProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
 	const container: BlockContainer = { pageId: page.id };
@@ -28,7 +29,14 @@ export function PageFrame({ page, selectedBlockId }: PageFrameProps) {
 			<SortableContext items={page.blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
 				<div className="canvas-page-blocks">
 					{page.blocks.map((block) => (
-						<SortableBlock key={block.id} pageId={page.id} container={container} block={block} selected={block.id === selectedBlockId} />
+						<SortableBlock
+							key={block.id}
+							pageId={page.id}
+							container={container}
+							block={block}
+							selected={block.id === selectedBlockId}
+							multiSelected={multiSelectedBlockIds.includes(block.id)}
+						/>
 					))}
 				</div>
 			</SortableContext>

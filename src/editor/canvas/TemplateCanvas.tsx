@@ -45,6 +45,7 @@ export function TemplateCanvas() {
 	const pages = useEditorStore((s) => s.body?.pages ?? []);
 	const theme = useEditorStore((s) => s.body?.settings.theme ?? defaultTheme());
 	const selection = useEditorStore((s) => s.selection);
+	const multiSelectedBlockIds = useEditorStore((s) => s.multiSelectedBlockIds);
 	const runCommand = useEditorStore((s) => s.runCommand);
 
 	// A small activation distance so a plain click (to select a block, or
@@ -81,7 +82,12 @@ export function TemplateCanvas() {
 		<DndContext sensors={sensors} onDragEnd={handleDragEnd}>
 			<div className="canvas" style={themeCssVars(theme)}>
 				{pages.map((page) => (
-					<PageFrame key={page.id} page={page} selectedBlockId={selection?.pageId === page.id ? selection.blockId : null} />
+					<PageFrame
+						key={page.id}
+						page={page}
+						selectedBlockId={selection?.pageId === page.id ? selection.blockId : null}
+						multiSelectedBlockIds={selection?.pageId === page.id ? multiSelectedBlockIds : []}
+					/>
 				))}
 			</div>
 		</DndContext>

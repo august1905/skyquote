@@ -20,6 +20,7 @@ import './columns.css';
 export function ColumnsBlockView({ pageId, block }: BlockViewProps<ColumnsBlock>) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const selection = useEditorStore((s) => s.selection);
+	const multiSelectedBlockIds = useEditorStore((s) => s.multiSelectedBlockIds);
 
 	return (
 		<div className="block-columns" data-block-id={block.id}>
@@ -36,6 +37,7 @@ export function ColumnsBlockView({ pageId, block }: BlockViewProps<ColumnsBlock>
 									container={container}
 									block={childBlock}
 									selected={selection?.pageId === pageId && selection.blockId === childBlock.id}
+									multiSelected={selection?.pageId === pageId && multiSelectedBlockIds.includes(childBlock.id)}
 								/>
 							))}
 						</SortableContext>

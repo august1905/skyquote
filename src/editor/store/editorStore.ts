@@ -37,6 +37,15 @@ interface EditorState {
 	meta: TemplateMeta | null;
 	body: TemplateBody | null;
 	selection: Selection | null;
+	/**
+	 * §4.2's multi-select — additional blocks included alongside `selection`
+	 * (the "anchor"), always on `selection.pageId`. Kept as a separate,
+	 * additive piece of state rather than folding into `Selection` itself, so
+	 * every existing single-selection consumer (the floating toolbar's
+	 * position, `BlockSettingsPopover`'s target, etc.) keeps working
+	 * unchanged — they only ever care about the one anchor block.
+	 */
+	multiSelectedBlockIds: BlockId[];
 	/** True since the last load/save — i.e. there's something for autosave to pick up. */
 	dirty: boolean;
 
@@ -79,7 +88,17 @@ interface EditorState {
 	endCoalescing: () => void;
 	undo: () => void;
 	redo: () => void;
+	/** A plain (non-shift) click/select — always resets `multiSelectedBlockIds` back to none. */
 	select: (selection: Selection | null) => void;
+	/**
+	 * Shift-click (§4.2): toggles `blockId` in/out of the multi-selection.
+	 * The very first shift-click with nothing selected yet just becomes a
+	 * normal single selection (there's no anchor to add *to*). Shift-clicking
+	 * the current anchor itself is a no-op — the anchor can't be toggled off
+	 * without also picking a new one, which a single shift-click can't express.
+	 */
+	toggleMultiSelect: (pageId: PageId, blockId: BlockId) => void;
+	clearMultiSelection: () => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -87,6 +106,7 @@ export const useEditorStore = create<EditorState>()(
 		meta: null,
 		body: null,
 		selection: null,
+		multiSelectedBlockIds: [],
 		dirty: false,
 		undoStack: [],
 		redoStack: [],
@@ -99,6 +119,7 @@ export const useEditorStore = create<EditorState>()(
 				state.meta = meta;
 				state.body = normalizeBody(body);
 				state.selection = null;
+				state.multiSelectedBlockIds = [];
 				state.dirty = false;
 				state.undoStack = [];
 				state.redoStack = [];
@@ -198,6 +219,25 @@ export const useEditorStore = create<EditorState>()(
 		select: (selection) =>
 			set((state) => {
 				state.selection = selection;
+				state.multiSelectedBlockIds = [];
+			}),
+
+		toggleMultiSelect: (pageId, blockId) =>
+			set((state) => {
+				if (!state.selection || state.selection.blockId == null || state.selection.pageId !== pageId) {
+					state.selection = { pageId, blockId };
+					state.multiSelectedBlockIds = [];
+					return;
+				}
+				if (blockId === state.selection.blockId) return;
+				const index = state.multiSelectedBlockIds.indexOf(blockId);
+				if (index === -1) state.multiSelectedBlockIds.push(blockId);
+				else state.multiSelectedBlockIds.splice(index, 1);
+			}),
+
+		clearMultiSelection: () =>
+			set((state) => {
+				state.multiSelectedBlockIds = [];
 			}),
 	}))
 );

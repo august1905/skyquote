@@ -14,6 +14,8 @@ interface SortableBlockProps {
 	container: BlockContainer;
 	block: Block;
 	selected: boolean;
+	/** §4.2's multi-select — true when this block is part of the selection but isn't the anchor (`selected`). Gets a highlight, but not its own toolbar. */
+	multiSelected: boolean;
 }
 
 /**
@@ -56,10 +58,16 @@ function styleFor(style: BlockStyle): CSSProperties {
 	return css;
 }
 
-export function SortableBlock({ pageId, container, block, selected }: SortableBlockProps) {
+export function SortableBlock({ pageId, container, block, selected, multiSelected }: SortableBlockProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const select = useEditorStore((s) => s.select);
+	const toggleMultiSelect = useEditorStore((s) => s.toggleMultiSelect);
+	const multiSelectedBlockIds = useEditorStore((s) => s.multiSelectedBlockIds);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	// The anchor's toolbar acts on the *whole* multi-selection when one
+	// exists (§4.2: "Multi-select supports move, delete, duplicate") — just
+	// this one block otherwise, unchanged from single-select behavior.
+	const selectedBlockIds = selected && multiSelectedBlockIds.length > 0 ? [block.id, ...multiSelectedBlockIds] : [block.id];
 	useEffect(() => {
 		if (!selected) setSettingsOpen(false);
 	}, [selected]);
@@ -86,8 +94,17 @@ export function SortableBlock({ pageId, container, block, selected }: SortableBl
 		<div
 			ref={setNodeRef}
 			style={{ transform: CSS.Transform.toString(transform), transition: transition ?? undefined }}
-			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}`}
-			onClick={stopAnd(() => select({ pageId, blockId: block.id }))}
+			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${multiSelected ? ' canvas-block-multi-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}`}
+			onClick={(e) => {
+				e.stopPropagation();
+				// A locked block can never be deleted/moved (see blockCommands.ts's
+				// guards) — including one in a multi-selection would make the
+				// anchor's bulk Delete/Duplicate throw the moment it reached that
+				// id, so locked blocks simply aren't shift-click-able into a
+				// multi-selection at all.
+				if (e.shiftKey && !block.locked) toggleMultiSelect(pageId, block.id);
+				else if (!e.shiftKey) select({ pageId, blockId: block.id });
+			}}
 		>
 			{selected && (
 				<div className="canvas-block-toolbar">
@@ -96,8 +113,13 @@ export function SortableBlock({ pageId, container, block, selected }: SortableBl
 							⠿
 						</button>
 					)}
-					<button type="button" onClick={stopAnd(() => runCommand(duplicateBlock(pageId, block.id)))}>
-						Duplicate
+					<button
+						type="button"
+						onClick={stopAnd(() => {
+							for (const id of selectedBlockIds) runCommand(duplicateBlock(pageId, id));
+						})}
+					>
+						{selectedBlockIds.length > 1 ? `Duplicate (${selectedBlockIds.length})` : 'Duplicate'}
 					</button>
 					<button type="button" onClick={stopAnd(() => setSettingsOpen((o) => !o))}>
 						Settings
@@ -109,11 +131,11 @@ export function SortableBlock({ pageId, container, block, selected }: SortableBl
 						<button
 							type="button"
 							onClick={stopAnd(() => {
-								runCommand(deleteBlock(pageId, block.id));
+								for (const id of selectedBlockIds) runCommand(deleteBlock(pageId, id));
 								select(null);
 							})}
 						>
-							Delete
+							{selectedBlockIds.length > 1 ? `Delete (${selectedBlockIds.length})` : 'Delete'}
 						</button>
 					)}
 					{settingsOpen && (
