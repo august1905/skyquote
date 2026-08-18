@@ -1,7 +1,8 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { BlockId, Page } from '../types';
-import { createBlankTextBlock, insertBlock, renamePage } from '../commands';
+import { insertBlock, renamePage } from '../commands';
 import { useEditorStore } from '../store/editorStore';
+import { AddBlockMenu } from './AddBlockMenu';
 import { SortableBlock } from './SortableBlock';
 import './canvas.css';
 
@@ -30,13 +31,7 @@ export function PageFrame({ page, selectedBlockId }: PageFrameProps) {
 					))}
 				</div>
 			</SortableContext>
-			<button
-				type="button"
-				className="canvas-add-block"
-				onClick={() => runCommand(insertBlock(page.id, page.blocks.length, createBlankTextBlock()))}
-			>
-				+ Add text block
-			</button>
+			<AddBlockMenu onInsert={(block) => runCommand(insertBlock(page.id, page.blocks.length, block))} />
 		</div>
 	);
 }

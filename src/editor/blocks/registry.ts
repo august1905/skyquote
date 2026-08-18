@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import type { Block, BlockType } from '../types';
 import type { BlockRegistryEntry, BlockViewProps } from './types';
 import { TextBlockView } from './TextBlockView';
+import { PageBreakBlockView } from './PageBreakBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 
 // UnsupportedBlockView only ever reads `block.type`, which every Block union
@@ -15,8 +16,8 @@ function unsupported<B extends Block>(label: string): BlockRegistryEntry<B> {
  * One entry per member of the `Block` union, typed so a missing key is a
  * compile error against `BlockType` rather than a runtime gap discovered when
  * someone forgets a `case` in a `switch (block.type)` somewhere in the canvas,
- * toolbar, or library panel. Only `text` has a real view for phase 1 — the
- * rest register a stub per §15's phase gating.
+ * toolbar, or library panel. Block types not yet built register the shared
+ * unsupported stub per §15's phase gating — each phase upgrades a few.
  */
 const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K }>> } = {
 	text: { label: 'Text', View: TextBlockView },
@@ -26,7 +27,7 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	pricing_table: unsupported('Pricing table'),
 	quote_builder: unsupported('Quote builder'),
 	toc: unsupported('Table of contents'),
-	page_break: unsupported('Page break'),
+	page_break: { label: 'Page break', View: PageBreakBlockView },
 	smart_content: unsupported('Smart content'),
 	columns: unsupported('Columns'),
 	field: unsupported('Field'),

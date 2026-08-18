@@ -23,7 +23,8 @@ test.describe('Template editor canvas', () => {
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect(editors.nth(0)).toContainText('First block');
 
-		await page.getByRole('button', { name: '+ Add text block' }).click();
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByRole('menuitem', { name: 'Text' }).click();
 		await expect(editors).toHaveCount(2);
 		await editors.nth(1).click();
 		await page.keyboard.type('Second block');

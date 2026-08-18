@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, Page, PageId, TemplateBody, TextBlock } from '../types';
+import type { Block, BlockId, Page, PageBreakBlock, PageId, TemplateBody, TextBlock } from '../types';
 
 /**
  * Finds a page by id in the draft, or throws. A missing page/block here
@@ -100,6 +100,10 @@ export function createBlankTextBlock(): TextBlock {
 		style: {},
 		doc: { type: 'doc', content: [{ type: 'paragraph', content: [] }] },
 	};
+}
+
+export function createPageBreakBlock(): PageBreakBlock {
+	return { id: crypto.randomUUID(), type: 'page_break', locked: false, style: {} };
 }
 
 export function createBlankPage(name: string): Page {
