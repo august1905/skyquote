@@ -9,6 +9,7 @@ import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import { HeaderTotal } from '../editor/header/HeaderTotal';
 import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
 import { ValidationIndicator } from '../editor/validation/ValidationIndicator';
+import { CreateDocumentWizard } from '../documents/wizard/CreateDocumentWizard';
 import AppShell from '../components/AppShell';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './TemplateEditor.css';
@@ -37,6 +38,7 @@ function TemplateEditor() {
 	const canUndo = useEditorStore((s) => s.undoStack.length > 0);
 	const canRedo = useEditorStore((s) => s.redoStack.length > 0);
 	const { status: autosaveStatus, reloadFromServer } = useAutosave();
+	const [wizardOpen, setWizardOpen] = useState(false);
 
 	useEffect(() => {
 		if (!id) return;
@@ -99,8 +101,12 @@ function TemplateEditor() {
 						<button type="button" onClick={redo} disabled={!canRedo}>
 							Redo
 						</button>
+						<button type="button" onClick={() => setWizardOpen(true)}>
+							Create document
+						</button>
 					</div>
 				</div>
+				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} />}
 				{autosaveStatus === 'conflict' && (
 					<div className="template-editor-conflict-banner" role="alert">
 						<span>This template was changed elsewhere. Reload to see the latest version — your unsaved changes here will be lost.</span>

@@ -14,6 +14,10 @@ export default mergeConfig(
 			// tests are added, rather than paying jsdom's cost for every file.
 			environment: 'node',
 			include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+			// Only affects jsdom-environment files in practice (jest-dom's
+			// matchers are DOM-only), but cheap enough to load unconditionally
+			// rather than needing every component test file to import it itself.
+			setupFiles: ['./src/test/setup.ts'],
 		},
 	})
 )

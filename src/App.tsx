@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import PasswordReset from './pages/PasswordReset';
+import DocumentView from './pages/DocumentView';
 import Home from './pages/Home';
 import Documents from './pages/Documents';
 import Templates from './pages/Templates';
@@ -29,6 +30,8 @@ function App() {
 					<Route path="/" element={<RootRedirect />} />
 					<Route path="/login" element={<Login />} />
 					<Route path="/password-reset" element={<PasswordReset />} />
+					{/* Public, no login — a recipient's own document link (§11). Deliberately not inside AuthProvider's RequireAuth/RequireAdmin gating, same as /login. */}
+					<Route path="/d/:documentId/:token" element={<DocumentView />} />
 					<Route
 						path="/home"
 						element={

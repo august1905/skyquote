@@ -83,7 +83,7 @@ test.describe('Variables', () => {
 		await page.getByRole('button', { name: '+ Create custom variable' }).click();
 		await page.getByLabel('Variable label').fill('Discount');
 		await page.getByLabel('Variable default value').fill('10%');
-		await page.getByRole('button', { name: 'Create' }).click();
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
 
 		const customRow = page.locator('.variables-panel-group', { hasText: 'Custom' });
 		await expect(customRow.getByRole('button', { name: 'Discount', exact: true })).toBeVisible();

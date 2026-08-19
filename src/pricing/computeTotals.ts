@@ -148,12 +148,11 @@ function collectPricingBlocks(blocks: Block[]): (PricingTableBlock | QuoteBuilde
  * §7.4: the header/document total is the sum across **every** pricing/quote
  * block in the template, using each item's own stored `qty` and default
  * `selected` state for optional items — "default quantities and default
- * optional-item selections", not a recipient's later live edits. Recipient
- * selections only exist once a real `Document` does (the Create Document
- * wizard, phase 4's still-not-built, resource-gated piece) — this function
- * is already shaped to take that over once it exists (a caller would compute
- * per-block totals from the recipient's live selections instead of the
- * template's stored items), it just has nothing to read yet.
+ * optional-item selections", not a recipient's later live edits. This is
+ * exactly what the Create Document wizard's "configure pricing" step
+ * (§11 step 4) also calls, just against its own working copy of the body
+ * after the admin has adjusted qty/optional selections there — see
+ * src/documents/.
  */
 export function computeTotals(body: TemplateBody): DocumentTotals {
 	const allBlocks = body.pages.flatMap((p) => p.blocks);
@@ -161,4 +160,15 @@ export function computeTotals(body: TemplateBody): DocumentTotals {
 	const blocks = pricingBlocks.map((b) => (b.type === 'pricing_table' ? computePricingTableTotals(b) : computeQuoteBuilderTotals(b)));
 	const currency = blocks[0]?.currency ?? 'USD';
 	return { currency, blocks, ...sumRollup(blocks) };
+}
+
+/**
+ * Same collection `computeTotals` uses internally, but tagged with each
+ * block's own `pageId` — needed by any caller (the Create Document wizard's
+ * pricing step) that has to address a specific item back through
+ * `locateBlock`'s `(pageId, blockId)` addressing, which a page-agnostic
+ * `Block[]` alone can't express.
+ */
+export function collectPricingBlocksByPage(body: TemplateBody): { pageId: string; block: PricingTableBlock | QuoteBuilderBlock }[] {
+	return body.pages.flatMap((page) => collectPricingBlocks(page.blocks).map((block) => ({ pageId: page.id, block })));
 }
