@@ -1,0 +1,106 @@
+.catalog-panel {
+	width: 280px;
+	padding: 12px;
+	border-right: 1px solid #e2e2e2;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	overflow-y: auto;
+}
+
+.catalog-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.catalog-panel-header h2 {
+	font-size: 0.95rem;
+	margin: 0;
+}
+
+.catalog-panel-header button {
+	border: none;
+	background: transparent;
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+	color: #777;
+}
+
+.catalog-panel-search {
+	padding: 6px 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.85rem;
+}
+
+.catalog-panel-empty {
+	font-size: 0.85rem;
+	color: #777;
+	margin: 0;
+}
+
+.catalog-panel-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.catalog-panel-hint {
+	font-size: 0.75rem;
+	color: #999;
+	margin: 0;
+}
+
+.catalog-item-card {
+	border: 1px solid #e2e2e2;
+	border-radius: 6px;
+	padding: 8px;
+	cursor: grab;
+	background: #fff;
+	touch-action: none;
+}
+
+.catalog-item-card:hover {
+	border-color: #bbb;
+}
+
+.catalog-item-card-dragging {
+	opacity: 0.5;
+}
+
+.catalog-item-card-main {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 0.85rem;
+}
+
+.catalog-item-card-name {
+	font-weight: 500;
+}
+
+.catalog-item-card-price {
+	color: #555;
+	white-space: nowrap;
+}
+
+.catalog-item-card-meta {
+	display: flex;
+	gap: 8px;
+	font-size: 0.75rem;
+	color: #999;
+	margin-top: 2px;
+}
+
+.catalog-item-drag-overlay {
+	padding: 8px 12px;
+	border-radius: 6px;
+	background: #1d4ed8;
+	color: #fff;
+	font-size: 0.85rem;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+	pointer-events: none;
+}

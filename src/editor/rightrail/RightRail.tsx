@@ -2,23 +2,24 @@ import { useState } from 'react';
 import { ThemePanel } from './ThemePanel';
 import { RolesPanel } from './RolesPanel';
 import { VariablesPanel } from './VariablesPanel';
+import { CatalogPanel } from '../catalog/CatalogPanel';
 import './rightrail.css';
 
 /**
  * §3's right rail (③) toggles one of ten panels in region ④. Theme,
- * Recipients/Roles, and Variables are built — the rest (Content, Content
- * Library, Approval workflow, Attachments, Automations, Catalog/Pricing,
+ * Recipients/Roles, Variables, and now Catalog/Pricing are built — the rest
+ * (Content, Content Library, Approval workflow, Attachments, Automations,
  * Integrations) either belong to a later phase outright (Approval/
- * Automations/Integrations are explicitly phase 5; Catalog is phase 4) or
- * are already functionally covered by something smaller (Content, by the
- * canvas's own "+ Add block" menu). Rendering placeholder icons for those
- * now would be UI scaffolding with nothing real behind it — deliberately
- * not built rather than a silent gap; extend `RAIL_ITEMS` as each one's real
- * panel lands.
+ * Automations/Integrations are explicitly phase 5) or are already
+ * functionally covered by something smaller (Content, by the canvas's own
+ * "+ Add block" menu). Rendering placeholder icons for those now would be UI
+ * scaffolding with nothing real behind it — deliberately not built rather
+ * than a silent gap; extend `RAIL_ITEMS` as each one's real panel lands.
  */
 const RAIL_ITEMS = [
 	{ key: 'roles', icon: '👥', label: 'Recipients / Roles' },
 	{ key: 'variables', icon: '⧉', label: 'Variables' },
+	{ key: 'catalog', icon: '💲', label: 'Catalog / Pricing' },
 	{ key: 'theme', icon: '🎨', label: 'Theme' },
 ] as const;
 
@@ -31,6 +32,7 @@ export function RightRail() {
 		<div className="right-rail-wrapper">
 			{openPanel === 'roles' && <RolesPanel onClose={() => setOpenPanel(null)} />}
 			{openPanel === 'variables' && <VariablesPanel onClose={() => setOpenPanel(null)} />}
+			{openPanel === 'catalog' && <CatalogPanel onClose={() => setOpenPanel(null)} />}
 			{openPanel === 'theme' && <ThemePanel onClose={() => setOpenPanel(null)} />}
 			<div className="right-rail">
 				{RAIL_ITEMS.map((item) => (

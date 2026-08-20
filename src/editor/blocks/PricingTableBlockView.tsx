@@ -1,3 +1,5 @@
+import { useDroppable } from '@dnd-kit/core';
+import { useMemo } from 'react';
 import {
 	addPricingItem,
 	addPricingSection,
@@ -12,6 +14,7 @@ import { useEditorStore } from '../store/editorStore';
 import type { PricingItem, PricingTableBlock } from '../types';
 import { computePricingTableTotals } from '../../pricing/computeTotals';
 import { formatMoney } from '../../pricing/formatMoney';
+import { catalogPriceChanged } from '../../pricing/catalogPriceChanged';
 import type { BlockViewProps } from './types';
 import { PricingItemRow } from './pricing/PricingItemRow';
 import './pricing/pricing.css';
@@ -35,9 +38,21 @@ interface Group {
 export function PricingTableBlockView({ pageId, block, selected }: BlockViewProps<PricingTableBlock>) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
+	const catalogItems = useEditorStore((s) => s.catalogItems);
 	const totals = computePricingTableTotals(block);
 	const lineByItemId = new Map(totals.lines.map((l) => [l.itemId, l]));
 	const editable = selected && !block.locked;
+
+	// §7.7's drop target — dragging a CatalogItemCard here creates a row via
+	// addPricingItemFromCatalog (see EditorDndProvider.tsx's handleDragEnd).
+	// Always droppable when unlocked, not gated on `editable`/`selected` — a
+	// drag-in shouldn't require first clicking into the table.
+	const { setNodeRef: setDropRef, isOver } = useDroppable({
+		id: `pricing-table-drop-${block.id}`,
+		data: { kind: 'pricingTableDrop', pageId, blockId: block.id },
+		disabled: block.locked,
+	});
+	const catalogItemsById = useMemo(() => new Map(catalogItems.map((c) => [c.id, c])), [catalogItems]);
 
 	function stopAnd<E extends { stopPropagation: () => void }>(action: () => void) {
 		return (e: E) => {
@@ -55,7 +70,7 @@ export function PricingTableBlockView({ pageId, block, selected }: BlockViewProp
 				];
 
 	return (
-		<div className="block-pricing-table">
+		<div ref={setDropRef} className={`block-pricing-table${isOver ? ' block-pricing-table-drop-over' : ''}`}>
 			{editable && (
 				<div className="pricing-table-toolbar" onClick={(e) => e.stopPropagation()}>
 					<label className="pricing-table-currency">
@@ -160,6 +175,7 @@ export function PricingTableBlockView({ pageId, block, selected }: BlockViewProp
 							showRemove={editable}
 							showDiscount={block.settings.showDiscount}
 							showTax={block.settings.showTax}
+							priceStatus={catalogPriceChanged(item, catalogItemsById)}
 							onChange={(patch) => runCommand(updatePricingItem(pageId, block.id, item.id, patch), { coalesceKey: `${block.id}-${item.id}` })}
 							onBlurField={endCoalescing}
 							onRemove={() => runCommand(removePricingItem(pageId, block.id, item.id))}

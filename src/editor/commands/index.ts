@@ -13,9 +13,10 @@ export { createField, deleteFieldsForRole, nextFieldName, reassignFieldsRole, se
 export type { FieldConfigPatch } from './fieldCommands';
 export { createFieldBlock } from './blockTree';
 export { containerBlocksOf } from './blockTree';
-export { createBlankPage, createBlankTextBlock, createBlankPricingItem, createColumnsBlock, createImageBlock, createPageBreakBlock, createPricingTableBlock, createQuoteBuilderBlock, createTableBlock, createVideoBlock } from './blockTree';
+export { createBlankPage, createBlankTextBlock, createBlankPricingItem, createPricingItemFromCatalog, createColumnsBlock, createImageBlock, createPageBreakBlock, createPricingTableBlock, createQuoteBuilderBlock, createTableBlock, createVideoBlock } from './blockTree';
 export {
 	addPricingItem,
+	addPricingItemFromCatalog,
 	addPricingSection,
 	addQuoteGroup,
 	addQuoteOption,

@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
+import type { Block, BlockId, BlockType, CatalogItem, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
 import { ZERO_MONEY } from '../types';
 
 /**
@@ -316,6 +316,37 @@ export function createBlankPricingItem(sectionId: string | null = null): Pricing
 		price: ZERO_MONEY,
 		optional: false,
 		selected: true,
+		customFields: {},
+	};
+}
+
+/**
+ * §7.7: "dragging a catalog item creates a row with `catalogItemId` set."
+ * `price`/`cost`/`sku` are copied, not referenced — a `PricingItem`'s price
+ * is frozen at insert time by design (every other field already works this
+ * way; nothing in this app re-derives a row from its source on the fly).
+ * `catalogItemId` is what lets a later comparison against the catalog's
+ * *current* price notice it's since diverged — see
+ * `pricing/catalogPriceChanged.ts`.
+ */
+export function createPricingItemFromCatalog(catalogItem: CatalogItem, sectionId: string | null = null): PricingItem {
+	return {
+		id: crypto.randomUUID(),
+		sectionId,
+		// Conditionally spread, never `sku: catalogItem.sku ?? undefined` —
+		// `exactOptionalPropertyTypes` treats an explicit `undefined` on an
+		// optional field as a type error, same reason `PricingItemPatch` and
+		// friends had to widen their own field types instead.
+		...(catalogItem.sku ? { sku: catalogItem.sku } : {}),
+		name: catalogItem.name,
+		description: catalogItem.description,
+		qty: 1,
+		price: catalogItem.price,
+		...(catalogItem.cost != null ? { cost: catalogItem.cost } : {}),
+		...(catalogItem.taxPct != null ? { tax: { type: 'pct' as const, value: catalogItem.taxPct } } : {}),
+		optional: false,
+		selected: true,
+		catalogItemId: catalogItem.id,
 		customFields: {},
 	};
 }

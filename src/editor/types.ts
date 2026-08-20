@@ -449,6 +449,28 @@ export interface DocumentRecipient {
 	status: 'pending' | 'viewed' | 'completed' | 'declined';
 }
 
+// ─── Catalog (§7.7) ──────────────────────────────────────────────────────────
+
+/**
+ * A row from the workspace-level `CatalogItems` Data Store table — not part
+ * of any `TemplateBody`. Dragging one into a `PricingTableBlock` copies its
+ * `price` (and `catalogItemId`) into a new `PricingItem`; the item's own
+ * `price` is then frozen at that value, same as every other pricing row —
+ * `catalogItemId` is what lets a later comparison notice the catalog's
+ * *current* price has since diverged (§7.7's "price changed since insert").
+ */
+export interface CatalogItem {
+	id: string;
+	sku: string | null;
+	name: string;
+	description: string;
+	price: Money;
+	currency: string;
+	cost: Money | null;
+	taxPct: number | null;
+	category: string | null;
+}
+
 // ─── Editor mode ─────────────────────────────────────────────────────────────
 
 /**

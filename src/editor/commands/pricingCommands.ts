@@ -1,7 +1,7 @@
 import type { Draft } from 'immer';
-import type { BlockId, PageId, PricingItem, PricingSection, PricingTableBlock, QuoteBuilderBlock, TemplateBody } from '../types';
+import type { BlockId, CatalogItem, PageId, PricingItem, PricingSection, PricingTableBlock, QuoteBuilderBlock, TemplateBody } from '../types';
 import type { Command } from './types';
-import { blockAt, createBlankPricingItem, findPage, locateBlock, snapshot } from './blockTree';
+import { blockAt, createBlankPricingItem, createPricingItemFromCatalog, findPage, locateBlock, snapshot } from './blockTree';
 
 function findPricingTableBlock(draft: Draft<TemplateBody>, pageId: PageId, blockId: BlockId): Draft<PricingTableBlock> {
 	const page = findPage(draft, pageId);
@@ -77,6 +77,19 @@ export function addPricingItem(pageId: PageId, blockId: BlockId, sectionId: stri
 		apply(draft: Draft<TemplateBody>) {
 			const table = findPricingTableBlock(draft, pageId, blockId);
 			const item = createBlankPricingItem(sectionId);
+			table.items.push(item);
+			return removePricingItem(pageId, blockId, item.id);
+		},
+	};
+}
+
+/** §7.7: dragging a catalog item onto a pricing table. Same "always appended" shape as {@link addPricingItem} — just seeded from a `CatalogItem` instead of blank. */
+export function addPricingItemFromCatalog(pageId: PageId, blockId: BlockId, sectionId: string | null, catalogItem: CatalogItem): Command {
+	return {
+		name: 'addPricingItemFromCatalog',
+		apply(draft: Draft<TemplateBody>) {
+			const table = findPricingTableBlock(draft, pageId, blockId);
+			const item = createPricingItemFromCatalog(catalogItem, sectionId);
 			table.items.push(item);
 			return removePricingItem(pageId, blockId, item.id);
 		},

@@ -79,7 +79,10 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 	// for the matching command-layer guard.
 	const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({
 		id: block.id,
-		data: { container },
+		// `kind: 'block'` lets EditorDndProvider's combined onDragEnd tell a
+		// block-reorder apart from a catalog-item drop (see
+		// editor/dnd/EditorDndProvider.tsx) — both now share one DndContext.
+		data: { kind: 'block', container },
 		disabled: block.locked,
 	});
 

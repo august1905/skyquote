@@ -6,6 +6,12 @@
 	padding: 8px;
 }
 
+.block-pricing-table-drop-over {
+	border-color: #1d4ed8;
+	border-style: dashed;
+	background: #eff4ff;
+}
+
 .pricing-table-toolbar,
 .quote-builder-toolbar {
 	display: flex;
@@ -113,6 +119,13 @@
 	min-width: 72px;
 	text-align: right;
 	font-weight: 600;
+}
+
+.pricing-item-price-changed {
+	font-size: 0.75rem;
+	color: #b45309;
+	white-space: nowrap;
+	cursor: help;
 }
 
 .pricing-item-remove {

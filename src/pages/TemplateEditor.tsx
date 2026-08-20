@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTemplate } from '../api/templates';
+import { listCatalogItems } from '../api/catalogItems';
 import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
+import { EditorDndProvider } from '../editor/dnd/EditorDndProvider';
 import { useAutosave, type AutosaveStatus } from '../editor/autosave/useAutosave';
 import { useEditorStore } from '../editor/store/editorStore';
 import { RightRail } from '../editor/rightrail/RightRail';
@@ -39,6 +41,28 @@ function TemplateEditor() {
 	const canRedo = useEditorStore((s) => s.redoStack.length > 0);
 	const { status: autosaveStatus, reloadFromServer } = useAutosave();
 	const [wizardOpen, setWizardOpen] = useState(false);
+	const setCatalogItems = useEditorStore((s) => s.setCatalogItems);
+	const setCatalogItemsStatus = useEditorStore((s) => s.setCatalogItemsStatus);
+
+	// Fetched once per editor session, independent of `loadTemplate`'s own
+	// load effect below — catalog items are workspace-level, not scoped to
+	// this template (see editorStore.ts's `catalogItems` comment). A failure
+	// here degrades to an empty Catalog panel + no "price changed" checks
+	// rather than blocking the editor from loading at all.
+	useEffect(() => {
+		let cancelled = false;
+		setCatalogItemsStatus('loading');
+		listCatalogItems()
+			.then((items) => {
+				if (!cancelled) setCatalogItems(items);
+			})
+			.catch(() => {
+				if (!cancelled) setCatalogItemsStatus('error');
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [setCatalogItems, setCatalogItemsStatus]);
 
 	useEffect(() => {
 		if (!id) return;
@@ -115,12 +139,14 @@ function TemplateEditor() {
 						</button>
 					</div>
 				)}
-				<div className="template-editor-body">
-					<div className="template-editor-canvas-area">
-						<TemplateCanvas />
+				<EditorDndProvider>
+					<div className="template-editor-body">
+						<div className="template-editor-canvas-area">
+							<TemplateCanvas />
+						</div>
+						<RightRail />
 					</div>
-					<RightRail />
-				</div>
+				</EditorDndProvider>
 			</div>
 		</AppShell>
 	);

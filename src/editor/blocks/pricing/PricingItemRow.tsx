@@ -2,6 +2,7 @@ import type { PricingItem } from '../../types';
 import type { PricingItemPatch } from '../../commands';
 import { formatMoney, parseMoneyInput } from '../../../pricing/formatMoney';
 import type { LineTotal } from '../../../pricing/computeTotals';
+import type { CatalogPriceStatus } from '../../../pricing/catalogPriceChanged';
 import { AdjustmentInput } from './AdjustmentInput';
 
 interface PricingItemRowProps {
@@ -13,13 +14,15 @@ interface PricingItemRowProps {
 	showRemove: boolean;
 	showDiscount: boolean;
 	showTax: boolean;
+	/** §7.7's "price changed since insert" indicator. Undefined for a `QuoteBuilderBlock` option — those aren't §7.7's drop target (see BUILD_STATUS.md), so there's nothing to check there yet. */
+	priceStatus?: CatalogPriceStatus;
 	onChange: (patch: PricingItemPatch) => void;
 	onBlurField: () => void;
 	onRemove: () => void;
 }
 
 /** One row, shared by a `PricingTableBlock`'s items and a `QuoteBuilderBlock` group's options — both are `PricingItem[]`. */
-export function PricingItemRow({ item, line, currency, locked, showRemove, showDiscount, showTax, onChange, onBlurField, onRemove }: PricingItemRowProps) {
+export function PricingItemRow({ item, line, currency, locked, showRemove, showDiscount, showTax, priceStatus, onChange, onBlurField, onRemove }: PricingItemRowProps) {
 	return (
 		<div className={`pricing-item-row${line.included ? '' : ' pricing-item-row-excluded'}`}>
 			<input
@@ -75,6 +78,15 @@ export function PricingItemRow({ item, line, currency, locked, showRemove, showD
 				</label>
 			)}
 			<span className="pricing-item-line-total">{formatMoney(line.total, currency)}</span>
+			{priceStatus?.changed && (
+				<span
+					className="pricing-item-price-changed"
+					role="status"
+					title={`Catalog price is now ${formatMoney(priceStatus.currentPrice!, currency)} (was ${formatMoney(item.price, currency)} when added)`}
+				>
+					⚠ Price changed
+				</span>
+			)}
 			{showRemove && !locked && (
 				<button type="button" className="pricing-item-remove" aria-label={`Remove ${item.name || 'item'}`} onClick={onRemove}>
 					×

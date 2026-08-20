@@ -1,10 +1,11 @@
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
-import type { PricingTableBlock, QuoteBuilderBlock } from '../types';
+import type { CatalogItem, PricingTableBlock, QuoteBuilderBlock } from '../types';
 import { money } from '../types';
 import type { Command } from './types';
 import {
 	addPricingItem,
+	addPricingItemFromCatalog,
 	addPricingSection,
 	addQuoteGroup,
 	addQuoteOption,
@@ -71,6 +72,54 @@ describe('pricing table: items', () => {
 			inverse.apply(draft);
 		});
 		expect(undone).toEqual(original);
+	});
+
+	const CATALOG_ITEM: CatalogItem = {
+		id: 'catalog-1',
+		sku: 'CLN-01',
+		name: 'Standard Cleaning',
+		description: 'A standard clean',
+		price: money(15000),
+		currency: 'USD',
+		cost: money(6000),
+		taxPct: 8.25,
+		category: 'Residential',
+	};
+
+	it('addPricingItemFromCatalog copies the catalog item\'s fields and sets catalogItemId; its inverse removes exactly that row', () => {
+		const original = makeBodyWithPricingTable();
+		let inverse!: Command;
+		const after = produce(original, (draft) => {
+			inverse = addPricingItemFromCatalog('page-1', 'pricing-1', null, CATALOG_ITEM).apply(draft);
+		});
+		const table = after.pages[0]?.blocks[0] as PricingTableBlock;
+		expect(table.items).toHaveLength(2);
+		const added = table.items[1]!;
+		expect(added.catalogItemId).toBe('catalog-1');
+		expect(added.sku).toBe('CLN-01');
+		expect(added.name).toBe('Standard Cleaning');
+		expect(added.description).toBe('A standard clean');
+		expect(added.price).toBe(money(15000));
+		expect(added.cost).toBe(money(6000));
+		expect(added.tax).toEqual({ type: 'pct', value: 8.25 });
+		expect(added.sectionId).toBeNull();
+
+		const undone = produce(after, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(undone).toEqual(original);
+	});
+
+	it('addPricingItemFromCatalog omits sku/cost/tax entirely (not as explicit undefined) when the catalog item lacks them', () => {
+		const sparseCatalogItem: CatalogItem = { ...CATALOG_ITEM, sku: null, cost: null, taxPct: null };
+		const original = makeBodyWithPricingTable();
+		const after = produce(original, (draft) => {
+			addPricingItemFromCatalog('page-1', 'pricing-1', null, sparseCatalogItem).apply(draft);
+		});
+		const added = (after.pages[0]?.blocks[0] as PricingTableBlock).items[1]!;
+		expect('sku' in added).toBe(false);
+		expect('cost' in added).toBe(false);
+		expect('tax' in added).toBe(false);
 	});
 
 	it('two add/undo cycles in a row do not throw (the frozen-snapshot regression check every command file carries)', () => {

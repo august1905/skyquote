@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { BlockId, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
+import type { BlockId, CatalogItem, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
 import type { Command } from '../commands/types';
 import { defaultTheme } from '../commands/themeCommands';
 
@@ -61,6 +61,16 @@ interface EditorState {
 	 * the field-interactivity half of §5's own description.
 	 */
 	previewRoleId: RoleId | null;
+	/**
+	 * Workspace-level, not template-scoped — unlike `body`, this isn't reset
+	 * by `loadTemplate` and isn't part of undo/redo. Fetched once per editor
+	 * session by `TemplateEditor.tsx` (see `setCatalogItems`) so both the
+	 * Catalog panel's browser and every `PricingTableBlockView`'s "price
+	 * changed since insert" check (§7.7) share one fetch instead of each
+	 * re-requesting the same list.
+	 */
+	catalogItems: CatalogItem[];
+	catalogItemsStatus: 'idle' | 'loading' | 'ready' | 'error';
 	/** True since the last load/save — i.e. there's something for autosave to pick up. */
 	dirty: boolean;
 
@@ -115,6 +125,8 @@ interface EditorState {
 	toggleMultiSelect: (pageId: PageId, blockId: BlockId) => void;
 	clearMultiSelection: () => void;
 	setPreviewRoleId: (roleId: RoleId | null) => void;
+	setCatalogItemsStatus: (status: EditorState['catalogItemsStatus']) => void;
+	setCatalogItems: (items: CatalogItem[]) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -124,6 +136,8 @@ export const useEditorStore = create<EditorState>()(
 		selection: null,
 		multiSelectedBlockIds: [],
 		previewRoleId: null,
+		catalogItems: [],
+		catalogItemsStatus: 'idle',
 		dirty: false,
 		undoStack: [],
 		redoStack: [],
@@ -261,6 +275,17 @@ export const useEditorStore = create<EditorState>()(
 		setPreviewRoleId: (roleId) =>
 			set((state) => {
 				state.previewRoleId = roleId;
+			}),
+
+		setCatalogItemsStatus: (status) =>
+			set((state) => {
+				state.catalogItemsStatus = status;
+			}),
+
+		setCatalogItems: (items) =>
+			set((state) => {
+				state.catalogItems = items;
+				state.catalogItemsStatus = 'ready';
 			}),
 	}))
 );
