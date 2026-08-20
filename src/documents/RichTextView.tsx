@@ -1,11 +1,26 @@
 import { createElement, type ReactNode } from 'react';
 import type { FillableField, RichTextDoc, RichTextNode } from '../editor/types';
-import { FieldPreview } from '../editor/fields/FieldPreview';
+import { FieldPreview, type FieldValue } from '../editor/fields/FieldPreview';
+
+/**
+ * Bundles the recipient document view's field state so it doesn't have to
+ * be threaded through every recursive call as three separate props.
+ * Omitted entirely outside a document-viewing context (nothing is ever
+ * controlled/persisted there — see `FieldPreview`'s own uncontrolled
+ * fallback).
+ */
+export interface FieldInteraction {
+	fieldValues: Record<string, FieldValue>;
+	onFieldChange: (fieldId: string, value: FieldValue) => void;
+	/** Freezes every live field read-only once this recipient has already submitted/declined. */
+	readOnly: boolean;
+}
 
 interface RichTextViewProps {
 	doc: RichTextDoc;
 	/** The viewing recipient's own role — a `fillableField` node whose `roleId` matches renders live/fillable (see `FieldPreview`); every other field stays inert. `null` outside a document-viewing context, where nothing is ever live. */
 	viewerRoleId: string | null;
+	fieldInteraction?: FieldInteraction | undefined;
 }
 
 /**
@@ -22,34 +37,50 @@ interface RichTextViewProps {
  * here — they're resolved to plain text before a `Document` is created, see
  * resolveVariables.ts).
  */
-export function RichTextView({ doc, viewerRoleId }: RichTextViewProps) {
-	return <>{doc.content.map((node, index) => <RenderNode key={index} node={node} viewerRoleId={viewerRoleId} />)}</>;
+export function RichTextView({ doc, viewerRoleId, fieldInteraction }: RichTextViewProps) {
+	return (
+		<>
+			{doc.content.map((node, index) => (
+				<RenderNode key={index} node={node} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />
+			))}
+		</>
+	);
 }
 
-function renderChildren(node: RichTextNode, viewerRoleId: string | null): ReactNode {
-	return (node.content ?? []).map((child, index) => <RenderNode key={index} node={child} viewerRoleId={viewerRoleId} />);
+function renderChildren(node: RichTextNode, viewerRoleId: string | null, fieldInteraction: FieldInteraction | undefined): ReactNode {
+	return (node.content ?? []).map((child, index) => (
+		<RenderNode key={index} node={child} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />
+	));
 }
 
-function RenderNode({ node, viewerRoleId }: { node: RichTextNode; viewerRoleId: string | null }) {
+function RenderNode({
+	node,
+	viewerRoleId,
+	fieldInteraction,
+}: {
+	node: RichTextNode;
+	viewerRoleId: string | null;
+	fieldInteraction: FieldInteraction | undefined;
+}) {
 	switch (node.type) {
 		case 'paragraph':
-			return <p>{renderChildren(node, viewerRoleId)}</p>;
+			return <p>{renderChildren(node, viewerRoleId, fieldInteraction)}</p>;
 		case 'heading': {
 			const level = typeof node.attrs?.level === 'number' ? Math.min(Math.max(node.attrs.level, 1), 6) : 1;
-			return createElement(`h${level}`, null, renderChildren(node, viewerRoleId));
+			return createElement(`h${level}`, null, renderChildren(node, viewerRoleId, fieldInteraction));
 		}
 		case 'blockquote':
-			return <blockquote>{renderChildren(node, viewerRoleId)}</blockquote>;
+			return <blockquote>{renderChildren(node, viewerRoleId, fieldInteraction)}</blockquote>;
 		case 'bulletList':
-			return <ul>{renderChildren(node, viewerRoleId)}</ul>;
+			return <ul>{renderChildren(node, viewerRoleId, fieldInteraction)}</ul>;
 		case 'orderedList':
-			return <ol>{renderChildren(node, viewerRoleId)}</ol>;
+			return <ol>{renderChildren(node, viewerRoleId, fieldInteraction)}</ol>;
 		case 'listItem':
-			return <li>{renderChildren(node, viewerRoleId)}</li>;
+			return <li>{renderChildren(node, viewerRoleId, fieldInteraction)}</li>;
 		case 'codeBlock':
 			return (
 				<pre>
-					<code>{renderChildren(node, viewerRoleId)}</code>
+					<code>{renderChildren(node, viewerRoleId, fieldInteraction)}</code>
 				</pre>
 			);
 		case 'horizontalRule':
@@ -62,7 +93,13 @@ function RenderNode({ node, viewerRoleId }: { node: RichTextNode; viewerRoleId: 
 			const live = viewerRoleId !== null && viewerRoleId === field.roleId;
 			return (
 				<span className="rt-view-field-chip">
-					<FieldPreview field={field} live={live} />
+					<FieldPreview
+						field={field}
+						live={live}
+						value={fieldInteraction?.fieldValues[field.id]}
+						onChange={fieldInteraction ? (value) => fieldInteraction.onFieldChange(field.id, value) : undefined}
+						readOnly={fieldInteraction?.readOnly}
+					/>
 				</span>
 			);
 		}
@@ -73,7 +110,7 @@ function RenderNode({ node, viewerRoleId }: { node: RichTextNode; viewerRoleId: 
 			// the wrapper" rather than throwing — same "don't let unknown
 			// content from a serialization boundary crash the app" convention
 			// `getBlockRegistryEntry` already follows for block types.
-			return node.content ? <>{renderChildren(node, viewerRoleId)}</> : null;
+			return node.content ? <>{renderChildren(node, viewerRoleId, fieldInteraction)}</> : null;
 	}
 }
 

@@ -4,7 +4,7 @@ import { resolvePublicAssetUrl } from '../api/documents';
 import { computePricingTableTotals, computeQuoteBuilderTotals, type LineTotal } from '../pricing/computeTotals';
 import { formatMoney } from '../pricing/formatMoney';
 import type { Block, PricingItem, PricingTableBlock, QuoteBuilderBlock } from '../editor/types';
-import { RichTextView } from './RichTextView';
+import { RichTextView, type FieldInteraction } from './RichTextView';
 import './document-view.css';
 
 interface DocumentBlockViewProps {
@@ -13,6 +13,7 @@ interface DocumentBlockViewProps {
 	token: string;
 	/** The viewing recipient's own role, or `null` if nothing should ever be live (there's no such thing as an anonymous viewer for a real document, but this keeps the component usable for a future authenticated preview too). */
 	viewerRoleId: string | null;
+	fieldInteraction?: FieldInteraction | undefined;
 }
 
 /**
@@ -28,10 +29,10 @@ interface DocumentBlockViewProps {
  * `toc`/`smart_content` aren't built anywhere yet (phase 5) — render nothing
  * rather than guessing at a shape.
  */
-export function DocumentBlockView({ block, documentId, token, viewerRoleId }: DocumentBlockViewProps) {
+export function DocumentBlockView({ block, documentId, token, viewerRoleId, fieldInteraction }: DocumentBlockViewProps) {
 	switch (block.type) {
 		case 'text':
-			return <RichTextView doc={block.doc} viewerRoleId={viewerRoleId} />;
+			return <RichTextView doc={block.doc} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />;
 		case 'image':
 			return (
 				<img
@@ -62,7 +63,7 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId }: Do
 							<tr key={rowIndex} className={block.headerRow && rowIndex === 0 ? 'doc-view-table-header-row' : undefined}>
 								{row.cells.map((cell, cellIndex) => (
 									<td key={cellIndex}>
-										<RichTextView doc={cell.doc} viewerRoleId={viewerRoleId} />
+										<RichTextView doc={cell.doc} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />
 									</td>
 								))}
 							</tr>
@@ -76,7 +77,14 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId }: Do
 					{block.columns.map((column, columnIndex) => (
 						<div key={columnIndex} className="doc-view-column" style={{ flexBasis: `${(block.widths[columnIndex] ?? 0) * 100}%` }}>
 							{column.map((child) => (
-								<DocumentBlockView key={child.id} block={child} documentId={documentId} token={token} viewerRoleId={viewerRoleId} />
+								<DocumentBlockView
+									key={child.id}
+									block={child}
+									documentId={documentId}
+									token={token}
+									viewerRoleId={viewerRoleId}
+									fieldInteraction={fieldInteraction}
+								/>
 							))}
 						</div>
 					))}
@@ -92,7 +100,13 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId }: Do
 						{block.field.name}
 						{block.field.required && <span className="doc-view-field-required"> *</span>}
 					</span>
-					<FieldPreview field={block.field} live={live} />
+					<FieldPreview
+						field={block.field}
+						live={live}
+						value={fieldInteraction?.fieldValues[block.field.id]}
+						onChange={fieldInteraction ? (value) => fieldInteraction.onFieldChange(block.field.id, value) : undefined}
+						readOnly={fieldInteraction?.readOnly}
+					/>
 				</div>
 			);
 		}

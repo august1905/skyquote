@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FillableField, RichTextDoc, RichTextNode } from '../editor/types';
 import { RichTextView } from './RichTextView';
 
@@ -80,5 +80,36 @@ describe('RichTextView', () => {
 	it('degrades an unrecognized node type to just its children rather than throwing', () => {
 		render(<RichTextView doc={doc([{ type: 'someFutureNode', content: [{ type: 'text', text: 'still here' }] }])} viewerRoleId={null} />);
 		expect(screen.getByText('still here')).toBeInTheDocument();
+	});
+
+	it('a controlled fieldInteraction reads its value from fieldValues and reports edits via onFieldChange, and readOnly freezes it', () => {
+		const field: FillableField = { id: 'f1', type: 'text', roleId: 'role-a', name: 'Text field 1', required: false };
+		const node: RichTextNode = { type: 'fillableField', attrs: { field } };
+		const onFieldChange = vi.fn();
+
+		const { rerender } = render(
+			<RichTextView
+				doc={doc([node])}
+				viewerRoleId="role-a"
+				fieldInteraction={{ fieldValues: { f1: 'Saved answer' }, onFieldChange, readOnly: false }}
+			/>
+		);
+		const input = screen.getByRole('textbox');
+		expect(input).toHaveValue('Saved answer');
+		expect(input).toBeEnabled();
+
+		fireEvent.change(input, { target: { value: 'New answer' } });
+		expect(onFieldChange).toHaveBeenCalledWith('f1', 'New answer');
+		// Controlled — the DOM doesn't update on its own until the prop does (no local state fallback engaged).
+		expect(input).toHaveValue('Saved answer');
+
+		rerender(
+			<RichTextView
+				doc={doc([node])}
+				viewerRoleId="role-a"
+				fieldInteraction={{ fieldValues: { f1: 'Saved answer' }, onFieldChange, readOnly: true }}
+			/>
+		);
+		expect(screen.getByRole('textbox')).toBeDisabled();
 	});
 });
