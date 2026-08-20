@@ -1,0 +1,27 @@
+.document-detail-recipient {
+	padding: 6px 0;
+	border-bottom: 1px solid #eee;
+}
+
+.document-detail-recipient-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 0.85rem;
+}
+
+.document-detail-recipient-row button {
+	padding: 4px 10px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #f5f5f5;
+	cursor: pointer;
+	font-size: 0.8rem;
+	white-space: nowrap;
+}
+
+.document-detail-recipient-row button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

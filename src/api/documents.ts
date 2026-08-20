@@ -48,6 +48,11 @@ export function createDocument(input: CreateDocumentInput): Promise<CreateDocume
 	});
 }
 
+/** Every non-archived document, newest first — no folders/tabs/search yet, same "later phase" scope note the Templates list has. */
+export function listDocuments(): Promise<{ documents: DocumentMeta[] }> {
+	return apiFetch<{ documents: DocumentMeta[] }>('/documents');
+}
+
 export interface GetDocumentResult {
 	document: DocumentMeta;
 	recipients: DocumentRecipient[];
