@@ -6,6 +6,8 @@ export { addColumn, addRow, removeColumn, removeRow, setCellDoc, toggleHeaderRow
 export { setImageAlt, setImageShape, setImageSize } from './imageCommands';
 export { setVideoAutoplay } from './videoCommands';
 export { defaultTheme, setTheme } from './themeCommands';
+export { defaultPageSettings, setPageSettings } from './pageSettingsCommands';
+export type { PageSettingsPatch } from './pageSettingsCommands';
 export { addRole, createRole, defaultRoleColor, moveRole, nextRoleName, recolorRole, removeRole, renameRole, setIsSender, setSigningOrder } from './roleCommands';
 export { addVariable, customVariableKey, removeVariable, updateVariable } from './variableCommands';
 export type { VariableDefPatch } from './variableCommands';

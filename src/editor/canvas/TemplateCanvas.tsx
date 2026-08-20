@@ -1,7 +1,8 @@
-import type { CSSProperties } from 'react';
-import { defaultTheme } from '../commands';
+import { useState, type CSSProperties } from 'react';
+import { defaultPageSettings, defaultTheme } from '../commands';
 import { useEditorStore } from '../store/editorStore';
-import type { Theme } from '../types';
+import type { TemplateSettings, Theme } from '../types';
+import { pageContentHeight, pageDimensions } from '../pagination/pageDimensions';
 import { PageFrame } from './PageFrame';
 import './canvas.css';
 
@@ -24,22 +25,71 @@ function themeCssVars(theme: Theme): CSSProperties {
 	} as CSSProperties;
 }
 
+/**
+ * §10's page size/orientation/margins, same "set once, consumed via CSS
+ * `var()`" convention as the theme vars above — `.canvas-page` in canvas.css
+ * used to hardcode a Letter-portrait 816×1056 frame with 48px padding
+ * regardless of what `TemplateSettings` actually held (dead data since
+ * phase 1, same category as `style`/`locked`/`theme` before each of those
+ * got wired up). The 96px default margin here is a real, deliberate change
+ * from that old 48px hardcoded padding — 1 inch is what a blank template
+ * actually stores (see `defaultPageSettings()`), not what the placeholder
+ * CSS happened to use.
+ */
+function pageCssVars(settings: Pick<TemplateSettings, 'pageSize' | 'orientation' | 'margins'>): CSSProperties {
+	const { width, height } = pageDimensions(settings.pageSize, settings.orientation);
+	const m = settings.margins;
+	return {
+		'--page-width': `${width}px`,
+		'--page-height': `${height}px`,
+		'--page-margin-top': `${m.top}px`,
+		'--page-margin-right': `${m.right}px`,
+		'--page-margin-bottom': `${m.bottom}px`,
+		'--page-margin-left': `${m.left}px`,
+	} as CSSProperties;
+}
+
 export function TemplateCanvas() {
 	const pages = useEditorStore((s) => s.body?.pages ?? []);
 	const theme = useEditorStore((s) => s.body?.settings.theme ?? defaultTheme());
+	const pageSettings = useEditorStore((s) => s.body?.settings ?? { ...defaultPageSettings(), theme: defaultTheme() });
 	const selection = useEditorStore((s) => s.selection);
 	const multiSelectedBlockIds = useEditorStore((s) => s.multiSelectedBlockIds);
 
+	// Reported by each PageFrame (see its onPhysicalPageCountChange) — the
+	// running sum of every *prior* logical page's physical-page count is
+	// what makes a later page's own page numbers (§10's showPageNumbers)
+	// come out right, e.g. logical page 2 starting at physical page 3 once
+	// logical page 1 itself spilled across two physical pages.
+	const [physicalPageCounts, setPhysicalPageCounts] = useState<Record<string, number>>({});
+
+	function handlePhysicalPageCountChange(pageId: string, count: number) {
+		setPhysicalPageCounts((prev) => (prev[pageId] === count ? prev : { ...prev, [pageId]: count }));
+	}
+
+	const contentHeightPx = pageContentHeight(pageSettings.pageSize, pageSettings.orientation, pageSettings.margins);
+
+	let runningPageNumber = 1;
+
 	return (
-		<div className="canvas" style={themeCssVars(theme)}>
-			{pages.map((page) => (
-				<PageFrame
-					key={page.id}
-					page={page}
-					selectedBlockId={selection?.pageId === page.id ? selection.blockId : null}
-					multiSelectedBlockIds={selection?.pageId === page.id ? multiSelectedBlockIds : []}
-				/>
-			))}
+		<div className="canvas" style={{ ...themeCssVars(theme), ...pageCssVars(pageSettings) }}>
+			{pages.map((page) => {
+				const startPageNumber = runningPageNumber;
+				runningPageNumber += physicalPageCounts[page.id] ?? 1;
+				return (
+					<PageFrame
+						key={page.id}
+						page={page}
+						selectedBlockId={selection?.pageId === page.id ? selection.blockId : null}
+						multiSelectedBlockIds={selection?.pageId === page.id ? multiSelectedBlockIds : []}
+						pageContentHeightPx={contentHeightPx}
+						blockGapPx={theme.baseSpacing}
+						showPageNumbers={pageSettings.showPageNumbers}
+						startPageNumber={startPageNumber}
+						onPhysicalPageCountChange={handlePhysicalPageCountChange}
+					/>
+				);
+			})}
 		</div>
 	);
 }

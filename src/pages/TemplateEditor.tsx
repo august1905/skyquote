@@ -10,6 +10,7 @@ import { RightRail } from '../editor/rightrail/RightRail';
 import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import { HeaderTotal } from '../editor/header/HeaderTotal';
 import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
+import { PageSettingsPanel } from '../editor/header/PageSettingsPanel';
 import { ValidationIndicator } from '../editor/validation/ValidationIndicator';
 import { CreateDocumentWizard } from '../documents/wizard/CreateDocumentWizard';
 import AppShell from '../components/AppShell';
@@ -41,6 +42,7 @@ function TemplateEditor() {
 	const canRedo = useEditorStore((s) => s.redoStack.length > 0);
 	const { status: autosaveStatus, reloadFromServer } = useAutosave();
 	const [wizardOpen, setWizardOpen] = useState(false);
+	const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
 	const setCatalogItems = useEditorStore((s) => s.setCatalogItems);
 	const setCatalogItemsStatus = useEditorStore((s) => s.setCatalogItemsStatus);
 
@@ -128,6 +130,12 @@ function TemplateEditor() {
 						<button type="button" onClick={() => setWizardOpen(true)}>
 							Create document
 						</button>
+						<div className="page-settings-panel-anchor">
+							<button type="button" onClick={() => setPageSettingsOpen((o) => !o)}>
+								Page settings
+							</button>
+							{pageSettingsOpen && <PageSettingsPanel onClose={() => setPageSettingsOpen(false)} />}
+						</div>
 					</div>
 				</div>
 				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} />}

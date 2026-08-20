@@ -11,7 +11,7 @@ test.describe('Block settings popover', () => {
 		await page.waitForURL(/\/templates\/.+\/edit/);
 
 		await page.locator('.canvas-block').first().click();
-		await page.getByRole('button', { name: 'Settings' }).click();
+		await page.getByRole('button', { name: 'Settings', exact: true }).click();
 
 		const content = page.locator('.canvas-block-content').first();
 
@@ -53,7 +53,7 @@ test.describe('Block settings popover', () => {
 		await page.waitForURL(/\/templates\/.+\/edit/);
 
 		await page.locator('.canvas-block').first().click();
-		await page.getByRole('button', { name: 'Settings' }).click();
+		await page.getByRole('button', { name: 'Settings', exact: true }).click();
 		await page.getByLabel('Background').fill('#00ff00');
 
 		await page.getByRole('button', { name: 'Clear' }).click();

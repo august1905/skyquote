@@ -6,15 +6,18 @@
 	padding: 32px;
 }
 
-/* Letter @96dpi. min-height, not height — phase 1 doesn't paginate, so
-   content taller than one physical page just grows the frame rather than
-   being clipped or silently lost. */
+/* §10/§2's TemplateSettings — page size/orientation/margins, set as CSS vars
+   by TemplateCanvas.tsx's pageCssVars(). min-height, not height — a single
+   physical-page frame per authored Page (see pagination/, which distributes
+   overflow content across additional physical-page frames instead of
+   letting one frame grow arbitrarily), but a frame with less content than
+   fits still shows its full physical page size, not a shrink-to-fit box. */
 .canvas-page {
 	background: var(--theme-page-background, #fff);
-	width: 816px;
-	min-height: 1056px;
+	width: var(--page-width, 816px);
+	min-height: var(--page-height, 1056px);
 	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-	padding: 48px;
+	padding: var(--page-margin-top, 96px) var(--page-margin-right, 96px) var(--page-margin-bottom, 96px) var(--page-margin-left, 96px);
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
@@ -38,6 +41,14 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--theme-spacing, 0);
+}
+
+.canvas-page-number {
+	margin-top: auto;
+	padding-top: 8px;
+	text-align: center;
+	font-size: 0.75rem;
+	color: #999;
 }
 
 /* §3's Theme panel: fonts + text/heading color, applied wherever a block

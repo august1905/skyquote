@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import type { Block, BlockStyle, PageId } from '../types';
 import { deleteBlock, duplicateBlock, toggleBlockLock, type BlockContainer } from '../commands';
 import { useEditorStore } from '../store/editorStore';
@@ -16,6 +16,16 @@ interface SortableBlockProps {
 	selected: boolean;
 	/** §4.2's multi-select — true when this block is part of the selection but isn't the anchor (`selected`). Gets a highlight, but not its own toolbar. */
 	multiSelected: boolean;
+	/**
+	 * §10's pagination pass — reports this block's real rendered height
+	 * (border-box, so padding/border count) every time it changes, via a
+	 * `ResizeObserver` on the exact node dnd-kit already tracks. Only ever
+	 * set for a top-level block on a page (see `PageFrame.tsx`); a block
+	 * nested inside a `ColumnsBlock`/`TableBlock` doesn't participate in
+	 * top-level pagination directly — its *container* block's own height
+	 * already includes it.
+	 */
+	onMeasuredHeight?: (blockId: string, height: number) => void;
 }
 
 /**
@@ -58,7 +68,7 @@ function styleFor(style: BlockStyle): CSSProperties {
 	return css;
 }
 
-export function SortableBlock({ pageId, container, block, selected, multiSelected }: SortableBlockProps) {
+export function SortableBlock({ pageId, container, block, selected, multiSelected, onMeasuredHeight }: SortableBlockProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const select = useEditorStore((s) => s.select);
 	const toggleMultiSelect = useEditorStore((s) => s.toggleMultiSelect);
@@ -86,6 +96,37 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 		disabled: block.locked,
 	});
 
+	// Same DOM node dnd-kit's `setNodeRef` tracks — a plain ref alongside it
+	// (rather than reading `setNodeRef`'s own target back out, which dnd-kit
+	// doesn't expose) so this can independently observe layout size without
+	// depending on dnd-kit's internal node-ref implementation.
+	const measureNodeRef = useRef<HTMLDivElement | null>(null);
+	function setRefs(node: HTMLDivElement | null) {
+		setNodeRef(node);
+		measureNodeRef.current = node;
+	}
+
+	useEffect(() => {
+		if (!onMeasuredHeight) return;
+		const node = measureNodeRef.current;
+		if (!node) return;
+		const observer = new ResizeObserver((entries) => {
+			const entry = entries[0];
+			if (!entry) return;
+			// `borderBoxSize` (padding+border included, matching what actually
+			// occupies vertical space in the page's flex column) over the
+			// older `contentRect` (content-box only) — falls back to
+			// `getBoundingClientRect()` for the handful of browsers/test
+			// environments (jsdom has no ResizeObserver at all, see below)
+			// that don't populate it.
+			const borderBoxHeight = entry.borderBoxSize?.[0]?.blockSize;
+			onMeasuredHeight(block.id, borderBoxHeight ?? node.getBoundingClientRect().height);
+		});
+		observer.observe(node);
+		return () => observer.disconnect();
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- block.id is stable for a given mounted node; onMeasuredHeight identity changes shouldn't tear down/recreate the observer
+	}, []);
+
 	function stopAnd(action: () => void) {
 		return (e: MouseEvent) => {
 			e.stopPropagation();
@@ -95,7 +136,7 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 
 	return (
 		<div
-			ref={setNodeRef}
+			ref={setRefs}
 			style={{ transform: CSS.Transform.toString(transform), transition: transition ?? undefined }}
 			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${multiSelected ? ' canvas-block-multi-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}`}
 			onClick={(e) => {

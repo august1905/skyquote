@@ -9,13 +9,17 @@ import { test, expect } from '@playwright/test';
 // why those routes exist at all).
 const BACKEND = `http://localhost:${process.env.CATALYST_SERVE_PORT || '3000'}/server/skyquote_function`;
 
+interface CatalogItemResponse {
+	catalogItem: { id: string; name: string };
+}
+
 test.describe('Catalog integration', () => {
 	test('browsing, searching, dragging into a pricing table, and the price-changed indicator all work end to end', async ({ page, request }) => {
 		const created = await request.post(`${BACKEND}/catalog-items`, {
 			data: { sku: 'PW-CATALOG-1', name: 'Playwright Catalog Item', description: 'e2e fixture', price: 15000, category: 'Testing' },
 		});
 		expect(created.ok()).toBe(true);
-		const { catalogItem } = await created.json();
+		const { catalogItem } = (await created.json()) as CatalogItemResponse;
 
 		try {
 			await page.goto('/templates');

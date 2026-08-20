@@ -3,20 +3,40 @@ import { immer } from 'zustand/middleware/immer';
 import type { BlockId, CatalogItem, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
 import type { Command } from '../commands/types';
 import { defaultTheme } from '../commands/themeCommands';
+import { defaultPageSettings } from '../commands/pageSettingsCommands';
 
 /**
  * Backfills fields that didn't exist when a template's Stratus body was
- * written — currently just `settings.theme` (added after several real
- * templates already existed without it). `getTemplate`'s response is
- * trusted as `TemplateBody`-shaped without runtime validation the same way
- * the rest of this app trusts its API responses; this is the one place that
- * guarantee could actually be false for an existing document, so it's
- * checked here rather than making every theme-reading component handle a
- * possibly-missing value.
+ * written — `settings.theme` (added after several real templates already
+ * existed without it), plus `settings.pageSize`/`orientation`/`margins`/
+ * `showPageNumbers` (unused dead fields since phase 1, per §10's own
+ * pagination work — never actually verified to be present on every real
+ * template row, so each is backfilled individually rather than assumed).
+ * `getTemplate`'s response is trusted as `TemplateBody`-shaped without
+ * runtime validation the same way the rest of this app trusts its API
+ * responses; this is the one place that guarantee could actually be false
+ * for an existing document, so it's checked here rather than making every
+ * page-settings-reading component handle a possibly-missing value.
  */
 function normalizeBody(body: TemplateBody): TemplateBody {
-	if (body.settings.theme) return body;
-	return { ...body, settings: { ...body.settings, theme: defaultTheme() } };
+	const pageDefaults = defaultPageSettings();
+	const needsTheme = !body.settings.theme;
+	const needsPageSize = !body.settings.pageSize;
+	const needsOrientation = !body.settings.orientation;
+	const needsMargins = !body.settings.margins;
+	const needsShowPageNumbers = body.settings.showPageNumbers === undefined;
+	if (!needsTheme && !needsPageSize && !needsOrientation && !needsMargins && !needsShowPageNumbers) return body;
+	return {
+		...body,
+		settings: {
+			...body.settings,
+			...(needsTheme ? { theme: defaultTheme() } : {}),
+			...(needsPageSize ? { pageSize: pageDefaults.pageSize } : {}),
+			...(needsOrientation ? { orientation: pageDefaults.orientation } : {}),
+			...(needsMargins ? { margins: pageDefaults.margins } : {}),
+			...(needsShowPageNumbers ? { showPageNumbers: pageDefaults.showPageNumbers } : {}),
+		},
+	};
 }
 
 // Spec §9.1.

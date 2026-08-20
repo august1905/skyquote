@@ -59,6 +59,23 @@ describe('loadTemplate', () => {
 		useEditorStore.getState().loadTemplate(makeMeta(), bodyWithCustomTheme);
 		expect(useEditorStore.getState().body?.settings.theme.primaryColor).toBe('#123456');
 	});
+
+	it('backfills default page settings field-by-field for a body missing one or more of them, without touching real values already present', () => {
+		const bodyMissingSome = makeBody();
+		// @ts-expect-error — simulating a real pre-existing Stratus body missing
+		// only some page-settings fields; TS itself would never let new code
+		// omit them.
+		delete bodyMissingSome.settings.orientation;
+		// @ts-expect-error — see above.
+		delete bodyMissingSome.settings.margins;
+		bodyMissingSome.settings.pageSize = 'A4'; // a real, present value — must survive backfill untouched
+
+		useEditorStore.getState().loadTemplate(makeMeta(), bodyMissingSome);
+		const settings = useEditorStore.getState().body!.settings;
+		expect(settings.pageSize).toBe('A4');
+		expect(settings.orientation).toBe('portrait');
+		expect(settings.margins).toEqual({ top: 96, right: 96, bottom: 96, left: 96 });
+	});
 });
 
 describe('runCommand / undo / redo', () => {
