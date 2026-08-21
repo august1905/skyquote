@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { BlockId, CatalogItem, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
+import type { ContentLibraryItem } from '../../api/contentLibrary';
 import type { Command } from '../commands/types';
 import { defaultTheme } from '../commands/themeCommands';
 import { defaultPageSettings } from '../commands/pageSettingsCommands';
@@ -101,6 +102,19 @@ interface EditorState {
 	 */
 	catalogItems: CatalogItem[];
 	catalogItemsStatus: 'idle' | 'loading' | 'ready' | 'error';
+	/**
+	 * §8's Content Library. Workspace-level for the same reason
+	 * `catalogItems` is — a library item belongs to the workspace, not to the
+	 * template currently open — so `loadTemplate` doesn't reset it and it
+	 * stays out of undo/redo.
+	 *
+	 * Holds metadata only, never payloads: the list is what the panel renders,
+	 * and a payload is fetched per item at insert time (see
+	 * `api/contentLibrary.ts`) so browsing a large library never pulls every
+	 * saved block tree into memory.
+	 */
+	contentLibraryItems: ContentLibraryItem[];
+	contentLibraryStatus: 'idle' | 'loading' | 'ready' | 'error';
 	/** True since the last load/save — i.e. there's something for autosave to pick up. */
 	dirty: boolean;
 
@@ -157,6 +171,11 @@ interface EditorState {
 	setPreviewRoleId: (roleId: RoleId | null) => void;
 	setCatalogItemsStatus: (status: EditorState['catalogItemsStatus']) => void;
 	setCatalogItems: (items: CatalogItem[]) => void;
+	setContentLibraryStatus: (status: EditorState['contentLibraryStatus']) => void;
+	setContentLibraryItems: (items: ContentLibraryItem[]) => void;
+	/** Splices one item into the cached list without a refetch — for the save/delete paths, which already know the authoritative row the backend returned. */
+	upsertContentLibraryItem: (item: ContentLibraryItem) => void;
+	removeContentLibraryItem: (id: string) => void;
 	setBlockPageNumbers: (map: Map<BlockId, number>) => void;
 }
 
@@ -170,6 +189,8 @@ export const useEditorStore = create<EditorState>()(
 		blockPageNumbers: new Map(),
 		catalogItems: [],
 		catalogItemsStatus: 'idle',
+		contentLibraryItems: [],
+		contentLibraryStatus: 'idle',
 		dirty: false,
 		undoStack: [],
 		redoStack: [],
@@ -319,6 +340,31 @@ export const useEditorStore = create<EditorState>()(
 			set((state) => {
 				state.catalogItems = items;
 				state.catalogItemsStatus = 'ready';
+			}),
+
+		setContentLibraryStatus: (status) =>
+			set((state) => {
+				state.contentLibraryStatus = status;
+			}),
+
+		setContentLibraryItems: (items) =>
+			set((state) => {
+				state.contentLibraryItems = items;
+				state.contentLibraryStatus = 'ready';
+			}),
+
+		upsertContentLibraryItem: (item) =>
+			set((state) => {
+				const index = state.contentLibraryItems.findIndex((existing) => existing.id === item.id);
+				// Newest first, matching the backend's own ORDER BY, so a freshly
+				// saved item appears at the top of Recent without a refetch.
+				if (index === -1) state.contentLibraryItems.unshift(item);
+				else state.contentLibraryItems[index] = item;
+			}),
+
+		removeContentLibraryItem: (id) =>
+			set((state) => {
+				state.contentLibraryItems = state.contentLibraryItems.filter((item) => item.id !== id);
 			}),
 
 		setBlockPageNumbers: (map) =>

@@ -3,9 +3,12 @@ import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import type { Block, BlockStyle, PageId } from '../types';
 import { deleteBlock, duplicateBlock, toggleBlockLock, wrapInSmartContent, type BlockContainer } from '../commands';
-import { isContainerBlockType } from '../commands/blockTree';
+import { findBlockById, isContainerBlockType } from '../commands/blockTree';
 import { useEditorStore } from '../store/editorStore';
 import { BlockView } from '../blocks/BlockView';
+import { blockTypeLabel } from '../blocks/registry';
+import { SaveToLibraryDialog } from '../contentLibrary/SaveToLibraryDialog';
+import { useContentLibrary } from '../contentLibrary/useContentLibrary';
 import { BlockSettingsPopover } from './BlockSettingsPopover';
 import './canvas.css';
 
@@ -74,13 +77,20 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 	const select = useEditorStore((s) => s.select);
 	const toggleMultiSelect = useEditorStore((s) => s.toggleMultiSelect);
 	const multiSelectedBlockIds = useEditorStore((s) => s.multiSelectedBlockIds);
+	const pages = useEditorStore((s) => s.body?.pages);
+	const { saveBlocks } = useContentLibrary();
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [saveToLibraryOpen, setSaveToLibraryOpen] = useState(false);
+	const [overflowOpen, setOverflowOpen] = useState(false);
 	// The anchor's toolbar acts on the *whole* multi-selection when one
 	// exists (§4.2: "Multi-select supports move, delete, duplicate") — just
 	// this one block otherwise, unchanged from single-select behavior.
 	const selectedBlockIds = selected && multiSelectedBlockIds.length > 0 ? [block.id, ...multiSelectedBlockIds] : [block.id];
 	useEffect(() => {
-		if (!selected) setSettingsOpen(false);
+		if (!selected) {
+			setSettingsOpen(false);
+			setOverflowOpen(false);
+		}
 	}, [selected]);
 	// Drag activation is bound to the handle button only (via attributes/
 	// listeners spread there, not on this wrapper) — otherwise every click
@@ -178,6 +188,35 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 					>
 						{selectedBlockIds.length > 1 ? `Duplicate (${selectedBlockIds.length})` : 'Duplicate'}
 					</button>
+					{/* §8 puts save-to-library in the "block toolbar overflow", not
+					    on the toolbar itself — and that placement turns out to be
+					    load-bearing, not cosmetic. A sixth *text* button made the
+					    toolbar wide enough to overflow a ColumnsBlock column, which
+					    pushed the right-anchored drag handle outside the column and
+					    broke drag-to-reorder there (the handle's large horizontal
+					    offset made dnd-kit resolve the drop to the neighbouring
+					    column instead). A compact `…` keeps the row narrow.
+
+					    It covers §8's "multi-selection" entry point too, since it
+					    acts on `selectedBlockIds` exactly like Duplicate and Delete. */}
+					<div className="canvas-block-overflow-anchor">
+						<button type="button" aria-label="More block actions" aria-expanded={overflowOpen} onClick={stopAnd(() => setOverflowOpen((o) => !o))}>
+							⋯
+						</button>
+						{overflowOpen && (
+							<div className="canvas-block-overflow-menu" onClick={(e) => e.stopPropagation()}>
+								<button
+									type="button"
+									onClick={stopAnd(() => {
+										setOverflowOpen(false);
+										setSaveToLibraryOpen(true);
+									})}
+								>
+									{selectedBlockIds.length > 1 ? `Save ${selectedBlockIds.length} to library` : 'Save to library'}
+								</button>
+							</div>
+						)}
+					</div>
 					<button type="button" onClick={stopAnd(() => setSettingsOpen((o) => !o))}>
 						Settings
 					</button>
@@ -203,6 +242,30 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 			<div className="canvas-block-content" style={styleFor(block.style)}>
 				<BlockView pageId={pageId} block={block} selected={selected} />
 			</div>
+			{saveToLibraryOpen && (
+				<SaveToLibraryDialog
+					subject={selectedBlockIds.length > 1 ? `${selectedBlockIds.length} blocks` : 'this block'}
+					// A block has no name of its own, so its type label is the
+					// most useful starting point ("Pricing table", "Text").
+					defaultName={selectedBlockIds.length > 1 ? `${selectedBlockIds.length} blocks` : blockTypeLabel(block.type)}
+					onCancel={() => setSaveToLibraryOpen(false)}
+					onSave={async (name, tags) => {
+						// Resolved from live state rather than closing over the
+						// blocks: `selectedBlockIds` is ids, and the anchor block
+						// may not be the first in document order, so this reads
+						// them back in the order they actually appear.
+						const page = pages?.find((p) => p.id === pageId);
+						const blocks = page ? page.blocks.filter((candidate) => selectedBlockIds.includes(candidate.id)) : [];
+						// A nested block (inside a column or smart content) isn't in
+						// `page.blocks`, so fall back to finding it by id — saving a
+						// nested block on its own is legitimate.
+						const resolved = blocks.length > 0 ? blocks : pages ? [findBlockById(pages, block.id)].filter((b): b is Block => Boolean(b)) : [];
+						if (resolved.length === 0) return;
+						await saveBlocks(name, resolved, tags);
+						setSaveToLibraryOpen(false);
+					}}
+				/>
+			)}
 		</div>
 	);
 }

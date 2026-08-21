@@ -31,6 +31,44 @@ export function insertBlock(container: BlockContainer, index: number, block: Blo
 	};
 }
 
+/**
+ * Inserts several blocks as ONE undo entry — for §8's Content Library, where a
+ * saved item can hold a whole multi-selection. Looping `insertBlock` would
+ * work but would push N separate entries, so undoing an insert of three blocks
+ * would take three Ctrl+Z presses to reverse one user action.
+ *
+ * Enforces the same §4.4 depth-2 rule as `insertBlock`, per block.
+ */
+export function insertBlocks(container: BlockContainer, index: number, newBlocks: Block[]): Command {
+	return {
+		name: 'insertBlocks',
+		apply(draft: Draft<TemplateBody>) {
+			for (const block of newBlocks) {
+				if (container.parent && isContainerBlockType(block.type)) {
+					throw new Error(`insertBlocks: cannot place a ${block.type} block inside a column — §4.4 caps nesting depth at 2`);
+				}
+			}
+			const blocks = resolveContainerBlocks(draft, container);
+			blocks.splice(index, 0, ...(newBlocks as Draft<Block>[]));
+			const insertedIds = newBlocks.map((block) => block.id);
+			return {
+				name: 'deleteBlocks',
+				apply(undoDraft: Draft<TemplateBody>) {
+					const undoPage = findPage(undoDraft, container.pageId);
+					// Deleted by id rather than by the original index range: an
+					// inverse must survive the tree having changed shape around
+					// it, and ids are stable where positions are not.
+					for (const id of insertedIds) {
+						const { blocks: owningBlocks, index: found } = locateBlock(undoPage, id);
+						owningBlocks.splice(found, 1);
+					}
+					return insertBlocks(container, index, newBlocks);
+				},
+			};
+		},
+	};
+}
+
 export function deleteBlock(pageId: PageId, blockId: BlockId): Command {
 	return {
 		name: 'deleteBlock',

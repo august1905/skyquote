@@ -2,6 +2,7 @@ import { EditorContent, useEditor, type JSONContent } from '@tiptap/react';
 import { useEffect } from 'react';
 import type { RichTextDoc } from '../types';
 import { richTextExtensions } from '../richtext/richTextExtensions';
+import { docsEqual, normalizeDoc } from '../richtext/docNormalization';
 import { clearActiveRichTextEditorIf, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 
 function toJSONContent(doc: RichTextDoc): JSONContent {
@@ -32,7 +33,14 @@ export function TableCellEditor({ doc, onChange, onBlur, locked }: TableCellEdit
 		extensions: richTextExtensions(),
 		content: toJSONContent(doc),
 		editable: !locked,
-		onUpdate: ({ editor: e }) => onChange(toRichTextDoc(e.getJSON())),
+		onUpdate: ({ editor: e }) => {
+			const next = toRichTextDoc(e.getJSON());
+			// Same parse-time-normalization guard as TextBlockView — without it
+			// every cell of every table pushed a command on mount. See
+			// richtext/docNormalization.ts.
+			if (docsEqual(next, doc)) return;
+			onChange(normalizeDoc(next));
+		},
 		onFocus: ({ editor: e }) => setActiveRichTextEditor(e),
 		onBlur,
 	});
@@ -42,9 +50,7 @@ export function TableCellEditor({ doc, onChange, onBlur, locked }: TableCellEdit
 	// change `doc` without this editor instance having produced the change.
 	useEffect(() => {
 		if (!editor) return;
-		const current = JSON.stringify(editor.getJSON());
-		const incoming = JSON.stringify(doc);
-		if (current !== incoming) {
+		if (!docsEqual(toRichTextDoc(editor.getJSON()), doc)) {
 			editor.commands.setContent(toJSONContent(doc), { emitUpdate: false });
 		}
 	}, [editor, doc]);

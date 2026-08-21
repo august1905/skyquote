@@ -1,0 +1,289 @@
+.content-library-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 280px;
+	padding: 12px;
+	border-left: 1px solid #e5e5e5;
+	background: #fff;
+	overflow-y: auto;
+}
+
+.content-library-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.content-library-header h2 {
+	margin: 0;
+	font-size: 0.95rem;
+}
+
+.content-library-header button {
+	border: none;
+	background: transparent;
+	font-size: 1.1rem;
+	line-height: 1;
+	color: #666;
+	cursor: pointer;
+}
+
+.content-library-tabs {
+	display: flex;
+	gap: 4px;
+}
+
+.content-library-tabs button {
+	flex: 1;
+	padding: 5px 8px;
+	border: 1px solid #e0e0e0;
+	border-radius: 4px;
+	background: #fafafa;
+	font-size: 0.78rem;
+	color: #555;
+	cursor: pointer;
+}
+
+.content-library-tabs .content-library-tab-active {
+	background: #e0e8ff;
+	border-color: #b8c8f0;
+	color: #33487a;
+	font-weight: 600;
+}
+
+.content-library-search {
+	padding: 5px 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.8rem;
+}
+
+.content-library-empty {
+	margin: 4px 0;
+	color: #999;
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+.content-library-error {
+	margin: 0;
+	color: #b3261e;
+	font-size: 0.78rem;
+}
+
+/* §8's "2-column thumbnail grid" — the grid is real; each cell holds a
+   name/tag tile rather than a rendered preview until there's a renderer to
+   generate one. See ContentLibraryTile. */
+.content-library-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+
+.content-library-grid-wide {
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 10px;
+}
+
+.content-library-tile {
+	position: relative;
+	display: flex;
+}
+
+.content-library-tile-insert {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 8px;
+	border: 1px solid #e0e0e0;
+	border-radius: 5px;
+	background: #fff;
+	text-align: left;
+	cursor: pointer;
+}
+
+.content-library-tile-insert:hover:not(:disabled) {
+	border-color: #b8c8f0;
+	background: #f5f8ff;
+}
+
+.content-library-tile-insert:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.content-library-tile-kind {
+	font-size: 0.9rem;
+}
+
+.content-library-tile-name {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: #333;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.content-library-tile-meta {
+	font-size: 0.68rem;
+	color: #999;
+}
+
+.content-library-tile-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+	margin-top: 2px;
+}
+
+.content-library-tag {
+	padding: 1px 5px;
+	border-radius: 999px;
+	background: #f0f0f0;
+	color: #666;
+	font-size: 0.65rem;
+}
+
+.content-library-tile-delete {
+	position: absolute;
+	top: 2px;
+	right: 2px;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	border-radius: 3px;
+	background: transparent;
+	color: #aaa;
+	font-size: 0.85rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.content-library-tile:hover .content-library-tile-delete {
+	color: #b3261e;
+	background: #fdecec;
+}
+
+.content-library-open-full {
+	margin-top: auto;
+	padding: 7px 10px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #fafafa;
+	font-size: 0.8rem;
+	color: #444;
+	cursor: pointer;
+}
+
+.content-library-open-full:hover {
+	background: #f0f0f0;
+}
+
+/* §8's "full-screen browser" behind the persistent Open button. */
+.content-library-browser-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 60;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.45);
+	padding: 32px;
+}
+
+.content-library-browser {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: min(900px, 100%);
+	max-height: 100%;
+	padding: 20px;
+	border-radius: 8px;
+	background: #fff;
+	overflow-y: auto;
+}
+
+/* Save-to-library dialog. */
+.save-to-library-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.45);
+}
+
+.save-to-library-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: min(420px, calc(100% - 32px));
+	padding: 20px;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.save-to-library-card h2 {
+	margin: 0;
+	font-size: 1rem;
+}
+
+.save-to-library-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.8rem;
+	color: #444;
+}
+
+.save-to-library-field input {
+	padding: 6px 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.85rem;
+}
+
+.save-to-library-hint {
+	margin: 0;
+	font-size: 0.72rem;
+	color: #999;
+}
+
+.save-to-library-error {
+	margin: 0;
+	color: #b3261e;
+	font-size: 0.78rem;
+}
+
+.save-to-library-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+.save-to-library-actions button {
+	padding: 6px 14px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #fff;
+	font-size: 0.82rem;
+	cursor: pointer;
+}
+
+.save-to-library-actions button:last-child {
+	background: #33487a;
+	border-color: #33487a;
+	color: #fff;
+}
+
+.save-to-library-actions button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}

@@ -4,6 +4,7 @@ import type { RichTextDoc, TextBlock } from '../types';
 import { setBlockDoc } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { richTextExtensions } from '../richtext/richTextExtensions';
+import { docsEqual, normalizeDoc } from '../richtext/docNormalization';
 import { clearActiveRichTextEditorIf, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 import type { BlockViewProps } from './types';
 
@@ -32,21 +33,32 @@ export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
 		// isn't gated by a command-layer throw the way delete/move are).
 		editable: !block.locked,
 		onUpdate: ({ editor: e }) => {
-			runCommand(setBlockDoc(pageId, block.id, toRichTextDoc(e.getJSON())), { coalesceKey: block.id });
+			const next = toRichTextDoc(e.getJSON());
+			// Tiptap fires onUpdate when *parsing* normalizes the content it was
+			// given, not only when the user edits — and the `TextAlign`
+			// extension makes that happen for every paragraph, since a global
+			// attribute serializes as `textAlign: null` where a stored doc has
+			// no `attrs` at all. Without this guard every block mount ran a
+			// command: a freshly opened template went dirty on load and the undo
+			// stack filled with entries that changed nothing visible. See
+			// richtext/docNormalization.ts.
+			if (docsEqual(next, block.doc)) return;
+			// Stored canonicalized, so the doc that lands in Stratus doesn't
+			// carry a `textAlign: null` on every paragraph forever.
+			runCommand(setBlockDoc(pageId, block.id, normalizeDoc(next)), { coalesceKey: block.id });
 		},
 		onFocus: ({ editor: e }) => setActiveRichTextEditor(e),
 		onBlur: () => endCoalescing(),
 	});
 
 	// Keeps this editor in sync with changes that didn't originate from it —
-	// undo/redo, or (once cross-page moves land) another block's edit landing
-	// here via drag. The stringify comparison is cheap at block-doc size and
-	// avoids the alternative of threading an "origin" flag through the store.
+	// undo/redo, or a block moving here from elsewhere. Compares canonicalized
+	// docs rather than raw JSON: the editor's own serialization always carries
+	// the global attributes described above, so a raw comparison would report a
+	// mismatch on every render and re-`setContent` in a loop.
 	useEffect(() => {
 		if (!editor) return;
-		const current = JSON.stringify(editor.getJSON());
-		const incoming = JSON.stringify(block.doc);
-		if (current !== incoming) {
+		if (!docsEqual(toRichTextDoc(editor.getJSON()), block.doc)) {
 			editor.commands.setContent(toJSONContent(block.doc), { emitUpdate: false });
 		}
 	}, [editor, block.doc]);

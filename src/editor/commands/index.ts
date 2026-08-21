@@ -1,6 +1,6 @@
 export type { Command } from './types';
 export type { BlockContainer } from './blockCommands';
-export { insertBlock, deleteBlock, duplicateBlock, moveBlock, setBlockDoc, setBlockStyle, toggleBlockLock } from './blockCommands';
+export { insertBlock, insertBlocks, deleteBlock, duplicateBlock, moveBlock, setBlockDoc, setBlockStyle, toggleBlockLock } from './blockCommands';
 export { addPage, deletePage, duplicatePage, movePage, renamePage, setPageBackground } from './pageCommands';
 export { addColumn, addRow, removeColumn, removeRow, setCellDoc, toggleHeaderRow } from './tableCommands';
 export { setImageAlt, setImageShape, setImageSize } from './imageCommands';

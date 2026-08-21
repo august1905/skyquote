@@ -97,6 +97,22 @@ describe('computeValidationIssues', () => {
 		expect(computeValidationIssues(withAlt, 'Untitled template').some((i) => i.id.startsWith('image-no-alt-'))).toBe(false);
 	});
 
+	it('flags a field whose role does not exist in this template — a dangling reference the empty-role check above cannot see', () => {
+		const body = makeBodyWithFields();
+		// Same shape a Content Library insert produces when the saved field's
+		// role has no counterpart here and there was no role to remap onto.
+		const orphaned = { ...body, roles: [] };
+
+		const issues = computeValidationIssues(orphaned, 'Untitled template');
+		const missingRole = issues.filter((i) => i.id.startsWith('field-missing-role-'));
+		expect(missingRole).toHaveLength(4);
+		expect(missingRole[0]?.severity).toBe('error');
+		expect(missingRole[0]?.message).toMatch(/belongs to a role that doesn't exist/);
+
+		// And it stays quiet when every role really is present.
+		expect(computeValidationIssues(body, 'Untitled template').some((i) => i.id.startsWith('field-missing-role-'))).toBe(false);
+	});
+
 	it('flags an alt-less image nested inside a SmartContentBlock, same whole-tree walk every other cross-cutting feature uses', () => {
 		const body = makeBody();
 		const withSmartContent = { ...body, pages: [{ ...body.pages[0]!, blocks: [makeSmartContentBlock('smart-1', [makeImageBlock('image-1')])] }] };

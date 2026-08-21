@@ -65,9 +65,21 @@ export function computeValidationIssues(body: TemplateBody, templateName: string
 	// empty in practice. Checked anyway: it's cheap, and it's exactly what
 	// the spec asks the indicator to surface if that invariant is ever
 	// violated by a future bug.
+	const roleIds = new Set(body.roles.map((role) => role.id));
 	for (const field of fields) {
 		if (!field.roleId) {
 			issues.push({ id: `field-no-role-${field.id}`, message: `"${field.name}" has no role assigned.`, severity: 'error' });
+		} else if (!roleIds.has(field.roleId)) {
+			// A *dangling* role reference, distinct from an empty one above and
+			// invisible to that check since the id is truthy. Reachable when
+			// content crosses templates — inserting a Content Library item whose
+			// field belonged to a role the target template doesn't have, and
+			// which had no role to remap onto (see contentLibrary/prepareInsert.ts).
+			issues.push({
+				id: `field-missing-role-${field.id}`,
+				message: `"${field.name}" belongs to a role that doesn't exist in this template.`,
+				severity: 'error',
+			});
 		}
 	}
 

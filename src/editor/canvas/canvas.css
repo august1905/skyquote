@@ -204,6 +204,22 @@
 	top: -32px;
 	right: 0;
 	display: flex;
+	/* Must stay a single row. Absolutely-positioned with only `right` set, its
+	   width is shrink-to-fit but *capped by the containing block* — so inside a
+	   narrow container (a ColumnsBlock column, a SmartContentBlock) a toolbar
+	   with enough buttons wrapped to two rows. That doubled its height, which
+	   both overlapped the block above it and stretched the drag handle to the
+	   full two-row height, moving the handle's centre far enough to break
+	   drag-to-reorder inside a column. Found when adding the sixth button
+	   ("Save to library") did exactly that; `max-content` lets the toolbar
+	   extend past its container instead, which is fine for a floating overlay.
+
+	   Anything added here should keep the row's height fixed — if this ever
+	   grows past what fits beside a page, the answer is an overflow menu, not
+	   letting it wrap. */
+	flex-wrap: nowrap;
+	width: max-content;
+	align-items: center;
 	gap: 4px;
 	background: #222;
 	border-radius: 4px;
@@ -418,4 +434,43 @@
 	content: '';
 	flex: 1;
 	border-top: 1px dashed #ccc;
+}
+
+/* §4.3/§8's block-toolbar overflow (`⋯`). Deliberately a compact menu rather
+   than more inline buttons — see .canvas-block-toolbar's own note on why the
+   row's width matters. */
+.canvas-block-overflow-anchor {
+	position: relative;
+	display: inline-flex;
+}
+
+.canvas-block-overflow-menu {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	z-index: 20;
+	display: flex;
+	flex-direction: column;
+	min-width: 150px;
+	margin-top: 4px;
+	padding: 4px;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+
+.canvas-block-overflow-menu > button {
+	padding: 6px 8px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	color: #333;
+	text-align: left;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.canvas-block-overflow-menu > button:hover {
+	background: #f0f0f0;
 }

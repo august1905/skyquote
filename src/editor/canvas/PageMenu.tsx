@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { deletePage, duplicatePage, movePage, setPageBackground } from '../commands';
+import { SaveToLibraryDialog } from '../contentLibrary/SaveToLibraryDialog';
+import { useContentLibrary } from '../contentLibrary/useContentLibrary';
 import { useEditorStore } from '../store/editorStore';
 import type { Page } from '../types';
 import './canvas.css';
@@ -22,14 +24,14 @@ interface PageMenuProps {
  * `stopPropagation` on its own clicks so interacting with it never counts as
  * a canvas click that would change block selection.
  *
- * **"Save page to Content Library" is deliberately absent rather than
- * present-but-disabled.** The Content Library needs a Data Store table that
- * doesn't exist yet (see BUILD_STATUS.md's "Waiting on Grayson"), so there's
- * nothing for the action to do; a disabled item would imply the feature is a
- * toggle away when it's actually blocked on a console step.
+ * Every item in §3 ⑤'s list is now real, including "save page to Content
+ * Library" — which was absent while the Content Library was blocked on its
+ * Data Store table.
  */
 export function PageMenu({ page, pageIndex, pageCount, onClose, onRequestRename }: PageMenuProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
+	const { savePage } = useContentLibrary();
+	const [saveToLibraryOpen, setSaveToLibraryOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -64,6 +66,12 @@ export function PageMenu({ page, pageIndex, pageCount, onClose, onRequestRename 
 			</button>
 			<button type="button" disabled={isLast} onClick={() => runAndClose(() => runCommand(movePage(page.id, pageIndex + 1)))}>
 				Move down
+			</button>
+
+			{/* §3 ⑤'s "save page to Content Library" (§8). Stays open behind the
+			    dialog so cancelling returns you to the menu you were in. */}
+			<button type="button" onClick={() => setSaveToLibraryOpen(true)}>
+				Save page to library
 			</button>
 
 			<label className="page-menu-row">
@@ -102,6 +110,19 @@ export function PageMenu({ page, pageIndex, pageCount, onClose, onRequestRename 
 			>
 				Delete page
 			</button>
+
+			{saveToLibraryOpen && (
+				<SaveToLibraryDialog
+					subject="this page"
+					defaultName={page.name || 'Untitled page'}
+					onCancel={() => setSaveToLibraryOpen(false)}
+					onSave={async (name, tags) => {
+						await savePage(name, page, tags);
+						setSaveToLibraryOpen(false);
+						onClose();
+					}}
+				/>
+			)}
 		</div>
 	);
 }

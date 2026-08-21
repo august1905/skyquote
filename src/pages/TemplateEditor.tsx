@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTemplate } from '../api/templates';
 import { listCatalogItems } from '../api/catalogItems';
+import { listContentLibraryItems } from '../api/contentLibrary';
 import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
 import { PageNavigator } from '../editor/canvas/PageNavigator';
 import { EditorDndProvider } from '../editor/dnd/EditorDndProvider';
@@ -31,11 +32,12 @@ const AUTOSAVE_STATUS_LABEL: Record<Exclude<AutosaveStatus, 'conflict'>, string>
 	error: 'Save failed — will retry on your next edit',
 };
 
-// The editor shell. §2's contextual formatting toolbar (`EditorToolbar`) and
-// §9.3's keyboard layer are both real now; still not built from §3's spec'd
-// chrome are the toolbar's *left* group (page-thumbnail drawer, "+ Document")
-// and most of the right rail's panels — see BUILD_STATUS.md for the current
-// list rather than trusting this comment to stay exhaustive.
+// The editor shell. §2's toolbar (both groups), §9.3's keyboard layer, §3's
+// page chrome + navigator drawer, and five of the right rail's panels are all
+// real now. Still missing from §3: the header bar's ⋮ overflow, the folder
+// breadcrumb and role-avatar stack, and the Approval/Attachments/Automations/
+// Integrations panels — see BUILD_STATUS.md for the current list rather than
+// trusting this comment to stay exhaustive.
 function TemplateEditor() {
 	const { id } = useParams<{ id: string }>();
 	const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -55,6 +57,8 @@ function TemplateEditor() {
 	const [pagesOpen, setPagesOpen] = useState(false);
 	const setCatalogItems = useEditorStore((s) => s.setCatalogItems);
 	const setCatalogItemsStatus = useEditorStore((s) => s.setCatalogItemsStatus);
+	const setContentLibraryItems = useEditorStore((s) => s.setContentLibraryItems);
+	const setContentLibraryStatus = useEditorStore((s) => s.setContentLibraryStatus);
 
 	// §9.3's shortcut layer. Registered unconditionally (not gated on
 	// loadStatus) so the hook order stays stable across the early returns
@@ -82,6 +86,25 @@ function TemplateEditor() {
 			cancelled = true;
 		};
 	}, [setCatalogItems, setCatalogItemsStatus]);
+
+	// §8's library, fetched once per editor session for the same reasons the
+	// catalog is (workspace-level, not template-scoped) and in its own effect
+	// so a library failure degrades to an empty panel rather than taking the
+	// catalog — or the editor — down with it.
+	useEffect(() => {
+		let cancelled = false;
+		setContentLibraryStatus('loading');
+		listContentLibraryItems()
+			.then((items) => {
+				if (!cancelled) setContentLibraryItems(items);
+			})
+			.catch(() => {
+				if (!cancelled) setContentLibraryStatus('error');
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [setContentLibraryItems, setContentLibraryStatus]);
 
 	useEffect(() => {
 		if (!id) return;

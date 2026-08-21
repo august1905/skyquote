@@ -2,7 +2,7 @@ import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
 import type { ColumnsBlock, RichTextDoc, TextBlock } from '../types';
 import type { Command } from './types';
-import { deleteBlock, duplicateBlock, insertBlock, moveBlock, setBlockDoc, setBlockStyle, toggleBlockLock } from './blockCommands';
+import { deleteBlock, duplicateBlock, insertBlock, insertBlocks, moveBlock, setBlockDoc, setBlockStyle, toggleBlockLock } from './blockCommands';
 import { createColumnsBlock, findBlockById } from './blockTree';
 import { makeBody, makeBodyWithColumns, makeBodyWithSmartContent, makeTextBlock } from './testFixtures';
 
@@ -69,6 +69,56 @@ describe('insertBlock / deleteBlock', () => {
 			});
 			expect(body.pages[0]?.blocks.map((b) => b.id)).toEqual(['block-1', 'block-2']);
 		}
+	});
+});
+
+// One undo entry for N blocks — the Content Library inserts whole
+// multi-selections, and looping insertBlock would make undoing one user action
+// take N presses.
+describe('insertBlocks', () => {
+	it('inserts every block at the given index, in order; its inverse removes exactly those', () => {
+		const original = makeBody();
+		const added = [makeTextBlock('new-1', 'one'), makeTextBlock('new-2', 'two')];
+		let inverse!: Command;
+
+		const afterInsert = produce(original, (draft) => {
+			inverse = insertBlocks({ pageId: 'page-1' }, 1, added).apply(draft);
+		});
+		expect(afterInsert.pages[0]?.blocks.map((b) => b.id)).toEqual(['block-1', 'new-1', 'new-2', 'block-2']);
+
+		const afterUndo = produce(afterInsert, (draft) => {
+			inverse.apply(draft);
+		});
+		expect(afterUndo).toEqual(original);
+	});
+
+	it('is redoable, so the whole insert survives an undo/redo round trip as one step', () => {
+		const original = makeBody();
+		const added = [makeTextBlock('new-1'), makeTextBlock('new-2')];
+
+		let inverse!: Command;
+		const afterInsert = produce(original, (draft) => {
+			inverse = insertBlocks({ pageId: 'page-1' }, 0, added).apply(draft);
+		});
+		let redo!: Command;
+		const afterUndo = produce(afterInsert, (draft) => {
+			redo = inverse.apply(draft);
+		});
+		const afterRedo = produce(afterUndo, (draft) => {
+			redo.apply(draft);
+		});
+		expect(afterRedo.pages[0]?.blocks.map((b) => b.id)).toEqual(['new-1', 'new-2', 'block-1', 'block-2']);
+	});
+
+	it('rejects placing a container block inside a column — §4.4, same rule insertBlock enforces', () => {
+		const original = makeBodyWithColumns();
+		const container = { pageId: 'page-1', parent: { columnsBlockId: 'columns-1', column: 0 } };
+
+		expect(() =>
+			produce(original, (draft) => {
+				insertBlocks(container, 0, [makeTextBlock('fine'), createColumnsBlock(2)]).apply(draft);
+			})
+		).toThrow(/cannot place a columns block inside a column/);
 	});
 });
 
