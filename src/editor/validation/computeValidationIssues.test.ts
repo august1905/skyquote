@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeValidationIssues } from './computeValidationIssues';
-import { makeBody, makeBodyWithFields, makeBodyWithImage, makeImageBlock } from '../commands/testFixtures';
+import { makeBody, makeBodyWithFields, makeBodyWithImage, makeImageBlock, makeSmartContentBlock } from '../commands/testFixtures';
 
 describe('computeValidationIssues', () => {
 	it('returns no issues for a clean body with no fields/variables/images', () => {
@@ -95,5 +95,11 @@ describe('computeValidationIssues', () => {
 
 		const withAlt = { ...withoutAlt, pages: [{ ...withoutAlt.pages[0]!, blocks: [makeImageBlock('image-1', { alt: 'A photo' })] }] };
 		expect(computeValidationIssues(withAlt, 'Untitled template').some((i) => i.id.startsWith('image-no-alt-'))).toBe(false);
+	});
+
+	it('flags an alt-less image nested inside a SmartContentBlock, same whole-tree walk every other cross-cutting feature uses', () => {
+		const body = makeBody();
+		const withSmartContent = { ...body, pages: [{ ...body.pages[0]!, blocks: [makeSmartContentBlock('smart-1', [makeImageBlock('image-1')])] }] };
+		expect(computeValidationIssues(withSmartContent, 'Untitled template').some((i) => i.id.startsWith('image-no-alt-'))).toBe(true);
 	});
 });

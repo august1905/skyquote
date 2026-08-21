@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RichTextDoc, TemplateBody, TextBlock } from '../types';
-import { makeBody, makeColumnsBlock, makeTableBlock, makeCell, makeTextBlock } from '../commands/testFixtures';
+import { makeBody, makeColumnsBlock, makeSmartContentBlock, makeTableBlock, makeCell, makeTextBlock } from '../commands/testFixtures';
 import { collectHeadings } from './collectHeadings';
 
 function headingDoc(level: number, text: string): RichTextDoc {
@@ -41,6 +41,12 @@ describe('collectHeadings', () => {
 		const body = makeBody();
 		body.pages[0]!.blocks = [makeColumnsBlock('columns-1', [[makeHeadingTextBlock('col0-h', 1, 'Left column heading')], [makeTextBlock('col1-p', 'right text')]])];
 		expect(collectHeadings(body, 3)).toEqual([{ id: 'columns-1-0', blockId: 'columns-1', level: 1, text: 'Left column heading' }]);
+	});
+
+	it('finds headings nested inside a SmartContentBlock, attributed to the outer smart_content block\'s id, same as Columns', () => {
+		const body = makeBody();
+		body.pages[0]!.blocks = [makeSmartContentBlock('smart-1', [makeHeadingTextBlock('smart0-h', 1, 'Conditional heading')])];
+		expect(collectHeadings(body, 3)).toEqual([{ id: 'smart-1-0', blockId: 'smart-1', level: 1, text: 'Conditional heading' }]);
 	});
 
 	it('finds headings inside a table cell, attributed to the table block\'s own id', () => {

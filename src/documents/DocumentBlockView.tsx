@@ -4,6 +4,7 @@ import { resolvePublicAssetUrl } from '../api/documents';
 import { computePricingTableTotals, computeQuoteBuilderTotals, type LineTotal } from '../pricing/computeTotals';
 import { formatMoney } from '../pricing/formatMoney';
 import type { Block, PricingItem, PricingTableBlock, QuoteBuilderBlock } from '../editor/types';
+import { evaluateSmartContent, type SmartContentContext } from '../smartContent/evaluateRules';
 import { RichTextView, type FieldInteraction } from './RichTextView';
 import './document-view.css';
 
@@ -14,6 +15,7 @@ interface DocumentBlockViewProps {
 	/** The viewing recipient's own role, or `null` if nothing should ever be live (there's no such thing as an anonymous viewer for a real document, but this keeps the component usable for a future authenticated preview too). */
 	viewerRoleId: string | null;
 	fieldInteraction?: FieldInteraction | undefined;
+	smartContentContext: SmartContentContext;
 }
 
 /**
@@ -26,10 +28,14 @@ interface DocumentBlockViewProps {
  * mutates, so it can afford to be much simpler: no commands, no editor
  * store, no selection.
  *
- * `toc`/`smart_content` aren't built anywhere yet (phase 5) — render nothing
- * rather than guessing at a shape.
+ * `toc` renders nothing here even though it's built in the editor (§4.5) —
+ * its page numbers are a real-pagination concept, and this view is a single
+ * continuously-scrolling web page with no physical pages at all (§11: "web
+ * link, not PDF" is the primary viewing experience). An anchor-linked jump
+ * nav would be a reasonable future enhancement but isn't spec'd; rendering
+ * literal-but-meaningless page numbers here would be worse than nothing.
  */
-export function DocumentBlockView({ block, documentId, token, viewerRoleId, fieldInteraction }: DocumentBlockViewProps) {
+export function DocumentBlockView({ block, documentId, token, viewerRoleId, fieldInteraction, smartContentContext }: DocumentBlockViewProps) {
 	switch (block.type) {
 		case 'text':
 			return <RichTextView doc={block.doc} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />;
@@ -84,6 +90,7 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId, fiel
 									token={token}
 									viewerRoleId={viewerRoleId}
 									fieldInteraction={fieldInteraction}
+									smartContentContext={smartContentContext}
 								/>
 							))}
 						</div>
@@ -114,8 +121,25 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId, fiel
 			return <DocumentPricingTableBlockView block={block} />;
 		case 'quote_builder':
 			return <DocumentQuoteBuilderBlockView block={block} />;
+		case 'smart_content': {
+			if (!evaluateSmartContent(block, smartContentContext)) return null;
+			return (
+				<>
+					{block.children.map((child) => (
+						<DocumentBlockView
+							key={child.id}
+							block={child}
+							documentId={documentId}
+							token={token}
+							viewerRoleId={viewerRoleId}
+							fieldInteraction={fieldInteraction}
+							smartContentContext={smartContentContext}
+						/>
+					))}
+				</>
+			);
+		}
 		case 'toc':
-		case 'smart_content':
 			return null;
 		default:
 			return null;

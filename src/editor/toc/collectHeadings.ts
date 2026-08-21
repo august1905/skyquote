@@ -48,6 +48,10 @@ function collectHeadingsFromBlock(block: Block, topLevelBlockId: BlockId, maxLev
 		for (const column of block.columns) {
 			for (const child of column) collectHeadingsFromBlock(child, topLevelBlockId, maxLevel, out);
 		}
+		return;
+	}
+	if (block.type === 'smart_content') {
+		for (const child of block.children) collectHeadingsFromBlock(child, topLevelBlockId, maxLevel, out);
 	}
 }
 

@@ -2,7 +2,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import type { Block, BlockStyle, PageId } from '../types';
-import { deleteBlock, duplicateBlock, toggleBlockLock, type BlockContainer } from '../commands';
+import { deleteBlock, duplicateBlock, toggleBlockLock, wrapInSmartContent, type BlockContainer } from '../commands';
+import { isContainerBlockType } from '../commands/blockTree';
 import { useEditorStore } from '../store/editorStore';
 import { BlockView } from '../blocks/BlockView';
 import { BlockSettingsPopover } from './BlockSettingsPopover';
@@ -155,6 +156,18 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 					{!block.locked && (
 						<button type="button" className="canvas-block-drag-handle" aria-label="Drag to reorder" {...attributes} {...listeners}>
 							⠿
+						</button>
+					)}
+					{/* Only offered for a top-level, non-container block — a container can never nest inside another container (§4.4), the same rule `wrapInSmartContent` itself enforces. */}
+					{!container.parent && !isContainerBlockType(block.type) && !block.locked && (
+						<button
+							type="button"
+							onClick={stopAnd(() => {
+								runCommand(wrapInSmartContent(pageId, selectedBlockIds));
+								select(null);
+							})}
+						>
+							Smart content
 						</button>
 					)}
 					<button

@@ -22,7 +22,7 @@ export interface CreateDocumentInput {
 	currency: string;
 	computedTotal: Money;
 	/** Already resolved — variables replaced with literal values, pricing already frozen. See src/documents/resolveVariables.ts. */
-	body: TemplateBody;
+	body: DocumentBody;
 	recipients: CreateDocumentRecipientInput[];
 }
 
@@ -81,6 +81,16 @@ export function regenerateRecipientToken(documentId: string, recipientId: string
  */
 export interface DocumentBody extends TemplateBody {
 	fieldValues?: Record<string, FieldValue>;
+	/**
+	 * The flat variable-key → literal-string map computed once at
+	 * document-creation time (`resolveVariables.ts`'s `computeResolvedVariableValues`),
+	 * used to freeze every `variable` chip into plain text. That freeze is
+	 * one-way — nothing after creation can reconstruct the original values —
+	 * so a `SmartContentBlock` rule that gates on a `variable` subject needs
+	 * this persisted alongside the frozen body, not just the frozen text
+	 * itself. See `src/smartContent/evaluateRules.ts`.
+	 */
+	resolvedVariableValues?: Record<string, string>;
 }
 
 /** What a recipient's own unauthenticated link resolves to — deliberately a much narrower shape than `GetDocumentResult`: no other recipient's name/email/token, no `sourceTemplateId`/`version`/audit fields. */

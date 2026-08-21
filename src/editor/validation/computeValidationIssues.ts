@@ -31,6 +31,13 @@ function collectFromBlock(block: Block, variableKeys: string[], images: ImageBlo
 		for (const column of block.columns) {
 			for (const child of column) collectFromBlock(child, variableKeys, images);
 		}
+	} else if (block.type === 'smart_content') {
+		// Same reasoning as collectVariableKeys.ts: a rule can gate on a
+		// variable that's never inserted as an inline chip anywhere.
+		for (const rule of block.rules) {
+			if (rule.subject.kind === 'variable') variableKeys.push(rule.subject.ref);
+		}
+		for (const child of block.children) collectFromBlock(child, variableKeys, images);
 	}
 }
 
@@ -44,9 +51,10 @@ function collectVariableKeysFromTemplateName(name: string, out: string[]): void 
 /**
  * §9.4's persistent validation surface. Only the checks that have something
  * real to check against are implemented — `empty required pricing tables`
- * (no `PricingTableBlock` yet, phase 4) and `smart-content rules referencing
- * deleted variables` (no `SmartContentBlock` yet, phase 5) are left out
- * rather than stubbed against nothing.
+ * and `smart-content rules referencing deleted variables/fields` aren't
+ * checked yet; the former still has no real requirement to violate (no
+ * "required pricing table" concept exists), and the latter is a real gap
+ * worth adding if stale rule references turn out to be common in practice.
  */
 export function computeValidationIssues(body: TemplateBody, templateName: string): ValidationIssue[] {
 	const issues: ValidationIssue[] = [];

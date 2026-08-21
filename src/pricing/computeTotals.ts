@@ -134,12 +134,13 @@ export function computeQuoteBuilderTotals(block: QuoteBuilderBlock): BlockTotals
 	return { blockId: block.id, currency: block.currency, lines, sections: [], ...rollupOf(lines) };
 }
 
-/** Recurses into `ColumnsBlock` columns — same whole-tree-walk convention `collectAllFields` uses — so a pricing table nested in a column still counts toward the document total. */
+/** Recurses into `ColumnsBlock` columns and `SmartContentBlock` children — same whole-tree-walk convention `collectAllFields` uses — so a pricing table nested in either still counts toward the document total, regardless of whether the smart content's own rules would currently show or hide it (§7.4's total is the sender's authored default, not a per-viewer conditional one). */
 function collectPricingBlocks(blocks: Block[]): (PricingTableBlock | QuoteBuilderBlock)[] {
 	const found: (PricingTableBlock | QuoteBuilderBlock)[] = [];
 	for (const block of blocks) {
 		if (block.type === 'pricing_table' || block.type === 'quote_builder') found.push(block);
 		else if (block.type === 'columns') for (const col of block.columns) found.push(...collectPricingBlocks(col));
+		else if (block.type === 'smart_content') found.push(...collectPricingBlocks(block.children));
 	}
 	return found;
 }

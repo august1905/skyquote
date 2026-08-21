@@ -39,6 +39,10 @@ function collectFieldsFromBlock(block: Block, out: FillableField[]): void {
 		for (const column of block.columns) {
 			for (const child of column) collectFieldsFromBlock(child, out);
 		}
+		return;
+	}
+	if (block.type === 'smart_content') {
+		for (const child of block.children) collectFieldsFromBlock(child, out);
 	}
 }
 

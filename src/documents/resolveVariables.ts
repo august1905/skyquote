@@ -102,5 +102,8 @@ function resolveBlockVariables(block: Block, values: ResolvedVariableValues): Bl
 	if (block.type === 'columns') {
 		return { ...block, columns: block.columns.map((column) => column.map((child) => resolveBlockVariables(child, values))) };
 	}
+	if (block.type === 'smart_content') {
+		return { ...block, children: block.children.map((child) => resolveBlockVariables(child, values)) };
+	}
 	return block;
 }

@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { declineDocument, getPublicDocument, submitDocumentFields, type PublicDocumentView } from '../api/documents';
 import { collectAllFields } from '../editor/fields/collectFields';
 import type { FieldValue } from '../editor/fields/FieldPreview';
 import type { FillableField } from '../editor/types';
+import { computeTotals } from '../pricing/computeTotals';
+import type { SmartContentContext } from '../smartContent/evaluateRules';
 import { DocumentBlockView } from '../documents/DocumentBlockView';
 import type { FieldInteraction } from '../documents/RichTextView';
 import './DocumentView.css';
@@ -70,6 +72,20 @@ function DocumentView() {
 			cancelled = true;
 		};
 	}, [documentId, token]);
+
+	// Built even while `data` is still null (falls back to empty) so this hook
+	// runs on every render regardless of `status` — an early return above a
+	// conditionally-skipped hook would violate the rules of hooks the moment
+	// `status` flips from `loading` to `ready`.
+	const smartContentContext: SmartContentContext = useMemo(() => {
+		if (!data) return { resolvedVariables: {}, fieldValues: {}, pricingTotals: {} };
+		const totals = computeTotals(data.body);
+		return {
+			resolvedVariables: data.body.resolvedVariableValues ?? {},
+			fieldValues,
+			pricingTotals: Object.fromEntries(totals.blocks.map((b) => [b.blockId, b.total])),
+		};
+	}, [data, fieldValues]);
 
 	if (status === 'loading') {
 		return (
@@ -157,6 +173,7 @@ function DocumentView() {
 								token={token}
 								viewerRoleId={data.recipient.roleId}
 								fieldInteraction={fieldInteraction}
+								smartContentContext={smartContentContext}
 							/>
 						))}
 					</div>

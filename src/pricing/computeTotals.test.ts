@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ColumnsBlock, PricingItem, PricingTableBlock, QuoteBuilderBlock, TemplateBody, TemplateSettings } from '../editor/types';
+import type { ColumnsBlock, PricingItem, PricingTableBlock, QuoteBuilderBlock, SmartContentBlock, TemplateBody, TemplateSettings } from '../editor/types';
 import { money } from '../editor/types';
 import { computePricingTableTotals, computeQuoteBuilderTotals, computeTotals } from './computeTotals';
 
@@ -199,6 +199,21 @@ describe('computeTotals — the document/header rollup (§7.4)', () => {
 		const nested = makePricingTable({ items: [makeItem({ qty: 1, price: money(750) })] });
 		const columns: ColumnsBlock = { id: 'columns-1', type: 'columns', locked: false, style: {}, widths: [0.5, 0.5], columns: [[nested], []] };
 		expect(computeTotals(makeBody([columns])).total).toBe(money(750));
+	});
+
+	it('finds a pricing table nested inside a SmartContentBlock — counted toward the total regardless of the smart content\'s own (unevaluated-here) rules', () => {
+		const nested = makePricingTable({ items: [makeItem({ qty: 1, price: money(1200) })] });
+		const smartContent: SmartContentBlock = {
+			id: 'smart-1',
+			type: 'smart_content',
+			locked: false,
+			style: {},
+			name: 'Smart content',
+			rules: [{ subject: { kind: 'variable', ref: 'Client.Company' }, operator: 'is_empty', value: null }],
+			match: 'all',
+			children: [nested],
+		};
+		expect(computeTotals(makeBody([smartContent])).total).toBe(money(1200));
 	});
 
 	it('takes its currency from the first pricing block found, and defaults to USD when there are none', () => {

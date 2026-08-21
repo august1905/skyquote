@@ -29,17 +29,27 @@ type DropData =
 	| { kind: 'pricingTableDrop'; pageId: string; blockId: string };
 
 /**
- * Same page top level, or the exact same column — reorder, already wired.
- * Different pages at the top level — cross-page move, already wired (pre-
- * dates Columns). A page's top level <-> a column, or column <-> a different
- * column — cross-container drops aren't wired yet; §4.4's validity rules
- * (e.g. rejecting a dropped container block) need dedicated handling first,
- * so those drags just snap back for now.
+ * Same page top level, the exact same column, or the exact same
+ * smart_content's children — reorder, already wired. Different pages at the
+ * top level — cross-page move, already wired (predates Columns). A page's
+ * top level <-> a container, or container <-> a different container
+ * (including a different container *type* — a column and a smart_content
+ * are never interchangeable drop targets) — cross-container drops aren't
+ * wired yet; §4.4's validity rules (e.g. rejecting a dropped container block)
+ * need dedicated handling first, so those drags just snap back for now.
  */
 function isCompatibleDropTarget(from: BlockContainer, to: BlockContainer): boolean {
-	if (!from.parent && !to.parent) return true;
-	if (from.parent && to.parent) {
-		return from.pageId === to.pageId && from.parent.columnsBlockId === to.parent.columnsBlockId && from.parent.column === to.parent.column;
+	const fromParent = from.parent;
+	const toParent = to.parent;
+	if (!fromParent && !toParent) return true;
+	if (fromParent && toParent) {
+		if (from.pageId !== to.pageId) return false;
+		if ('columnsBlockId' in fromParent && 'columnsBlockId' in toParent) {
+			return fromParent.columnsBlockId === toParent.columnsBlockId && fromParent.column === toParent.column;
+		}
+		if ('smartContentBlockId' in fromParent && 'smartContentBlockId' in toParent) {
+			return fromParent.smartContentBlockId === toParent.smartContentBlockId;
+		}
 	}
 	return false;
 }

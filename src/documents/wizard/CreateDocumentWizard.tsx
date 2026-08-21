@@ -97,7 +97,7 @@ export function CreateDocumentWizard({ onClose }: CreateDocumentWizardProps) {
 				sourceTemplateVersion: templateMeta.version,
 				currency: totals.currency,
 				computedTotal: totals.total,
-				body: resolveVariablesInBody(currentWorkingBody, resolvedValues),
+				body: { ...resolveVariablesInBody(currentWorkingBody, resolvedValues), resolvedVariableValues: resolvedValues },
 				recipients: recipients.map((r) => ({
 					roleId: r.roleId,
 					roleName: r.roleName,

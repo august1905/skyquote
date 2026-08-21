@@ -10,6 +10,7 @@ import { FieldBlockView } from './FieldBlockView';
 import { PricingTableBlockView } from './PricingTableBlockView';
 import { QuoteBuilderBlockView } from './QuoteBuilderBlockView';
 import { TableOfContentsBlockView } from './TableOfContentsBlockView';
+import { SmartContentBlockView } from './SmartContentBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 import type { BlockType } from '../types';
 
@@ -41,6 +42,7 @@ const REAL_VIEWS: Record<string, unknown> = {
 	pricing_table: PricingTableBlockView,
 	quote_builder: QuoteBuilderBlockView,
 	toc: TableOfContentsBlockView,
+	smart_content: SmartContentBlockView,
 };
 
 describe('allBlockTypes', () => {

@@ -23,6 +23,15 @@ function collectFromBlock(block: Block, out: string[]): void {
 		for (const row of block.rows) for (const cell of row.cells) collectVariableKeysFromDoc(cell.doc, out);
 	} else if (block.type === 'columns') {
 		for (const column of block.columns) for (const child of column) collectFromBlock(child, out);
+	} else if (block.type === 'smart_content') {
+		// A rule can gate on a variable that's never inserted as an inline
+		// chip anywhere — without this, that key would never reach the Create
+		// Document wizard's "fill in variables" step, and `SmartContentBlock`
+		// rules would always evaluate it as unresolved/empty.
+		for (const rule of block.rules) {
+			if (rule.subject.kind === 'variable') out.push(rule.subject.ref);
+		}
+		for (const child of block.children) collectFromBlock(child, out);
 	}
 }
 
@@ -30,8 +39,8 @@ function collectFromBlock(block: Block, out: string[]): void {
  * Every distinct variable key actually referenced anywhere in the
  * template — inline `variable` chips (recursing into `ColumnsBlock` columns
  * and `TableBlock` cells, same location set `computeValidationIssues.ts`'s
- * own walker covers) plus the template name's own `[Key]` tokens.
- * Deduplicated, in first-seen order.
+ * own walker covers), a `SmartContentBlock` rule's `variable` subject, plus
+ * the template name's own `[Key]` tokens. Deduplicated, in first-seen order.
  */
 export function collectVariableKeys(body: TemplateBody, templateName: string): string[] {
 	const raw: string[] = [];

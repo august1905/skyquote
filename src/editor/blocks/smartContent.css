@@ -1,0 +1,105 @@
+.block-smart-content {
+	border: 1px dashed #999;
+	border-radius: 6px;
+	padding: 8px;
+	background: #fafafa;
+}
+
+.block-smart-content-selected {
+	border-color: #4a7dff;
+}
+
+.smart-content-header {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.smart-content-name {
+	font-weight: 600;
+	font-size: 0.85rem;
+	color: #555;
+}
+
+.smart-content-rule-chip {
+	border: 1px solid #ddd;
+	border-radius: 999px;
+	padding: 2px 10px;
+	font-size: 0.8rem;
+	background: #fff;
+	color: #444;
+	cursor: pointer;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.smart-content-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.8rem;
+	color: #555;
+}
+
+.smart-content-toolbar select {
+	margin-left: 4px;
+}
+
+.smart-content-children {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.smart-content-hidden-note {
+	color: #999;
+	font-size: 0.85rem;
+	font-style: italic;
+	margin: 0;
+}
+
+.smart-content-rule-popover {
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background: #fff;
+	padding: 10px;
+	margin-bottom: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.smart-content-rule-popover-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.smart-content-rule-empty {
+	color: #999;
+	font-size: 0.85rem;
+	margin: 0;
+}
+
+.smart-content-rule-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.smart-content-rule-row input {
+	flex: 1;
+	min-width: 80px;
+}
+
+.smart-content-rule-popover-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 4px;
+}

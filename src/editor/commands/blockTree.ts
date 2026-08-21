@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, CatalogItem, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, TableBlock, TableCell, TableOfContentsBlock, TemplateBody, TextBlock, VideoBlock } from '../types';
+import type { Block, BlockId, BlockType, CatalogItem, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, SmartContentBlock, TableBlock, TableCell, TableOfContentsBlock, TemplateBody, TextBlock, VideoBlock } from '../types';
 import { ZERO_MONEY } from '../types';
 
 /**
@@ -29,28 +29,30 @@ export function blockAt(blocks: Draft<Block>[], index: number): Draft<Block> {
 }
 
 /**
- * Block types that hold their own nested block arrays. `columns` is the only
- * one that actually exists yet — `smart_content` (§4.4 also caps its nesting
- * at depth 2) isn't built, so there's nothing real to recurse into there.
- * Extend {@link locateBlock}/{@link resolveContainerBlocks}/
- * {@link containerBlocksOf}/`cloneBlockWithNewIds`'s `reassignIds` together
- * when it lands.
+ * Block types that hold their own nested block arrays: `columns` (one array
+ * per column) and `smart_content` (one `children` array). Extend
+ * {@link locateBlock}/{@link resolveContainerBlocks}/{@link containerBlocksOf}/
+ * `cloneBlockWithNewIds`'s `reassignIds` together if a third one is ever
+ * added.
  */
-const CONTAINER_BLOCK_TYPES: BlockType[] = ['columns'];
+const CONTAINER_BLOCK_TYPES: BlockType[] = ['columns', 'smart_content'];
 
 export function isContainerBlockType(type: BlockType): boolean {
 	return CONTAINER_BLOCK_TYPES.includes(type);
 }
 
 /**
- * Addresses either a page's own top-level blocks, or one column of a
- * `ColumnsBlock` on that page. §4.4 caps nesting at depth 2, so a column's
- * contents are never themselves addressed via a `parent` — there's only ever
- * one level of `parent` here, never a chain of them.
+ * Addresses either a page's own top-level blocks, one column of a
+ * `ColumnsBlock`, or a `SmartContentBlock`'s `children` — all on the same
+ * page. §4.4 caps nesting at depth 2 by forbidding a container block from
+ * ever living *inside* another container (`insertBlock`/`moveBlock`'s own
+ * guards), so a container's contents are never themselves addressed via a
+ * `parent` — there's only ever one level of `parent` here, never a chain of
+ * them.
  */
 export interface BlockContainer {
 	pageId: PageId;
-	parent?: { columnsBlockId: BlockId; column: number };
+	parent?: { columnsBlockId: BlockId; column: number } | { smartContentBlockId: BlockId };
 }
 
 /**
@@ -60,15 +62,23 @@ export interface BlockContainer {
  */
 export function resolveContainerBlocks(draft: Draft<TemplateBody>, container: BlockContainer): Draft<Block>[] {
 	const page = findPage(draft, container.pageId);
-	if (!container.parent) return page.blocks;
-	const parentIndex = page.blocks.findIndex((b) => b.id === container.parent!.columnsBlockId);
+	const parent = container.parent;
+	if (!parent) return page.blocks;
+	if ('smartContentBlockId' in parent) {
+		const parentBlock = page.blocks.find((b) => b.id === parent.smartContentBlockId);
+		if (!parentBlock || parentBlock.type !== 'smart_content') {
+			throw new Error(`resolveContainerBlocks: no smart_content block with id ${parent.smartContentBlockId} on page ${container.pageId}`);
+		}
+		return parentBlock.children;
+	}
+	const parentIndex = page.blocks.findIndex((b) => b.id === parent.columnsBlockId);
 	const parentBlock = parentIndex === -1 ? undefined : page.blocks[parentIndex];
 	if (!parentBlock || parentBlock.type !== 'columns') {
-		throw new Error(`resolveContainerBlocks: no columns block with id ${container.parent.columnsBlockId} on page ${container.pageId}`);
+		throw new Error(`resolveContainerBlocks: no columns block with id ${parent.columnsBlockId} on page ${container.pageId}`);
 	}
-	const column = parentBlock.columns[container.parent.column];
+	const column = parentBlock.columns[parent.column];
 	if (!column) {
-		throw new Error(`resolveContainerBlocks: column ${container.parent.column} out of range on columns block ${container.parent.columnsBlockId}`);
+		throw new Error(`resolveContainerBlocks: column ${parent.column} out of range on columns block ${parent.columnsBlockId}`);
 	}
 	return column;
 }
@@ -81,16 +91,22 @@ export function resolveContainerBlocks(draft: Draft<TemplateBody>, container: Bl
 export function containerBlocksOf(pages: Page[], container: BlockContainer): Block[] | undefined {
 	const page = pages.find((p) => p.id === container.pageId);
 	if (!page) return undefined;
-	if (!container.parent) return page.blocks;
-	const parentBlock = page.blocks.find((b) => b.id === container.parent!.columnsBlockId);
+	const parent = container.parent;
+	if (!parent) return page.blocks;
+	if ('smartContentBlockId' in parent) {
+		const parentBlock = page.blocks.find((b) => b.id === parent.smartContentBlockId);
+		return parentBlock && parentBlock.type === 'smart_content' ? parentBlock.children : undefined;
+	}
+	const parentBlock = page.blocks.find((b) => b.id === parent.columnsBlockId);
 	if (!parentBlock || parentBlock.type !== 'columns') return undefined;
-	return parentBlock.columns[container.parent.column];
+	return parentBlock.columns[parent.column];
 }
 
 /**
- * Finds a block anywhere on a page — its top-level `blocks`, or inside any
- * column of any top-level `ColumnsBlock` — and reports which `BlockContainer`
- * it lives in alongside the mutable array and index, so callers (delete,
+ * Finds a block anywhere on a page — its top-level `blocks`, inside any
+ * column of any top-level `ColumnsBlock`, or inside any top-level
+ * `SmartContentBlock`'s `children` — and reports which `BlockContainer` it
+ * lives in alongside the mutable array and index, so callers (delete,
  * duplicate, setBlockDoc, move) don't need to know in advance whether the id
  * they were given is nested or not.
  */
@@ -103,13 +119,19 @@ export function locateBlock(
 		return { container: { pageId: page.id }, blocks: page.blocks, index: topIndex };
 	}
 	for (const block of page.blocks) {
-		if (block.type !== 'columns') continue;
-		for (let column = 0; column < block.columns.length; column++) {
-			const columnBlocks = block.columns[column];
-			if (!columnBlocks) continue;
-			const index = columnBlocks.findIndex((b) => b.id === blockId);
+		if (block.type === 'columns') {
+			for (let column = 0; column < block.columns.length; column++) {
+				const columnBlocks = block.columns[column];
+				if (!columnBlocks) continue;
+				const index = columnBlocks.findIndex((b) => b.id === blockId);
+				if (index !== -1) {
+					return { container: { pageId: page.id, parent: { columnsBlockId: block.id, column } }, blocks: columnBlocks, index };
+				}
+			}
+		} else if (block.type === 'smart_content') {
+			const index = block.children.findIndex((b) => b.id === blockId);
 			if (index !== -1) {
-				return { container: { pageId: page.id, parent: { columnsBlockId: block.id, column } }, blocks: columnBlocks, index };
+				return { container: { pageId: page.id, parent: { smartContentBlockId: block.id } }, blocks: block.children, index };
 			}
 		}
 	}
@@ -186,6 +208,8 @@ function reassignIds(block: Block): void {
 		for (const column of block.columns) {
 			for (const child of column) reassignIds(child);
 		}
+	} else if (block.type === 'smart_content') {
+		for (const child of block.children) reassignIds(child);
 	}
 }
 
@@ -386,6 +410,11 @@ export function createQuoteBuilderBlock(): QuoteBuilderBlock {
 /** §4.5/§10: heading depth defaults to 2 (h1+h2) — h3 is offered but not on by default, matching the reference product's own TOC being a summary, not a full outline. */
 export function createTocBlock(): TableOfContentsBlock {
 	return { id: crypto.randomUUID(), type: 'toc', locked: false, style: {}, levels: 2 };
+}
+
+/** Empty container — no rules yet means {@link evaluateSmartContent} always shows it (§8.5's rule builder is opened separately once this exists). */
+export function createSmartContentBlock(children: Block[] = []): SmartContentBlock {
+	return { id: crypto.randomUUID(), type: 'smart_content', locked: false, style: {}, name: 'Smart content', rules: [], match: 'all', children };
 }
 
 export function createBlankPage(name: string): Page {

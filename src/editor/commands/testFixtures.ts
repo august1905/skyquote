@@ -1,4 +1,4 @@
-import type { ColumnsBlock, FieldBlock, FillableField, ImageBlock, PricingItem, PricingTableBlock, QuoteBuilderBlock, RichTextNode, TableBlock, TableCell, TemplateBody, TemplateSettings, TextBlock, VideoBlock } from '../types';
+import type { Block, ColumnsBlock, ConditionRule, FieldBlock, FillableField, ImageBlock, PricingItem, PricingTableBlock, QuoteBuilderBlock, RichTextNode, SmartContentBlock, TableBlock, TableCell, TemplateBody, TemplateSettings, TextBlock, VideoBlock } from '../types';
 import { money } from '../types';
 import { defaultTheme } from './themeCommands';
 
@@ -298,6 +298,31 @@ export function makeBodyWithQuoteBuilder(): TemplateBody {
 	const group = { id: 'group-1', name: 'Frequency', selection: 'single' as const, required: true, options: [makePricingItem('option-1')] };
 	return {
 		pages: [{ id: 'page-1', name: 'Page 1', order: 0, blocks: [makeQuoteBuilderBlock('quote-1', [group])] }],
+		roles: [],
+		variables: [],
+		settings: makeSettings(),
+	};
+}
+
+export function makeSmartContentBlock(id: string, children: Block[], overrides: Partial<SmartContentBlock> = {}): SmartContentBlock {
+	return { id, type: 'smart_content', locked: false, style: {}, name: 'Smart content', rules: [], match: 'all', children, ...overrides };
+}
+
+export function makeConditionRule(overrides: Partial<ConditionRule> = {}): ConditionRule {
+	return { subject: { kind: 'variable', ref: 'Client.Name' }, operator: 'is_not_empty', value: null, ...overrides };
+}
+
+/** A page with a lone SmartContentBlock ("smart-1") holding one text block child — for exercising nested addressing/wrap/unwrap. */
+export function makeBodyWithSmartContent(): TemplateBody {
+	return {
+		pages: [
+			{
+				id: 'page-1',
+				name: 'Page 1',
+				order: 0,
+				blocks: [makeSmartContentBlock('smart-1', [makeTextBlock('smart0-block-1', 'inside')])],
+			},
+		],
 		roles: [],
 		variables: [],
 		settings: makeSettings(),
