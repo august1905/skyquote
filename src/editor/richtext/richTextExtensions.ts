@@ -9,6 +9,7 @@ import { VariableNode } from './variableNode';
 import { FillableFieldNode } from './fieldNode';
 import { InsertSuggestion } from './insertSuggestion';
 import { EscapeToBlur } from './escapeToBlur';
+import { CommentHighlight } from '../comments/commentHighlight';
 
 /**
  * Shared by every rich-text surface (`TextBlockView`, `TableCellEditor`) so
@@ -50,5 +51,9 @@ export function richTextExtensions(): AnyExtension[] {
 		// Listed after InsertSuggestion, and lower-priority than it, so the
 		// `[` picker gets first refusal on Escape — see escapeToBlur.ts.
 		EscapeToBlur,
+		// §12's commented-passage highlighting. Contributes decorations only —
+		// no marks, no schema change — so it can't affect what any existing
+		// stored doc parses to.
+		CommentHighlight,
 	];
 }

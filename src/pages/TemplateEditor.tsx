@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTemplate } from '../api/templates';
 import { listCatalogItems } from '../api/catalogItems';
 import { listContentLibraryItems } from '../api/contentLibrary';
+import { listComments, listMentionableUsers } from '../api/comments';
 import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
 import { PageNavigator } from '../editor/canvas/PageNavigator';
 import { EditorDndProvider } from '../editor/dnd/EditorDndProvider';
@@ -11,6 +12,8 @@ import { useEditorStore } from '../editor/store/editorStore';
 import { useAuth } from '../auth/AuthContext';
 import { clearLocalDraft, describeDraft, readLocalDraft, type LocalDraft } from '../editor/autosave/localDraft';
 import { RightRail } from '../editor/rightrail/RightRail';
+import { CommentsSidebar } from '../editor/comments/CommentsSidebar';
+import { groupIntoThreads, unresolvedThreadCount } from '../editor/comments/commentAnchors';
 import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import { HeaderTotal } from '../editor/header/HeaderTotal';
 import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
@@ -72,6 +75,14 @@ function TemplateEditor() {
 	const setCatalogItemsStatus = useEditorStore((s) => s.setCatalogItemsStatus);
 	const setContentLibraryItems = useEditorStore((s) => s.setContentLibraryItems);
 	const setContentLibraryStatus = useEditorStore((s) => s.setContentLibraryStatus);
+	// §12's comment sidebar (the header's comment icon). Its open state lives in
+	// the store, not here, because the canvas opens it too — see editorStore.ts.
+	const commentsOpen = useEditorStore((s) => s.commentsSidebarOpen);
+	const setCommentsOpen = useEditorStore((s) => s.setCommentsSidebarOpen);
+	const setComments = useEditorStore((s) => s.setComments);
+	const setCommentsStatus = useEditorStore((s) => s.setCommentsStatus);
+	const setMentionableUsers = useEditorStore((s) => s.setMentionableUsers);
+	const comments = useEditorStore((s) => s.comments);
 
 	// §9.3's shortcut layer. Registered unconditionally (not gated on
 	// loadStatus) so the hook order stays stable across the early returns
@@ -79,6 +90,10 @@ function TemplateEditor() {
 	// already a no-op against an empty store.
 	const handleForceSave = useCallback(() => void flush(), [flush]);
 	useEditorShortcuts({ onForceSave: handleForceSave });
+
+	// Threads, not messages: five replies to one question is one thing needing
+	// attention, not five.
+	const unresolvedCount = useMemo(() => unresolvedThreadCount(groupIntoThreads(comments)), [comments]);
 
 	// §12's exclusive edit lock. Acquired in parallel with the template load
 	// rather than before it — serialising two round trips would slow every
@@ -124,6 +139,47 @@ function TemplateEditor() {
 			cancelled = true;
 		};
 	}, [setContentLibraryItems, setContentLibraryStatus]);
+
+	// §12's comments, template-scoped — refetched whenever the open template
+	// changes, unlike the catalog/library which are workspace-level. Degrades
+	// to an empty sidebar rather than blocking the editor.
+	useEffect(() => {
+		if (!id) return;
+		let cancelled = false;
+		// Cleared here rather than in `loadTemplate`: this effect owns the list,
+		// and the template load routinely finishes *after* it — see the note in
+		// editorStore.ts's loadTemplate.
+		setComments([], []);
+		setCommentsStatus('loading');
+		listComments(id)
+			.then(({ comments: loaded, authors }) => {
+				if (!cancelled) setComments(loaded, authors);
+			})
+			.catch(() => {
+				if (!cancelled) setCommentsStatus('error');
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [id, setComments, setCommentsStatus]);
+
+	// The @-mention list, fetched once per editor session — it's the workspace's
+	// user list, not this template's. A failure here means mentions silently
+	// stop resolving, which is why it's separate from the comments fetch above
+	// rather than sharing its failure state.
+	useEffect(() => {
+		let cancelled = false;
+		listMentionableUsers()
+			.then((users) => {
+				if (!cancelled) setMentionableUsers(users);
+			})
+			.catch(() => {
+				// Intentionally ignored — see above.
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [setMentionableUsers]);
 
 	useEffect(() => {
 		if (!id) return;
@@ -203,6 +259,21 @@ function TemplateEditor() {
 						<button type="button" onClick={redo} disabled={!canRedo}>
 							Redo
 						</button>
+						{/* §3's header comment icon, "shows unread badge". The count is
+						    **unresolved threads**, not unread ones: per-user read state
+						    needs a table that doesn't exist yet (see BUILD_STATUS.md),
+						    and unresolved is both meaningful on its own and the same
+						    number for everyone. */}
+						<div className="comments-header-toggle">
+							<button type="button" aria-label="Comments" aria-pressed={commentsOpen} onClick={() => setCommentsOpen(!commentsOpen)}>
+								💬
+							</button>
+							{unresolvedCount > 0 && (
+								<span className="comments-header-badge" aria-label={`${unresolvedCount} unresolved comments`}>
+									{unresolvedCount}
+								</span>
+							)}
+						</div>
 						<button type="button" onClick={() => setWizardOpen(true)}>
 							Create document
 						</button>
@@ -259,6 +330,7 @@ function TemplateEditor() {
 						<div className="template-editor-canvas-area">
 							<TemplateCanvas />
 						</div>
+						{commentsOpen && <CommentsSidebar onClose={() => setCommentsOpen(false)} />}
 						<RightRail />
 					</div>
 				</EditorDndProvider>

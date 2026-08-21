@@ -1,0 +1,305 @@
+/* §12's comment sidebar. Sits between the canvas and the right rail, matching
+   the rail panels' own border/spacing conventions (see rightrail.css) so it
+   reads as part of the same chrome rather than a second kind of panel. */
+
+.comments-sidebar {
+	width: 300px;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+	border-left: 1px solid #e2e2e2;
+	background: #fafafa;
+	overflow-y: auto;
+}
+
+.comments-sidebar-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.comments-sidebar-header h2 {
+	font-size: 0.95rem;
+	margin: 0;
+}
+
+.comments-sidebar-header button {
+	border: none;
+	background: transparent;
+	font-size: 1.1rem;
+	cursor: pointer;
+	line-height: 1;
+}
+
+.comments-sidebar-empty {
+	margin: 0;
+	font-size: 0.8rem;
+	color: #666;
+}
+
+.comments-thread-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.comment-thread {
+	border: 1px solid #e2e2e2;
+	border-radius: 6px;
+	background: #fff;
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.comment-thread-active {
+	border-color: #7ba0ff;
+	box-shadow: 0 0 0 2px #dbe6ff;
+}
+
+.comment-thread-resolved {
+	opacity: 0.72;
+}
+
+.comment-thread-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	border: none;
+	background: transparent;
+	padding: 0;
+	cursor: pointer;
+	text-align: left;
+	font-size: 0.72rem;
+	color: #666;
+}
+
+.comment-thread-badge {
+	background: #e4f3e4;
+	color: #2c6e2c;
+	border-radius: 999px;
+	padding: 1px 6px;
+}
+
+.comment-thread-count,
+.comment-thread-more {
+	color: #888;
+	font-size: 0.72rem;
+	margin: 0;
+}
+
+.comment-message {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.comment-message-reply {
+	border-left: 2px solid #e2e2e2;
+	padding-left: 8px;
+	margin-left: 2px;
+}
+
+.comment-message-meta {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	font-size: 0.72rem;
+	color: #888;
+}
+
+.comment-author {
+	font-weight: 600;
+	color: #333;
+}
+
+.comment-edited {
+	font-style: italic;
+}
+
+.comment-body {
+	margin: 0;
+	font-size: 0.82rem;
+	line-height: 1.4;
+	/* The body is stored as plain text, so the line breaks someone typed are
+	   only preserved by the CSS — there's no markup carrying them. */
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.comment-mention {
+	color: #2c4fa8;
+	background: #eef2ff;
+	border-radius: 3px;
+	padding: 0 2px;
+	font-weight: 600;
+}
+
+.comment-message-actions,
+.comment-thread-footer {
+	display: flex;
+	gap: 6px;
+}
+
+.comment-message-actions button,
+.comment-thread-footer button {
+	border: none;
+	background: transparent;
+	padding: 0;
+	font-size: 0.72rem;
+	color: #4a6fd4;
+	cursor: pointer;
+}
+
+.comment-message-actions button:hover,
+.comment-thread-footer button:hover {
+	text-decoration: underline;
+}
+
+.comments-new-thread {
+	border: 1px solid #7ba0ff;
+	border-radius: 6px;
+	background: #fff;
+	padding: 8px;
+}
+
+.comments-new-thread-target {
+	margin: 0 0 6px;
+	font-size: 0.72rem;
+	color: #666;
+}
+
+.comments-resolved-toggle {
+	align-self: flex-start;
+	border: none;
+	background: transparent;
+	padding: 0;
+	font-size: 0.75rem;
+	color: #4a6fd4;
+	cursor: pointer;
+}
+
+/* --- Composer --------------------------------------------------------- */
+
+.comment-composer {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.comment-composer-input {
+	width: 100%;
+	box-sizing: border-box;
+	font: inherit;
+	font-size: 0.82rem;
+	padding: 6px;
+	border: 1px solid #d5d5d5;
+	border-radius: 4px;
+	resize: vertical;
+}
+
+.comment-composer-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.comment-composer-error {
+	margin: 0;
+	font-size: 0.75rem;
+	color: #b3261e;
+}
+
+.comment-mention-list {
+	position: absolute;
+	/* Anchored to the composer's bottom edge rather than the caret: a textarea
+	   gives no caret coordinates without measuring a mirrored copy of its
+	   content, and the list is only ever a few rows in a 300px panel. */
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 20;
+	list-style: none;
+	margin: 2px 0 0;
+	padding: 4px;
+	background: #fff;
+	border: 1px solid #d5d5d5;
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+	max-height: 180px;
+	overflow-y: auto;
+}
+
+.comment-mention-option {
+	display: block;
+	width: 100%;
+	text-align: left;
+	border: none;
+	background: transparent;
+	padding: 4px 6px;
+	border-radius: 3px;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.comment-mention-option-active,
+.comment-mention-option:hover {
+	background: #dbe6ff;
+}
+
+/* --- In-canvas anchors ------------------------------------------------ */
+
+/* Drawn as ProseMirror decorations, never as marks — see commentHighlight.ts. */
+.comment-highlight {
+	background: #fff3c4;
+	border-bottom: 1px solid #e0b429;
+	cursor: pointer;
+}
+
+.comment-highlight-active {
+	background: #ffe066;
+}
+
+.comment-highlight-resolved {
+	background: transparent;
+	border-bottom: 1px dotted #bbb;
+}
+
+/* A block-level comment gets a marker on the block itself, since there's no
+   text range to shade. */
+.canvas-block-commented > .canvas-block-content {
+	box-shadow: inset 3px 0 0 #e0b429;
+}
+
+.canvas-block-comment-active > .canvas-block-content {
+	box-shadow: inset 3px 0 0 #d99a00;
+}
+
+/* --- Header icon ------------------------------------------------------ */
+
+.comments-header-toggle {
+	position: relative;
+}
+
+.comments-header-badge {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	min-width: 16px;
+	height: 16px;
+	padding: 0 4px;
+	box-sizing: border-box;
+	border-radius: 999px;
+	background: #d93025;
+	color: #fff;
+	font-size: 0.65rem;
+	line-height: 16px;
+	text-align: center;
+}

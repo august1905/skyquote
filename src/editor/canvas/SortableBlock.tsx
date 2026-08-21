@@ -10,8 +10,10 @@ import { BlockView } from '../blocks/BlockView';
 import { blockTypeLabel } from '../blocks/registry';
 import { SaveToLibraryDialog } from '../contentLibrary/SaveToLibraryDialog';
 import { useContentLibrary } from '../contentLibrary/useContentLibrary';
+import { getActiveRichTextEditor, getActiveRichTextEditorOwnerBlockId } from '../richtext/activeRichTextEditor';
 import { BlockSettingsPopover } from './BlockSettingsPopover';
 import './canvas.css';
+import '../comments/comments.css';
 
 interface SortableBlockProps {
 	pageId: PageId;
@@ -79,7 +81,36 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 	const toggleMultiSelect = useEditorStore((s) => s.toggleMultiSelect);
 	const multiSelectedBlockIds = useEditorStore((s) => s.multiSelectedBlockIds);
 	const pages = useEditorStore((s) => s.body?.pages);
+	const setPendingCommentAnchor = useEditorStore((s) => s.setPendingCommentAnchor);
+	const setActiveCommentId = useEditorStore((s) => s.setActiveCommentId);
+	const comments = useEditorStore((s) => s.comments);
+	const activeCommentId = useEditorStore((s) => s.activeCommentId);
 	const { saveBlocks } = useContentLibrary();
+	// §12's block-level anchor marker. Unresolved threads only: a resolved one
+	// shouldn't keep drawing attention to a block that's been dealt with.
+	const blockThreads = comments.filter((comment) => !comment.parentCommentId && comment.blockId === block.id && !comment.resolvedAt);
+	const hasComments = blockThreads.length > 0;
+	const hasActiveComment = blockThreads.some((comment) => comment.id === activeCommentId);
+
+	/**
+	 * §12: a comment anchors "to a block or a text range". Which one this is
+	 * depends on where the caret was when the menu was opened — a live text
+	 * selection inside *this* text block becomes a range anchor, anything else
+	 * anchors to the whole block.
+	 *
+	 * The owner check matters: the active-editor ref deliberately survives blur
+	 * (see activeRichTextEditor.ts), so without it a selection left behind in a
+	 * different block would be captured as this block's range.
+	 */
+	function startComment() {
+		const editor = getActiveRichTextEditor();
+		const ownerBlockId = getActiveRichTextEditorOwnerBlockId();
+		const selection = editor?.state.selection;
+		const isTextRange = editor && ownerBlockId === block.id && block.type === 'text' && selection && !selection.empty;
+		setPendingCommentAnchor(
+			isTextRange ? { blockId: block.id, anchorStart: selection.from, anchorEnd: selection.to } : { blockId: block.id }
+		);
+	}
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [saveToLibraryOpen, setSaveToLibraryOpen] = useState(false);
 	const [overflowOpen, setOverflowOpen] = useState(false);
@@ -151,8 +182,10 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 	return (
 		<div
 			ref={setRefs}
+			// §12's sidebar scrolls a commented block into view by querying this.
+			data-block-id={block.id}
 			style={{ transform: CSS.Transform.toString(transform), transition: transition ?? undefined }}
-			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${multiSelected ? ' canvas-block-multi-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}`}
+			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${multiSelected ? ' canvas-block-multi-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}${hasComments ? ' canvas-block-commented' : ''}${hasActiveComment ? ' canvas-block-comment-active' : ''}`}
 			onClick={(e) => {
 				e.stopPropagation();
 				// A locked block can never be deleted/moved (see blockCommands.ts's
@@ -217,6 +250,31 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 								>
 									{selectedBlockIds.length > 1 ? `Save ${selectedBlockIds.length} to library` : 'Save to library'}
 								</button>
+								{/* §12's comment entry point. In the overflow rather than
+								    on the toolbar for the width reason above — and it
+								    acts on this one block only, never the multi-selection,
+								    since a comment anchors to a single place. */}
+								<button
+									type="button"
+									onClick={stopAnd(() => {
+										setOverflowOpen(false);
+										startComment();
+									})}
+								>
+									Comment
+								</button>
+								{hasComments && (
+									<button
+										type="button"
+										onClick={stopAnd(() => {
+											setOverflowOpen(false);
+											const first = blockThreads[0];
+											if (first) setActiveCommentId(first.id);
+										})}
+									>
+										{blockThreads.length > 1 ? `Show ${blockThreads.length} comments` : 'Show comment'}
+									</button>
+								)}
 							</div>
 						)}
 					</div>

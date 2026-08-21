@@ -28,6 +28,14 @@ import type { Editor } from '@tiptap/core';
  * itself to be a React value.
  */
 let active: Editor | null = null;
+/**
+ * Which block owns {@link active}. Needed by §12's "comment on the selected
+ * text": an editor instance alone doesn't say which block's stored doc its
+ * positions are relative to, and a range captured against one block is
+ * meaningless against another. Tracked here rather than derived later because
+ * only the editor's owner knows the answer.
+ */
+let activeOwnerBlockId: string | null = null;
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -36,10 +44,17 @@ function emit(): void {
 	for (const listener of listeners) listener();
 }
 
-export function setActiveRichTextEditor(editor: Editor | null): void {
-	if (active === editor) return;
+export function setActiveRichTextEditor(editor: Editor | null, ownerBlockId: string | null = null): void {
+	if (active === editor && activeOwnerBlockId === ownerBlockId) return;
 	active = editor;
+	activeOwnerBlockId = ownerBlockId;
 	emit();
+}
+
+/** The block id whose editor is currently active, or null. Paired with {@link getActiveRichTextEditor} — check both before trusting a captured selection. */
+export function getActiveRichTextEditorOwnerBlockId(): string | null {
+	if (active?.isDestroyed) return null;
+	return activeOwnerBlockId;
 }
 
 /**
