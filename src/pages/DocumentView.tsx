@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
-import { declineDocument, getPublicDocument, submitDocumentFields, type PublicDocumentView } from '../api/documents';
+import { declineDocument, getPublicDocument, resolvePublicAssetUrl, submitDocumentFields, type PublicDocumentView } from '../api/documents';
 import { collectAllFields } from '../editor/fields/collectFields';
 import type { FieldValue } from '../editor/fields/FieldPreview';
 import type { FillableField } from '../editor/types';
@@ -179,6 +179,35 @@ function DocumentView() {
 					</div>
 				))}
 			</div>
+			{/* §3's attachments — "files appended to generated documents". They
+			    ride along in the document's snapshotted body, so nothing had to be
+			    plumbed through the public route; the bytes come from the same
+			    token-gated asset mirror images already use, because a recipient has
+			    no session and `/assets/:id/file` would 401.
+
+			    Rendered after the pages rather than inside them: they're appended to
+			    the document, not part of its layout, and they must not land between
+			    a page and the fields the recipient still has to fill in. */}
+			{(data.body.attachments ?? []).length > 0 && (
+				<section className="doc-view-attachments" aria-label="Attachments">
+					<h2>Attachments</h2>
+					<ul>
+						{(data.body.attachments ?? []).map((attachment) => (
+							<li key={attachment.assetId}>
+								<a
+									href={resolvePublicAssetUrl(documentId, token, attachment.assetId)}
+									// `download` rather than a new tab: for a recipient this is a
+									// file to keep, and it also keeps a PDF from replacing the
+									// document they're partway through filling in.
+									download={attachment.filename}
+								>
+									{attachment.name || attachment.filename}
+								</a>
+							</li>
+						))}
+					</ul>
+				</section>
+			)}
 			{/* Always shown, regardless of whether this role owns any fields —
 			    a recipient can still decline (or just mark "done") a document
 			    with nothing to fill in; only Submit's enabled-state depends on

@@ -39,6 +39,21 @@ export async function uploadImageAsset(file: File): Promise<UploadedAsset> {
 }
 
 /**
+ * §3's Attachments panel. A separate endpoint from {@link uploadImageAsset},
+ * not a flag on it: the image route only ever accepts four image signatures
+ * (that's its whole security story — see `routes/assets.js`), while this one
+ * accepts PDFs, Office files, zip, txt/csv and images. Both land in the same
+ * `Assets` table.
+ */
+export async function uploadFileAsset(file: File): Promise<UploadedAsset> {
+	const dataBase64 = await readFileAsBase64(file);
+	return apiFetch<UploadedAsset>('/assets/files', {
+		method: 'POST',
+		body: JSON.stringify({ filename: file.name, dataBase64 }),
+	});
+}
+
+/**
  * The relative path stored on `ImageBlock.url` — deliberately not the fully
  * resolved absolute URL, so a persisted template doesn't bake in whichever
  * `BACKEND_BASE_URL` happened to be active at upload time (dev vs. prod host

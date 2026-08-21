@@ -100,3 +100,27 @@
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+/* §3's attachments, appended after the document's pages. */
+.doc-view-attachments {
+	max-width: 816px;
+	margin: 0 auto 24px;
+	padding: 16px 24px;
+	background: #fff;
+	border: 1px solid #e2e2e2;
+	border-radius: 6px;
+}
+
+.doc-view-attachments h2 {
+	font-size: 0.95rem;
+	margin: 0 0 8px;
+}
+
+.doc-view-attachments ul {
+	margin: 0;
+	padding-left: 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.88rem;
+}

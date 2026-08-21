@@ -174,7 +174,7 @@ test.describe('Comments (§12)', () => {
 				() =>
 					page.evaluate(async (id) => {
 						const response = await fetch(`/api/templates/${id}`, { credentials: 'include' });
-						const data = await response.json();
+						const data = (await response.json()) as { body?: { pages?: Array<{ blocks?: Array<{ doc?: unknown }> }> } };
 						return JSON.stringify(data.body?.pages?.[0]?.blocks?.[0]?.doc ?? {});
 					}, templateId),
 				{ timeout: 15000 }

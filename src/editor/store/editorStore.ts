@@ -27,9 +27,14 @@ function normalizeBody(body: TemplateBody): TemplateBody {
 	const needsOrientation = !body.settings.orientation;
 	const needsMargins = !body.settings.margins;
 	const needsShowPageNumbers = body.settings.showPageNumbers === undefined;
-	if (!needsTheme && !needsPageSize && !needsOrientation && !needsMargins && !needsShowPageNumbers) return body;
+	// §3's attachments, added after real templates existed without them. Lives
+	// at the body's top level rather than under `settings` because it's content
+	// the recipient sees, not a presentation option.
+	const needsAttachments = body.attachments === undefined;
+	if (!needsTheme && !needsPageSize && !needsOrientation && !needsMargins && !needsShowPageNumbers && !needsAttachments) return body;
 	return {
 		...body,
+		...(needsAttachments ? { attachments: [] } : {}),
 		settings: {
 			...body.settings,
 			...(needsTheme ? { theme: defaultTheme() } : {}),

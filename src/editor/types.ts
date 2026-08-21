@@ -396,6 +396,28 @@ export interface TemplateMeta {
 	archivedAt: string | null;
 }
 
+/**
+ * §3's Attachments panel — "files appended to generated documents".
+ *
+ * The bytes live in the existing `Assets` table + Stratus (uploaded through
+ * `POST /assets/files`); this is just the reference, so an attachment is
+ * template content like any block rather than a separate kind of record.
+ * Storing it in `TemplateBody` is what makes it *appear on documents for free*:
+ * a document's body is a snapshot of the template's, so an attachment carries
+ * across at creation time with no extra plumbing and, correctly, is frozen —
+ * attaching a file to a template later doesn't retroactively change documents
+ * already sent.
+ */
+export interface Attachment {
+	/** `Assets.ROWID`. The download URL is derived from it, never stored, so it can't bake in whichever backend host was active at upload time. */
+	assetId: string;
+	/** Shown to the recipient. Defaults to the uploaded filename but is renameable — "Certificate of insurance" beats "scan_0012.pdf". */
+	name: string;
+	filename: string;
+	contentType: string;
+	sizeBytes: number;
+}
+
 /** The Stratus object. This is the block tree — the canonical content. */
 export interface TemplateBody {
 	pages: Page[];
@@ -403,6 +425,8 @@ export interface TemplateBody {
 	/** Custom variables defined on this template. */
 	variables: VariableDef[];
 	settings: TemplateSettings;
+	/** §3's Attachments panel. Optional because templates created before it existed don't have it — `normalizeBody` backfills to `[]`. */
+	attachments?: Attachment[];
 }
 
 /** Both halves, as the editor works with them. */

@@ -7,6 +7,7 @@ export { setImageAlt, setImageShape, setImageSize } from './imageCommands';
 export { setVideoAutoplay } from './videoCommands';
 export { defaultTheme, setTheme } from './themeCommands';
 export { defaultPageSettings, setPageSettings } from './pageSettingsCommands';
+export { addAttachment, removeAttachment, renameAttachment } from './attachmentCommands';
 export type { PageSettingsPatch } from './pageSettingsCommands';
 export { setTocLevels } from './tocCommands';
 export { renameSmartContent, setSmartContentRules, unwrapSmartContent, wrapInSmartContent } from './smartContentCommands';
