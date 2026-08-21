@@ -8,6 +8,8 @@ import { PageNavigator } from '../editor/canvas/PageNavigator';
 import { EditorDndProvider } from '../editor/dnd/EditorDndProvider';
 import { useAutosave, type AutosaveStatus } from '../editor/autosave/useAutosave';
 import { useEditorStore } from '../editor/store/editorStore';
+import { useAuth } from '../auth/AuthContext';
+import { clearLocalDraft, describeDraft, readLocalDraft, type LocalDraft } from '../editor/autosave/localDraft';
 import { RightRail } from '../editor/rightrail/RightRail';
 import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import { HeaderTotal } from '../editor/header/HeaderTotal';
@@ -32,6 +34,10 @@ const AUTOSAVE_STATUS_LABEL: Record<Exclude<AutosaveStatus, 'conflict'>, string>
 	saving: 'Saving…',
 	saved: 'All changes saved',
 	error: 'Save failed — will retry on your next edit',
+	// §13: distinct from 'error' on purpose. Offline resolves itself the moment
+	// the connection returns (autosave listens for `online`), and the work is
+	// already safe on this device — so it shouldn't read like something broke.
+	offline: 'Offline — your changes are saved on this device',
 };
 
 // The editor shell. §2's toolbar (both groups), §9.3's keyboard layer, §3's
@@ -49,7 +55,12 @@ function TemplateEditor() {
 	const redo = useEditorStore((s) => s.redo);
 	const canUndo = useEditorStore((s) => s.undoStack.length > 0);
 	const canRedo = useEditorStore((s) => s.redoStack.length > 0);
-	const { status: autosaveStatus, reloadFromServer, flush } = useAutosave();
+	const { user } = useAuth();
+	const { status: autosaveStatus, reloadFromServer, flush } = useAutosave(user?.id);
+	const restoreDraftBody = useEditorStore((s) => s.restoreDraftBody);
+	// §13's restore-from-local-draft. Held in state rather than read inline so
+	// dismissing it (either way) doesn't re-trigger on the next render.
+	const [recoverableDraft, setRecoverableDraft] = useState<LocalDraft | null>(null);
 	const [wizardOpen, setWizardOpen] = useState(false);
 	const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
 	// §2's page-navigator drawer: toggled from the toolbar, rendered beside the
@@ -131,6 +142,12 @@ function TemplateEditor() {
 			.then(({ meta: templateMeta, body }) => {
 				if (cancelled) return;
 				loadTemplate(templateMeta, body);
+				// §13: a draft still on disk *is* unsent work — autosave clears it
+				// on every successful save — so its mere presence is the signal.
+				// Offered, never auto-applied: silently replacing what the server
+				// returned would be its own kind of data loss.
+				const draft = user?.id ? readLocalDraft(user.id, templateMeta.id) : null;
+				setRecoverableDraft(draft);
 				setLoadStatus('ready');
 			})
 			.catch(() => {
@@ -139,7 +156,7 @@ function TemplateEditor() {
 		return () => {
 			cancelled = true;
 		};
-	}, [id, loadTemplate]);
+	}, [id, loadTemplate, user?.id]);
 
 	// Checked before the load states on purpose: a locked-out user should be
 	// told why immediately, not shown a spinner until an irrelevant fetch
@@ -199,6 +216,35 @@ function TemplateEditor() {
 				</div>
 				<EditorToolbar pagesOpen={pagesOpen} onTogglePages={() => setPagesOpen((open) => !open)} />
 				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} />}
+				{recoverableDraft && (
+					<div className="template-editor-draft-banner" role="alert">
+						<span>
+							Unsaved changes from this device, {new Date(recoverableDraft.savedAt).toLocaleString()}, were never sent to the server.
+							{describeDraft(recoverableDraft, meta.version).isStale &&
+								' Someone has saved this template since — restoring will replace their version.'}
+						</span>
+						<div className="template-editor-draft-banner-actions">
+							<button
+								type="button"
+								onClick={() => {
+									restoreDraftBody(recoverableDraft.body);
+									setRecoverableDraft(null);
+								}}
+							>
+								Restore them
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									if (user?.id) clearLocalDraft(user.id, recoverableDraft.templateId);
+									setRecoverableDraft(null);
+								}}
+							>
+								Discard
+							</button>
+						</div>
+					</div>
+				)}
 				{autosaveStatus === 'conflict' && (
 					<div className="template-editor-conflict-banner" role="alert">
 						<span>This template was changed elsewhere. Reload to see the latest version — your unsaved changes here will be lost.</span>

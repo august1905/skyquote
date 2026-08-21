@@ -73,3 +73,40 @@
 	color: #78350f;
 	font-size: 0.9rem;
 }
+
+/* §13's restore-from-local-draft prompt. Styled distinctly from the conflict
+   banner: that one reports a problem the user must resolve, this one offers
+   back work they'd otherwise have lost. */
+.template-editor-draft-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 10px 16px;
+	background: #fff8e1;
+	border-bottom: 1px solid #ffe08a;
+	font-size: 0.85rem;
+	color: #6b4e00;
+}
+
+.template-editor-draft-banner-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.template-editor-draft-banner-actions button {
+	padding: 5px 12px;
+	border: 1px solid #d4a600;
+	border-radius: 4px;
+	background: #fff;
+	color: #6b4e00;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.template-editor-draft-banner-actions button:first-child {
+	background: #6b4e00;
+	border-color: #6b4e00;
+	color: #fff;
+}

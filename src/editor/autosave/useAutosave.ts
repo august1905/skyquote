@@ -2,11 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
 import { getTemplate, saveTemplate } from '../../api/templates';
 import { useEditorStore } from '../store/editorStore';
+import { clearLocalDraft, writeLocalDraft } from './localDraft';
 
 // Spec §9.2.
 const AUTOSAVE_DEBOUNCE_MS = 1500;
+/**
+ * §13's local-draft write, on a much shorter debounce than the server save.
+ * It costs nothing but a `localStorage` write, and the whole point is for the
+ * copy on disk to exist *before* any network attempt — so a tab closed
+ * between two keystrokes still has somewhere to recover from.
+ */
+const LOCAL_DRAFT_DEBOUNCE_MS = 400;
 
-export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'conflict' | 'error';
+export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'conflict' | 'error' | 'offline';
 
 export interface UseAutosaveResult {
 	status: AutosaveStatus;
@@ -22,7 +30,7 @@ export interface UseAutosaveResult {
  * `getState()`, never a closed-over snapshot, since flush() is called from
  * timers and window event listeners outside React's normal render cycle.
  */
-export function useAutosave(): UseAutosaveResult {
+export function useAutosave(userId: string | undefined): UseAutosaveResult {
 	const [status, setStatus] = useState<AutosaveStatus>('idle');
 	const statusRef = useRef(status);
 	statusRef.current = status;
@@ -30,6 +38,11 @@ export function useAutosave(): UseAutosaveResult {
 	const isSavingRef = useRef(false);
 	const reattemptPendingRef = useRef(false);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Read inside flush(), which runs from timers and event listeners outside
+	// React's render cycle — a closed-over value could be a render stale.
+	const userIdRef = useRef(userId);
+	userIdRef.current = userId;
 
 	const dirty = useEditorStore((s) => s.dirty);
 	const editSeq = useEditorStore((s) => s.editSeq);
@@ -55,6 +68,16 @@ export function useAutosave(): UseAutosaveResult {
 		const { meta, body, dirty: isDirty, editSeq: editSeqAtSaveStart } = useEditorStore.getState();
 		if (!meta || !body || !isDirty) return;
 
+		// §13: don't burn a request when the browser already knows there's no
+		// network. The local draft is written on its own (much shorter) timer,
+		// so the work is already safe on disk — reported as 'offline' rather
+		// than 'error' because those call for different things from the user:
+		// one resolves itself, the other might not.
+		if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+			setStatus('offline');
+			return;
+		}
+
 		isSavingRef.current = true;
 		setStatus('saving');
 		try {
@@ -67,11 +90,18 @@ export function useAutosave(): UseAutosaveResult {
 			// autosave attempt to pick up.
 			if (useEditorStore.getState().editSeq === editSeqAtSaveStart) {
 				useEditorStore.getState().markSaved(savedMeta);
+				// The server now has this content, so the local safety net has
+				// nothing left to protect. Only cleared on the branch where
+				// `dirty` was actually cleared: if newer edits landed mid-flight
+				// they're still unsent, and their draft must survive.
+				if (userIdRef.current) clearLocalDraft(userIdRef.current, meta.id);
 			} else {
 				useEditorStore.getState().advanceSavedMeta(savedMeta);
 			}
 			setStatus('saved');
 		} catch (err) {
+			// The draft is deliberately left in place on every failure path —
+			// that copy is the only one that survives the tab closing.
 			setStatus(err instanceof ApiError && err.status === 409 ? 'conflict' : 'error');
 		} finally {
 			isSavingRef.current = false;
@@ -95,6 +125,39 @@ export function useAutosave(): UseAutosaveResult {
 		};
 	}, [dirty, editSeq, status, flush]);
 
+	/**
+	 * §13's local draft. Written on its own short debounce, independent of the
+	 * server save, so the on-disk copy exists long before any request is
+	 * attempted — and keeps being refreshed even while saves are failing.
+	 *
+	 * `baseVersion` records the server version this work was built on, which
+	 * is what lets the restore prompt distinguish "my unsent work" from "work
+	 * based on a copy someone has since saved over".
+	 */
+	useEffect(() => {
+		if (!dirty || !userId) return;
+		if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+		draftTimerRef.current = setTimeout(() => {
+			const { meta, body } = useEditorStore.getState();
+			if (!meta || !body) return;
+			writeLocalDraft(userId, { templateId: meta.id, baseVersion: meta.version, name: meta.name, body, savedAt: new Date().toISOString() });
+		}, LOCAL_DRAFT_DEBOUNCE_MS);
+		return () => {
+			if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+		};
+	}, [dirty, editSeq, userId]);
+
+	// §13's "restore on reconnect" half: the moment the browser regains
+	// network, push whatever is still unsent. Without this, an offline edit
+	// would sit until the user happened to type again.
+	useEffect(() => {
+		function handleOnline() {
+			void flush();
+		}
+		window.addEventListener('online', handleOnline);
+		return () => window.removeEventListener('online', handleOnline);
+	}, [flush]);
+
 	// Flush points beyond the idle debounce: §9.2 calls for blur/pagehide/
 	// route change. `visibilitychange` covers tab-switch and app-backgrounding
 	// more reliably than `blur` alone; `pagehide` covers navigating away or
@@ -108,6 +171,14 @@ export function useAutosave(): UseAutosaveResult {
 			if (document.visibilityState === 'hidden') void flush();
 		}
 		function handleBlurOrHide() {
+			// Write the draft synchronously before flushing: `pagehide` may be
+			// the last code this page runs, and the pending 400ms draft timer
+			// will never fire if so. A localStorage write completes inline; the
+			// network flush after it is best-effort by nature.
+			const { meta, body, dirty: isDirty } = useEditorStore.getState();
+			if (isDirty && meta && body && userIdRef.current) {
+				writeLocalDraft(userIdRef.current, { templateId: meta.id, baseVersion: meta.version, name: meta.name, body, savedAt: new Date().toISOString() });
+			}
 			void flush();
 		}
 		window.addEventListener('blur', handleBlurOrHide);

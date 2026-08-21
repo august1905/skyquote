@@ -133,6 +133,17 @@ interface EditorState {
 	editSeq: number;
 
 	loadTemplate: (meta: TemplateMeta, body: TemplateBody) => void;
+	/**
+	 * §13's restore-from-local-draft. Replaces the loaded body with recovered
+	 * unsent work and marks it dirty, so autosave picks it up as something
+	 * that still needs sending — the one thing `loadTemplate` deliberately
+	 * doesn't do, since a fresh server load is by definition already saved.
+	 *
+	 * Clears undo/redo along with it: the recovered body is a new starting
+	 * point, and inverses captured against the *server* copy would be
+	 * meaningless applied to this one.
+	 */
+	restoreDraftBody: (body: TemplateBody) => void;
 	/** Called once autosave's PUT resolves — advances `meta` without touching `body` or the undo history. */
 	markSaved: (meta: TemplateMeta) => void;
 	/**
@@ -212,6 +223,20 @@ export const useEditorStore = create<EditorState>()(
 				state.lastCommandAt = null;
 				state.lastCoalesceKey = null;
 				state.editSeq = 0;
+			}),
+
+		restoreDraftBody: (body) =>
+			set((state) => {
+				state.body = normalizeBody(body);
+				state.selection = null;
+				state.multiSelectedBlockIds = [];
+				state.blockPageNumbers = new Map();
+				state.dirty = true;
+				state.undoStack = [];
+				state.redoStack = [];
+				state.lastCommandAt = null;
+				state.lastCoalesceKey = null;
+				state.editSeq += 1;
 			}),
 
 		markSaved: (meta) =>
