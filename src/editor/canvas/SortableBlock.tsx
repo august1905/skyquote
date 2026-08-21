@@ -1,9 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import type { Block, BlockStyle, PageId } from '../types';
 import { deleteBlock, duplicateBlock, toggleBlockLock, wrapInSmartContent, type BlockContainer } from '../commands';
 import { findBlockById, isContainerBlockType } from '../commands/blockTree';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { useEditorStore } from '../store/editorStore';
 import { BlockView } from '../blocks/BlockView';
 import { blockTypeLabel } from '../blocks/registry';
@@ -82,6 +83,8 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [saveToLibraryOpen, setSaveToLibraryOpen] = useState(false);
 	const [overflowOpen, setOverflowOpen] = useState(false);
+	const closeOverflow = useCallback(() => setOverflowOpen(false), []);
+	useCloseOnEscape(overflowOpen, closeOverflow);
 	// The anchor's toolbar acts on the *whole* multi-selection when one
 	// exists (§4.2: "Multi-select supports move, delete, duplicate") — just
 	// this one block otherwise, unchanged from single-select behavior.

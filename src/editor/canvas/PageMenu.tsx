@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { deletePage, duplicatePage, movePage, setPageBackground } from '../commands';
 import { SaveToLibraryDialog } from '../contentLibrary/SaveToLibraryDialog';
 import { useContentLibrary } from '../contentLibrary/useContentLibrary';
@@ -33,6 +34,8 @@ export function PageMenu({ page, pageIndex, pageCount, onClose, onRequestRename 
 	const { savePage } = useContentLibrary();
 	const [saveToLibraryOpen, setSaveToLibraryOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	useCloseOnEscape(true, onClose);
 
 	useEffect(() => {
 		function handleOutsideClick(event: MouseEvent) {

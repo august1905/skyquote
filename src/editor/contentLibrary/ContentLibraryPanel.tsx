@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { deleteContentLibraryItem, type ContentLibraryItem } from '../../api/contentLibrary';
 import { useEditorStore } from '../store/editorStore';
 import { useContentLibrary } from './useContentLibrary';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { filterByQuery, sortForTab, type ContentLibraryTab } from './contentLibraryFilters';
 import './contentLibrary.css';
 
@@ -99,6 +100,10 @@ export function ContentLibraryPanel({ onClose }: ContentLibraryPanelProps) {
 	const [tab, setTab] = useState<ContentLibraryTab>('recent');
 	const [query, setQuery] = useState('');
 	const [browserOpen, setBrowserOpen] = useState(false);
+	// The full-screen browser closes first when it's the innermost open surface;
+	// the rail panel behind it keeps its own handler for when it isn't.
+	const closeBrowser = useCallback(() => setBrowserOpen(false), []);
+	useCloseOnEscape(browserOpen, closeBrowser);
 	// One id at a time: an insert awaits a payload fetch, and double-clicking a
 	// tile in that window would otherwise insert it twice.
 	const [busyId, setBusyId] = useState<string | null>(null);

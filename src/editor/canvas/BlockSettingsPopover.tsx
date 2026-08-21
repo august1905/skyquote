@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { setBlockStyle } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import type { Block, BlockStyle, PageId } from '../types';
@@ -48,6 +49,8 @@ export function BlockSettingsPopover({ pageId, block, onClose }: BlockSettingsPo
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	useCloseOnEscape(true, onClose);
 
 	useEffect(() => {
 		function handleOutsideClick(event: MouseEvent) {

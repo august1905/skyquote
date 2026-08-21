@@ -3,6 +3,7 @@ import { deleteBlock, duplicateBlock } from '../commands';
 import { findBlockById } from '../commands/blockTree';
 import { getActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 import { useEditorStore } from '../store/editorStore';
+import { hasOpenDismissibleSurface } from '../a11y/useCloseOnEscape';
 import { isTextEntryTarget, matchEditorShortcut } from './matchEditorShortcut';
 
 interface UseEditorShortcutsOptions {
@@ -45,14 +46,6 @@ interface UseEditorShortcutsOptions {
 export function useEditorShortcuts({ onForceSave }: UseEditorShortcutsOptions): void {
 	useEffect(() => {
 		function handleKeyDown(event: KeyboardEvent) {
-			// Defer to anything closer to the keystroke that already dealt with
-			// it. This listener is on `document`, so it runs *after* every
-			// inner handler — including ProseMirror's, which calls
-			// preventDefault whenever one of its own plugins claims a key. The
-			// concrete case this protects: Escape dismissing the `[` insert
-			// picker (`insertSuggestion.ts`) would otherwise also reach
-			// 'stepOut' below and blur the editor, throwing away the caret the
-			// user was about to keep typing at.
 			const action = matchEditorShortcut({
 				key: event.key,
 				metaKey: event.metaKey,
@@ -101,6 +94,10 @@ export function useEditorShortcuts({ onForceSave }: UseEditorShortcutsOptions): 
 					return;
 				}
 				case 'stepOut': {
+					// Escape is layered, innermost first. An open popover, menu or
+					// dialog owns it — dismissing one shouldn't also clear the
+					// selection and yank the floating toolbar away.
+					if (hasOpenDismissibleSurface()) return;
 					// §9.3: "Step out of text-edit → block select → deselect."
 					// This handles only the *second* step. When the keystroke
 					// came from inside a rich-text editor, that editor's own

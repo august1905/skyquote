@@ -111,6 +111,19 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* §13: "visible focus rings" — buttons had one, form controls did not, outside
+   the two auth/admin pages that style their own inputs. That left the editor's
+   toolbar and panels (largely selects, colour inputs and checkboxes)
+   keyboard-operable but with no indication of where focus actually was. Global
+   rather than per-component so a newly added control can't quietly miss it. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
+  outline: 2px solid var(--sky-blue);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

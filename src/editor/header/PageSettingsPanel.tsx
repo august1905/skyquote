@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { setPageSettings } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import type { PageSettingsPatch } from '../commands';
@@ -24,6 +25,7 @@ interface PageSettingsPanelProps {
  * still stores a full `Spacing`, just with all four sides set equally.
  */
 export function PageSettingsPanel({ onClose }: PageSettingsPanelProps) {
+	useCloseOnEscape(true, onClose);
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
 	const settings = useEditorStore((s) => s.body?.settings);

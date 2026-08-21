@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
 import { addPage, createBlankPage } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { useActiveRichTextEditor } from '../richtext/useActiveRichTextEditor';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import {
 	FONT_FAMILY_OPTIONS,
 	FONT_SIZE_OPTIONS,
@@ -84,6 +85,9 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 	const pageCount = useEditorStore((s) => s.body?.pages.length ?? 0);
 	const [moreOpen, setMoreOpen] = useState(false);
 	const moreRef = useRef<HTMLDivElement>(null);
+
+	const closeMore = useCallback(() => setMoreOpen(false), []);
+	useCloseOnEscape(moreOpen, closeMore);
 
 	const disabled = !editor || !editor.isEditable;
 

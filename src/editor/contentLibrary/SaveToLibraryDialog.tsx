@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import './contentLibrary.css';
 
 interface SaveToLibraryDialogProps {
@@ -21,6 +22,9 @@ export function SaveToLibraryDialog({ subject, defaultName, onCancel, onSave }: 
 	const [name, setName] = useState(defaultName);
 	const [tagsText, setTagsText] = useState('');
 	const [saving, setSaving] = useState(false);
+	// Not while saving: cancelling mid-request would leave the user unsure
+	// whether the item was created.
+	useCloseOnEscape(!saving, onCancel);
 	const [error, setError] = useState<string | null>(null);
 
 	const trimmedName = name.trim();

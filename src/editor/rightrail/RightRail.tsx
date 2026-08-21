@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { ThemePanel } from './ThemePanel';
 import { RolesPanel } from './RolesPanel';
 import { VariablesPanel } from './VariablesPanel';
@@ -29,6 +30,12 @@ type RailKey = (typeof RAIL_ITEMS)[number]['key'];
 
 export function RightRail() {
 	const [openPanel, setOpenPanel] = useState<RailKey | null>(null);
+
+	// §13's keyboard operability: Escape closes whichever panel is open. Owned
+	// here rather than in each panel because this is where the open state lives
+	// — five panels, one handler.
+	const closePanel = useCallback(() => setOpenPanel(null), []);
+	useCloseOnEscape(openPanel !== null, closePanel);
 
 	return (
 		<div className="right-rail-wrapper">
