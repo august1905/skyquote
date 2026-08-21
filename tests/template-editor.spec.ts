@@ -18,9 +18,21 @@ test.describe('Template editor canvas', () => {
 
 		// This app's undo is the command stack, not the browser's native
 		// contenteditable undo — StarterKit's `undoRedo: false` (see
-		// TextBlockView.tsx) is supposed to make Ctrl+Z inside a focused block
-		// a no-op rather than reverting text some way that bypasses our state.
+		// TextBlockView.tsx) means ProseMirror has no history of its own.
+		//
+		// Updated when §9.3's keyboard layer landed: Ctrl+Z inside a focused
+		// block used to be a deliberate no-op (there was nothing bound to it,
+		// and the assertion here existed to prove native contenteditable undo
+		// wasn't reverting text behind the command stack's back). It now
+		// performs a real command-stack undo, which is what §9.3's table
+		// actually asks for. The guarantee the original assertion cared about
+		// still holds and is still checked, just differently: a whole burst of
+		// typing reverts as ONE coalesced entry, which is only possible via
+		// the command stack — native undo would peel it back character group
+		// by character group.
 		await page.keyboard.press('ControlOrMeta+z');
+		await expect(editors.nth(0)).not.toContainText('First block');
+		await page.keyboard.press('ControlOrMeta+Shift+z');
 		await expect(editors.nth(0)).toContainText('First block');
 
 		await page.getByRole('button', { name: '+ Add block' }).click();

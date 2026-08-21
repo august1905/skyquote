@@ -103,6 +103,38 @@ export function containerBlocksOf(pages: Page[], container: BlockContainer): Blo
 }
 
 /**
+ * Read-only "give me the block with this id, wherever it lives" — for call
+ * sites that hold only an id and need the block itself rather than a mutable
+ * position for it (§9.3's keyboard shortcuts, which have to check `locked`
+ * before issuing a delete). Deliberately separate from {@link locateBlock}:
+ * that one needs an Immer draft and reports a `BlockContainer`, neither of
+ * which a plain read needs, and it throws where this returns `undefined`.
+ */
+export function findBlockById(pages: Page[], blockId: BlockId): Block | undefined {
+	for (const page of pages) {
+		const found = findBlockInList(page.blocks, blockId);
+		if (found) return found;
+	}
+	return undefined;
+}
+
+function findBlockInList(blocks: Block[], blockId: BlockId): Block | undefined {
+	for (const block of blocks) {
+		if (block.id === blockId) return block;
+		if (block.type === 'columns') {
+			for (const column of block.columns) {
+				const found = findBlockInList(column, blockId);
+				if (found) return found;
+			}
+		} else if (block.type === 'smart_content') {
+			const found = findBlockInList(block.children, blockId);
+			if (found) return found;
+		}
+	}
+	return undefined;
+}
+
+/**
  * Finds a block anywhere on a page — its top-level `blocks`, inside any
  * column of any top-level `ColumnsBlock`, or inside any top-level
  * `SmartContentBlock`'s `children` — and reports which `BlockContainer` it

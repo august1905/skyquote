@@ -56,7 +56,10 @@ test.describe('Block settings popover', () => {
 		await page.getByRole('button', { name: 'Settings', exact: true }).click();
 		await page.getByLabel('Background').fill('#00ff00');
 
-		await page.getByRole('button', { name: 'Clear' }).click();
+		// `exact` because §2's formatting toolbar has a "Clear formatting"
+		// button that this would otherwise also match — same substring-
+		// collision fix already applied to 'Settings' above.
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 		await expect(page.locator('.canvas-block-content').first()).not.toHaveAttribute('style', /background-color/);
 
 		await page.locator('.canvas-page').click({ position: { x: 5, y: 5 } });

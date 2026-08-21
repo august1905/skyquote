@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { ColumnsBlock, RichTextDoc, TextBlock } from '../types';
 import type { Command } from './types';
 import { deleteBlock, duplicateBlock, insertBlock, moveBlock, setBlockDoc, setBlockStyle, toggleBlockLock } from './blockCommands';
-import { createColumnsBlock } from './blockTree';
-import { makeBody, makeBodyWithColumns, makeTextBlock } from './testFixtures';
+import { createColumnsBlock, findBlockById } from './blockTree';
+import { makeBody, makeBodyWithColumns, makeBodyWithSmartContent, makeTextBlock } from './testFixtures';
 
 // Every test below applies a command and its inverse in two SEPARATE
 // produce() calls — matching how the real editor store uses them (each
@@ -310,6 +310,25 @@ describe('nested blocks (Columns)', () => {
 		const untouchedChild = stillSourceColumns.columns[0]?.[0];
 		if (untouchedChild?.type !== 'text') throw new Error('expected a text block');
 		expect(untouchedChild.doc.content).not.toEqual([]);
+	});
+});
+
+// The read-only counterpart to locateBlock — used by §9.3's keyboard
+// shortcuts, which hold only an id and need the block to check `locked`.
+describe('findBlockById', () => {
+	it('finds a top-level block, and one on a later page', () => {
+		const body = makeBody();
+		expect(findBlockById(body.pages, 'block-1')?.id).toBe('block-1');
+		expect(findBlockById(body.pages, 'block-3')?.id).toBe('block-3');
+	});
+
+	it('finds a block nested in a column and one nested in smart content', () => {
+		expect(findBlockById(makeBodyWithColumns().pages, 'col1-block-1')?.id).toBe('col1-block-1');
+		expect(findBlockById(makeBodyWithSmartContent().pages, 'smart0-block-1')?.id).toBe('smart0-block-1');
+	});
+
+	it('returns undefined for an unknown id rather than throwing, unlike locateBlock', () => {
+		expect(findBlockById(makeBody().pages, 'no-such-block')).toBeUndefined();
 	});
 });
 

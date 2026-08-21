@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTemplate } from '../api/templates';
 import { listCatalogItems } from '../api/catalogItems';
@@ -11,6 +11,8 @@ import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import { HeaderTotal } from '../editor/header/HeaderTotal';
 import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
 import { PageSettingsPanel } from '../editor/header/PageSettingsPanel';
+import { EditorToolbar } from '../editor/toolbar/EditorToolbar';
+import { useEditorShortcuts } from '../editor/keyboard/useEditorShortcuts';
 import { ValidationIndicator } from '../editor/validation/ValidationIndicator';
 import { CreateDocumentWizard } from '../documents/wizard/CreateDocumentWizard';
 import AppShell from '../components/AppShell';
@@ -28,9 +30,11 @@ const AUTOSAVE_STATUS_LABEL: Record<Exclude<AutosaveStatus, 'conflict'>, string>
 	error: 'Save failed — will retry on your next edit',
 };
 
-// This is the phase 1 editor shell — enough header to load a template, see
-// its name, undo/redo, and autosave status. The spec's full header/toolbar/
-// right rail/content panel are a later phase; don't mistake this for that.
+// The editor shell. §2's contextual formatting toolbar (`EditorToolbar`) and
+// §9.3's keyboard layer are both real now; still not built from §3's spec'd
+// chrome are the toolbar's *left* group (page-thumbnail drawer, "+ Document")
+// and most of the right rail's panels — see BUILD_STATUS.md for the current
+// list rather than trusting this comment to stay exhaustive.
 function TemplateEditor() {
 	const { id } = useParams<{ id: string }>();
 	const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -40,11 +44,18 @@ function TemplateEditor() {
 	const redo = useEditorStore((s) => s.redo);
 	const canUndo = useEditorStore((s) => s.undoStack.length > 0);
 	const canRedo = useEditorStore((s) => s.redoStack.length > 0);
-	const { status: autosaveStatus, reloadFromServer } = useAutosave();
+	const { status: autosaveStatus, reloadFromServer, flush } = useAutosave();
 	const [wizardOpen, setWizardOpen] = useState(false);
 	const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
 	const setCatalogItems = useEditorStore((s) => s.setCatalogItems);
 	const setCatalogItemsStatus = useEditorStore((s) => s.setCatalogItemsStatus);
+
+	// §9.3's shortcut layer. Registered unconditionally (not gated on
+	// loadStatus) so the hook order stays stable across the early returns
+	// below — with no template loaded, every action it can dispatch is
+	// already a no-op against an empty store.
+	const handleForceSave = useCallback(() => void flush(), [flush]);
+	useEditorShortcuts({ onForceSave: handleForceSave });
 
 	// Fetched once per editor session, independent of `loadTemplate`'s own
 	// load effect below — catalog items are workspace-level, not scoped to
@@ -138,6 +149,7 @@ function TemplateEditor() {
 						</div>
 					</div>
 				</div>
+				<EditorToolbar />
 				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} />}
 				{autosaveStatus === 'conflict' && (
 					<div className="template-editor-conflict-banner" role="alert">

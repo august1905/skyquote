@@ -1,0 +1,103 @@
+.editor-toolbar {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 6px 12px;
+	border-bottom: 1px solid #e5e5e5;
+	background: #fafafa;
+}
+
+.editor-toolbar select {
+	padding: 3px 4px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #fff;
+	font-size: 0.8rem;
+}
+
+.editor-toolbar > button,
+.editor-toolbar-more > button {
+	min-width: 28px;
+	height: 26px;
+	padding: 0 6px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	font-size: 0.85rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.editor-toolbar > button:hover:not(:disabled),
+.editor-toolbar-more > button:hover:not(:disabled) {
+	background: #ececec;
+}
+
+/* §2's "disable rather than hide" — dimmed in place, never removed, so the
+   row's height and every control's position stay put. */
+.editor-toolbar > button:disabled,
+.editor-toolbar-more > button:disabled,
+.editor-toolbar select:disabled,
+.editor-toolbar input[type='color']:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.editor-toolbar > button[aria-pressed='true'],
+.editor-toolbar-more-menu > button[aria-pressed='true'] {
+	background: #e0e8ff;
+	border-color: #b8c8f0;
+}
+
+.editor-toolbar input[type='color'] {
+	width: 28px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #fff;
+	cursor: pointer;
+}
+
+.editor-toolbar-divider {
+	width: 1px;
+	height: 18px;
+	margin: 0 4px;
+	background: #ddd;
+}
+
+.editor-toolbar-more {
+	position: relative;
+	display: inline-flex;
+}
+
+.editor-toolbar-more-menu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 20;
+	display: flex;
+	flex-direction: column;
+	min-width: 150px;
+	margin-top: 4px;
+	padding: 4px;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.editor-toolbar-more-menu > button {
+	padding: 5px 8px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	text-align: left;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.editor-toolbar-more-menu > button:hover {
+	background: #f0f0f0;
+}

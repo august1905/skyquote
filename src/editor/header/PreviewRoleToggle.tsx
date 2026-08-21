@@ -1,11 +1,10 @@
 import { useEditorStore } from '../store/editorStore';
 
 /**
- * §6.1 rule 3's "Preview as {role}" toggle — a plain header control, not
- * bound to §9.3's `Cmd+P` shortcut. That whole keyboard-shortcut layer isn't
- * built anywhere yet (Undo/Redo are plain buttons too, not `Cmd+Z`-bound),
- * so adding just this one binding in isolation would be inconsistent rather
- * than completing something real — see BUILD_STATUS.md.
+ * §6.1 rule 3's "Preview as {role}" toggle. §9.3's `Cmd+P` now toggles
+ * previewing on and off (see `keyboard/useEditorShortcuts.ts`) — choosing
+ * *which* role stays this dropdown's job, since one keystroke can't express
+ * that unambiguously once there's more than one role.
  */
 export function PreviewRoleToggle() {
 	const roles = useEditorStore((s) => s.body?.roles ?? []);

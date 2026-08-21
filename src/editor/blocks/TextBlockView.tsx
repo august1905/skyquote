@@ -4,7 +4,7 @@ import type { RichTextDoc, TextBlock } from '../types';
 import { setBlockDoc } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { richTextExtensions } from '../richtext/richTextExtensions';
-import { setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
+import { clearActiveRichTextEditorIf, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 import type { BlockViewProps } from './types';
 
 // `@tiptap/react`'s JSONContent and our structural RichTextDoc describe the
@@ -57,6 +57,15 @@ export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
 	useEffect(() => {
 		editor?.setEditable(!block.locked);
 	}, [editor, block.locked]);
+
+	// The active-editor ref deliberately survives blur (see
+	// activeRichTextEditor.ts), so unmount is the only thing that can retire
+	// it — otherwise deleting the block the toolbar last pointed at leaves the
+	// toolbar enabled and silently inert against a destroyed ProseMirror.
+	useEffect(() => {
+		if (!editor) return;
+		return () => clearActiveRichTextEditorIf(editor);
+	}, [editor]);
 
 	return <EditorContent editor={editor} className="block-text" />;
 }

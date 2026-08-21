@@ -12,6 +12,8 @@ export interface UseAutosaveResult {
 	status: AutosaveStatus;
 	/** Discards local edits and reloads the template fresh from the server — the only conflict resolution phase 1 offers (see BUILD_STATUS.md's §9.2 notes). */
 	reloadFromServer: () => Promise<void>;
+	/** Saves now instead of waiting out the debounce — §9.3's `Cmd+S`. A no-op when there's nothing dirty, so pressing it repeatedly is harmless. */
+	flush: () => Promise<void>;
 }
 
 /**
@@ -129,5 +131,5 @@ export function useAutosave(): UseAutosaveResult {
 		setStatus('idle');
 	}, []);
 
-	return { status, reloadFromServer };
+	return { status, reloadFromServer, flush };
 }

@@ -2,7 +2,7 @@ import { EditorContent, useEditor, type JSONContent } from '@tiptap/react';
 import { useEffect } from 'react';
 import type { RichTextDoc } from '../types';
 import { richTextExtensions } from '../richtext/richTextExtensions';
-import { setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
+import { clearActiveRichTextEditorIf, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 
 function toJSONContent(doc: RichTextDoc): JSONContent {
 	return doc;
@@ -54,6 +54,13 @@ export function TableCellEditor({ doc, onChange, onBlur, locked }: TableCellEdit
 	useEffect(() => {
 		editor?.setEditable(!locked);
 	}, [editor, locked]);
+
+	// See TextBlockView's identical cleanup — a removed row/column destroys
+	// this cell's editor, which must not stay the toolbar's target.
+	useEffect(() => {
+		if (!editor) return;
+		return () => clearActiveRichTextEditorIf(editor);
+	}, [editor]);
 
 	return <EditorContent editor={editor} className="block-table-cell" />;
 }
