@@ -15,6 +15,8 @@ import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
 import { PageSettingsPanel } from '../editor/header/PageSettingsPanel';
 import { EditorToolbar } from '../editor/toolbar/EditorToolbar';
 import { useEditorShortcuts } from '../editor/keyboard/useEditorShortcuts';
+import { useTemplateLock } from '../editor/lock/useTemplateLock';
+import { TemplateLockedScreen } from '../editor/lock/TemplateLockedScreen';
 import { ValidationIndicator } from '../editor/validation/ValidationIndicator';
 import { CreateDocumentWizard } from '../documents/wizard/CreateDocumentWizard';
 import AppShell from '../components/AppShell';
@@ -66,6 +68,12 @@ function TemplateEditor() {
 	// already a no-op against an empty store.
 	const handleForceSave = useCallback(() => void flush(), [flush]);
 	useEditorShortcuts({ onForceSave: handleForceSave });
+
+	// §12's exclusive edit lock. Acquired in parallel with the template load
+	// rather than before it — serialising two round trips would slow every
+	// open to protect against a case the blocked screen below already handles,
+	// since a blocked user never sees the body even though it was fetched.
+	const { status: lockStatus, blockedReason, retry: retryLock } = useTemplateLock(id);
 
 	// Fetched once per editor session, independent of `loadTemplate`'s own
 	// load effect below — catalog items are workspace-level, not scoped to
@@ -133,7 +141,18 @@ function TemplateEditor() {
 		};
 	}, [id, loadTemplate]);
 
-	if (loadStatus === 'loading') {
+	// Checked before the load states on purpose: a locked-out user should be
+	// told why immediately, not shown a spinner until an irrelevant fetch
+	// finishes.
+	if (lockStatus === 'blocked') {
+		return (
+			<AppShell>
+				<TemplateLockedScreen reason={blockedReason ?? 'Someone else is editing this template'} onRetry={retryLock} />
+			</AppShell>
+		);
+	}
+
+	if (loadStatus === 'loading' || lockStatus === 'acquiring') {
 		return (
 			<AppShell>
 				<LoadingSpinner fullPage />

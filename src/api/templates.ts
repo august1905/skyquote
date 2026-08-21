@@ -44,3 +44,44 @@ export function saveTemplate(id: string, input: SaveTemplateInput): Promise<{ me
 		body: JSON.stringify(input),
 	});
 }
+
+/**
+ * §12's exclusive edit lock. Grayson's decision (2026-08-21): one editor at a
+ * time, everyone else refused entry — deliberately simpler than the spec's
+ * suggested presence + soft locking, and simpler than real-time co-editing,
+ * which is explicitly not wanted.
+ */
+export interface TemplateLock {
+	userId: string;
+	userName: string;
+	/** When the current holder first took the lock — preserved across heartbeats, so "editing since" stays meaningful. */
+	acquiredAt: string;
+}
+
+/**
+ * Takes the lock, or refreshes it if already held by this user — one call for
+ * both, since a heartbeat needs exactly the same "am I still the holder"
+ * check as acquiring.
+ *
+ * Throws `ApiError` with status 409 when someone else holds it; the message is
+ * already human-readable ("Sam is editing this template"), so callers don't
+ * need to reassemble it from the body.
+ */
+export function acquireTemplateLock(id: string): Promise<{ lock: TemplateLock }> {
+	return apiFetch<{ lock: TemplateLock }>(`/templates/${id}/lock`, { method: 'POST' });
+}
+
+/**
+ * Releases the lock. `keepalive` so the request still goes out when this is
+ * fired from a page-unload path — without it the browser cancels in-flight
+ * fetches as the page tears down, and the lock would sit there until its
+ * heartbeat went stale.
+ */
+export function releaseTemplateLock(id: string): Promise<void> {
+	return apiFetch<void>(`/templates/${id}/lock`, { method: 'DELETE', keepalive: true });
+}
+
+/** Who holds the lock, if anyone — for the blocked screen to poll without *attempting* to take it (which would let a background tab silently steal it the moment it went stale). */
+export function readTemplateLock(id: string): Promise<{ lock: TemplateLock | null }> {
+	return apiFetch<{ lock: TemplateLock | null }>(`/templates/${id}/lock`);
+}
