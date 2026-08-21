@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, CatalogItem, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, TableBlock, TableCell, TemplateBody, TextBlock, VideoBlock } from '../types';
+import type { Block, BlockId, BlockType, CatalogItem, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, TableBlock, TableCell, TableOfContentsBlock, TemplateBody, TextBlock, VideoBlock } from '../types';
 import { ZERO_MONEY } from '../types';
 
 /**
@@ -381,6 +381,11 @@ export function createPricingTableBlock(): PricingTableBlock {
 
 export function createQuoteBuilderBlock(): QuoteBuilderBlock {
 	return { id: crypto.randomUUID(), type: 'quote_builder', locked: false, style: {}, currency: 'USD', groups: [] };
+}
+
+/** §4.5/§10: heading depth defaults to 2 (h1+h2) — h3 is offered but not on by default, matching the reference product's own TOC being a summary, not a full outline. */
+export function createTocBlock(): TableOfContentsBlock {
+	return { id: crypto.randomUUID(), type: 'toc', locked: false, style: {}, levels: 2 };
 }
 
 export function createBlankPage(name: string): Page {

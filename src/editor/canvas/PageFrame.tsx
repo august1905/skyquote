@@ -17,8 +17,14 @@ interface PageFrameProps {
 	showPageNumbers: boolean;
 	/** This logical page's first physical page number — the running total of every prior logical page's own physical page count. */
 	startPageNumber: number;
-	/** Reports how many physical pages this logical page currently renders, so `TemplateCanvas` can compute every *later* page's `startPageNumber`. */
-	onPhysicalPageCountChange: (pageId: string, count: number) => void;
+	/**
+	 * Reports this logical page's current physical-page grouping so
+	 * `TemplateCanvas` can (a) compute every *later* page's `startPageNumber`
+	 * from the count, and (b) build the document-wide `blockId -> absolute
+	 * physical page number` map a `TableOfContentsBlockView` anywhere in the
+	 * template needs to resolve its entries' page numbers.
+	 */
+	onPhysicalPagesChange: (pageId: string, physicalPages: BlockId[][]) => void;
 }
 
 /**
@@ -38,7 +44,7 @@ export function PageFrame({
 	blockGapPx,
 	showPageNumbers,
 	startPageNumber,
-	onPhysicalPageCountChange,
+	onPhysicalPagesChange,
 }: PageFrameProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
@@ -48,9 +54,9 @@ export function PageFrame({
 	const { physicalPages, reportHeight } = usePagePagination(page.blocks, pageContentHeightPx, blockGapPx);
 
 	useEffect(() => {
-		onPhysicalPageCountChange(page.id, physicalPages.length);
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- onPhysicalPageCountChange is recreated every TemplateCanvas render; only physicalPages.length/page.id identify a real change worth reporting
-	}, [page.id, physicalPages.length]);
+		onPhysicalPagesChange(page.id, physicalPages);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- onPhysicalPagesChange is recreated every TemplateCanvas render; only physicalPages/page.id (both already stable unless genuinely changed, see usePagePagination) identify a real change worth reporting
+	}, [page.id, physicalPages]);
 
 	return (
 		<SortableContext items={page.blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>

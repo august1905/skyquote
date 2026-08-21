@@ -1,7 +1,7 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { defaultPageSettings, defaultTheme } from '../commands';
 import { useEditorStore } from '../store/editorStore';
-import type { TemplateSettings, Theme } from '../types';
+import type { BlockId, TemplateSettings, Theme } from '../types';
 import { pageContentHeight, pageDimensions } from '../pagination/pageDimensions';
 import { PageFrame } from './PageFrame';
 import './canvas.css';
@@ -55,41 +55,61 @@ export function TemplateCanvas() {
 	const pageSettings = useEditorStore((s) => s.body?.settings ?? { ...defaultPageSettings(), theme: defaultTheme() });
 	const selection = useEditorStore((s) => s.selection);
 	const multiSelectedBlockIds = useEditorStore((s) => s.multiSelectedBlockIds);
+	const setBlockPageNumbers = useEditorStore((s) => s.setBlockPageNumbers);
 
-	// Reported by each PageFrame (see its onPhysicalPageCountChange) — the
-	// running sum of every *prior* logical page's physical-page count is
-	// what makes a later page's own page numbers (§10's showPageNumbers)
-	// come out right, e.g. logical page 2 starting at physical page 3 once
-	// logical page 1 itself spilled across two physical pages.
-	const [physicalPageCounts, setPhysicalPageCounts] = useState<Record<string, number>>({});
+	// Reported by each PageFrame (see its onPhysicalPagesChange) — every
+	// logical page's own current physical-page grouping. Two things get
+	// derived from this: (a) the running sum of every *prior* logical page's
+	// physical-page count, so a later page's own page numbers (§10's
+	// showPageNumbers) come out right once an earlier page has spilled
+	// across several physical ones; (b) a flat `blockId -> absolute physical
+	// page number` map, pushed to the store for `TableOfContentsBlockView`
+	// (which can live on any page, not necessarily this one) to resolve its
+	// entries' page numbers against.
+	const [physicalPagesByLogicalPage, setPhysicalPagesByLogicalPage] = useState<Record<string, BlockId[][]>>({});
 
-	function handlePhysicalPageCountChange(pageId: string, count: number) {
-		setPhysicalPageCounts((prev) => (prev[pageId] === count ? prev : { ...prev, [pageId]: count }));
+	function handlePhysicalPagesChange(pageId: string, physicalPages: BlockId[][]) {
+		setPhysicalPagesByLogicalPage((prev) => (prev[pageId] === physicalPages ? prev : { ...prev, [pageId]: physicalPages }));
 	}
 
 	const contentHeightPx = pageContentHeight(pageSettings.pageSize, pageSettings.orientation, pageSettings.margins);
 
 	let runningPageNumber = 1;
+	const startPageNumberByLogicalPage: Record<string, number> = {};
+	for (const page of pages) {
+		startPageNumberByLogicalPage[page.id] = runningPageNumber;
+		runningPageNumber += physicalPagesByLogicalPage[page.id]?.length ?? 1;
+	}
+
+	useEffect(() => {
+		const blockPageNumbers = new Map<BlockId, number>();
+		for (const page of pages) {
+			const startPageNumber = startPageNumberByLogicalPage[page.id] ?? 1;
+			const physicalPages = physicalPagesByLogicalPage[page.id];
+			if (!physicalPages) continue;
+			physicalPages.forEach((blockIds, physicalPageIndex) => {
+				for (const blockId of blockIds) blockPageNumbers.set(blockId, startPageNumber + physicalPageIndex);
+			});
+		}
+		setBlockPageNumbers(blockPageNumbers);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- startPageNumberByLogicalPage is derived fresh from physicalPagesByLogicalPage/pages every render, not an independent dependency
+	}, [pages, physicalPagesByLogicalPage, setBlockPageNumbers]);
 
 	return (
 		<div className="canvas" style={{ ...themeCssVars(theme), ...pageCssVars(pageSettings) }}>
-			{pages.map((page) => {
-				const startPageNumber = runningPageNumber;
-				runningPageNumber += physicalPageCounts[page.id] ?? 1;
-				return (
-					<PageFrame
-						key={page.id}
-						page={page}
-						selectedBlockId={selection?.pageId === page.id ? selection.blockId : null}
-						multiSelectedBlockIds={selection?.pageId === page.id ? multiSelectedBlockIds : []}
-						pageContentHeightPx={contentHeightPx}
-						blockGapPx={theme.baseSpacing}
-						showPageNumbers={pageSettings.showPageNumbers}
-						startPageNumber={startPageNumber}
-						onPhysicalPageCountChange={handlePhysicalPageCountChange}
-					/>
-				);
-			})}
+			{pages.map((page) => (
+				<PageFrame
+					key={page.id}
+					page={page}
+					selectedBlockId={selection?.pageId === page.id ? selection.blockId : null}
+					multiSelectedBlockIds={selection?.pageId === page.id ? multiSelectedBlockIds : []}
+					pageContentHeightPx={contentHeightPx}
+					blockGapPx={theme.baseSpacing}
+					showPageNumbers={pageSettings.showPageNumbers}
+					startPageNumber={startPageNumberByLogicalPage[page.id] ?? 1}
+					onPhysicalPagesChange={handlePhysicalPagesChange}
+				/>
+			))}
 		</div>
 	);
 }

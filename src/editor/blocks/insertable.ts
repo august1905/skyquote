@@ -9,6 +9,7 @@ import {
 	createPricingTableBlock,
 	createQuoteBuilderBlock,
 	createTableBlock,
+	createTocBlock,
 	createVideoBlock,
 } from '../commands';
 import { isContainerBlockType } from '../commands/blockTree';
@@ -66,6 +67,7 @@ export interface InsertableBlockKind {
 export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'text', label: 'Text', create: createBlankTextBlock },
 	{ type: 'page_break', label: 'Page break', create: createPageBreakBlock },
+	{ type: 'toc', label: 'Table of contents', create: createTocBlock },
 	{ type: 'columns', label: 'Columns (2)', create: () => createColumnsBlock(2) },
 	{ type: 'table', label: 'Table (2×2)', create: () => createTableBlock(2, 2) },
 	{ type: 'pricing_table', label: 'Pricing table', create: createPricingTableBlock },

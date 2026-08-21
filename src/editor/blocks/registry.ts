@@ -10,6 +10,7 @@ import { VideoBlockView } from './VideoBlockView';
 import { FieldBlockView } from './FieldBlockView';
 import { PricingTableBlockView } from './PricingTableBlockView';
 import { QuoteBuilderBlockView } from './QuoteBuilderBlockView';
+import { TableOfContentsBlockView } from './TableOfContentsBlockView';
 import { UnsupportedBlockView } from './UnsupportedBlockView';
 
 // UnsupportedBlockView only ever reads `block.type`, which every Block union
@@ -33,7 +34,7 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	table: { label: 'Table', View: TableBlockView },
 	pricing_table: { label: 'Pricing table', View: PricingTableBlockView },
 	quote_builder: { label: 'Quote builder', View: QuoteBuilderBlockView },
-	toc: unsupported('Table of contents'),
+	toc: { label: 'Table of contents', View: TableOfContentsBlockView },
 	page_break: { label: 'Page break', View: PageBreakBlockView },
 	smart_content: unsupported('Smart content'),
 	columns: { label: 'Columns', View: ColumnsBlockView },

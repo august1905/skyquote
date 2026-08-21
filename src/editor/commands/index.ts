@@ -8,6 +8,7 @@ export { setVideoAutoplay } from './videoCommands';
 export { defaultTheme, setTheme } from './themeCommands';
 export { defaultPageSettings, setPageSettings } from './pageSettingsCommands';
 export type { PageSettingsPatch } from './pageSettingsCommands';
+export { setTocLevels } from './tocCommands';
 export { addRole, createRole, defaultRoleColor, moveRole, nextRoleName, recolorRole, removeRole, renameRole, setIsSender, setSigningOrder } from './roleCommands';
 export { addVariable, customVariableKey, removeVariable, updateVariable } from './variableCommands';
 export type { VariableDefPatch } from './variableCommands';
@@ -15,7 +16,7 @@ export { createField, deleteFieldsForRole, nextFieldName, reassignFieldsRole, se
 export type { FieldConfigPatch } from './fieldCommands';
 export { createFieldBlock } from './blockTree';
 export { containerBlocksOf } from './blockTree';
-export { createBlankPage, createBlankTextBlock, createBlankPricingItem, createPricingItemFromCatalog, createColumnsBlock, createImageBlock, createPageBreakBlock, createPricingTableBlock, createQuoteBuilderBlock, createTableBlock, createVideoBlock } from './blockTree';
+export { createBlankPage, createBlankTextBlock, createBlankPricingItem, createPricingItemFromCatalog, createColumnsBlock, createImageBlock, createPageBreakBlock, createPricingTableBlock, createQuoteBuilderBlock, createTableBlock, createTocBlock, createVideoBlock } from './blockTree';
 export {
 	addPricingItem,
 	addPricingItemFromCatalog,

@@ -82,6 +82,16 @@ interface EditorState {
 	 */
 	previewRoleId: RoleId | null;
 	/**
+	 * §10's pagination — a document-wide `blockId -> absolute physical page
+	 * number` map, rebuilt by `TemplateCanvas.tsx` whenever any logical
+	 * page's own physical-page grouping settles. A `TableOfContentsBlockView`
+	 * can live on any page, so it needs this at the store level rather than
+	 * threaded down as a prop through `BlockView`'s generic per-block props
+	 * (which every other block type would then have to accept and ignore).
+	 * Not part of `body`/undo — purely derived, rebuilt fresh on every load.
+	 */
+	blockPageNumbers: Map<BlockId, number>;
+	/**
 	 * Workspace-level, not template-scoped — unlike `body`, this isn't reset
 	 * by `loadTemplate` and isn't part of undo/redo. Fetched once per editor
 	 * session by `TemplateEditor.tsx` (see `setCatalogItems`) so both the
@@ -147,6 +157,7 @@ interface EditorState {
 	setPreviewRoleId: (roleId: RoleId | null) => void;
 	setCatalogItemsStatus: (status: EditorState['catalogItemsStatus']) => void;
 	setCatalogItems: (items: CatalogItem[]) => void;
+	setBlockPageNumbers: (map: Map<BlockId, number>) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -156,6 +167,7 @@ export const useEditorStore = create<EditorState>()(
 		selection: null,
 		multiSelectedBlockIds: [],
 		previewRoleId: null,
+		blockPageNumbers: new Map(),
 		catalogItems: [],
 		catalogItemsStatus: 'idle',
 		dirty: false,
@@ -172,6 +184,7 @@ export const useEditorStore = create<EditorState>()(
 				state.selection = null;
 				state.multiSelectedBlockIds = [];
 				state.previewRoleId = null;
+				state.blockPageNumbers = new Map();
 				state.dirty = false;
 				state.undoStack = [];
 				state.redoStack = [];
@@ -306,6 +319,11 @@ export const useEditorStore = create<EditorState>()(
 			set((state) => {
 				state.catalogItems = items;
 				state.catalogItemsStatus = 'ready';
+			}),
+
+		setBlockPageNumbers: (map) =>
+			set((state) => {
+				state.blockPageNumbers = map;
 			}),
 	}))
 );
