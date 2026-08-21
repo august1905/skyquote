@@ -1,15 +1,51 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useEffect } from 'react';
-import type { BlockId, Page } from '../types';
-import { insertBlock, renamePage, type BlockContainer } from '../commands';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { addPage, createBlankPage, insertBlock, renamePage, type BlockContainer } from '../commands';
 import { useEditorStore } from '../store/editorStore';
+import type { BlockId, Page } from '../types';
 import { usePagePagination } from '../pagination/usePagePagination';
 import { AddBlockMenu } from './AddBlockMenu';
+import { PageMenu } from './PageMenu';
 import { SortableBlock } from './SortableBlock';
 import './canvas.css';
 
+/**
+ * §2.1's `Page.background` — in the domain model since phase 1 with nothing
+ * ever reading it, the same dead-data category `locked`/`style`/`theme` were
+ * in before each got wired up.
+ *
+ * Emitted as a CSS custom property rather than a direct `background` so
+ * canvas.css keeps one declaration with a two-level fallback chain
+ * (`--page-background` → `--theme-page-background` → white). That's what makes
+ * "no background set" mean *inherit the theme*, distinct from an explicit
+ * white — a distinction the Clear background control depends on.
+ *
+ * `imageUrl` is rendered if present but has no control in the page menu yet:
+ * there's no asset picker for it, and the existing image-upload flow is
+ * block-scoped (`ImageBlock.assetId`). Data set through the API still renders
+ * correctly rather than being silently dropped.
+ */
+function pageBackgroundStyle(page: Page): CSSProperties {
+	// Built as a plain string record and returned as-is. `CSSProperties` can't
+	// be *indexed* with a `--*` key (so assigning onto a CSSProperties-typed
+	// object is a type error), but a `Record<string, string>` is assignable to
+	// it — which is why this needs neither an index-signature workaround nor
+	// the cast TemplateCanvas's own var helpers use.
+	const style: Record<string, string> = {};
+	if (page.background?.color) style['--page-background'] = page.background.color;
+	if (page.background?.imageUrl) {
+		style.backgroundImage = `url(${page.background.imageUrl})`;
+		style.backgroundSize = 'cover';
+		style.backgroundPosition = 'center';
+	}
+	return style;
+}
+
 interface PageFrameProps {
 	page: Page;
+	/** This page's index in `body.pages` — the page menu's move controls need it, and it drives the "insert after" position. */
+	pageIndex: number;
+	pageCount: number;
 	selectedBlockId: BlockId | null;
 	multiSelectedBlockIds: BlockId[];
 	pageContentHeightPx: number;
@@ -38,6 +74,8 @@ interface PageFrameProps {
  */
 export function PageFrame({
 	page,
+	pageIndex,
+	pageCount,
 	selectedBlockId,
 	multiSelectedBlockIds,
 	pageContentHeightPx,
@@ -48,6 +86,8 @@ export function PageFrame({
 }: PageFrameProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
+	const [menuOpen, setMenuOpen] = useState(false);
+	const nameInputRef = useRef<HTMLInputElement>(null);
 	const container: BlockContainer = { pageId: page.id };
 	const blocksById = new Map(page.blocks.map((b) => [b.id, b]));
 
@@ -59,46 +99,80 @@ export function PageFrame({
 	}, [page.id, physicalPages]);
 
 	return (
-		<SortableContext items={page.blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-			{physicalPages.map((physicalPageBlockIds, physicalPageIndex) => {
-				const isFirst = physicalPageIndex === 0;
-				const isLast = physicalPageIndex === physicalPages.length - 1;
-				return (
-					// Index as key is fine here — physicalPages is fully recomputed
-					// as one array every time, not a stable list of independently
-					// identified items being reordered.
-					<div className="canvas-page" key={physicalPageIndex}>
-						{isFirst && (
-							<input
-								className="canvas-page-name"
-								value={page.name}
-								onChange={(e) => runCommand(renamePage(page.id, e.target.value), { coalesceKey: `page-name-${page.id}` })}
-								onBlur={endCoalescing}
-								aria-label="Page name"
-							/>
-						)}
-						<div className="canvas-page-blocks">
-							{physicalPageBlockIds.map((blockId) => {
-								const block = blocksById.get(blockId);
-								if (!block) return null;
-								return (
-									<SortableBlock
-										key={block.id}
-										pageId={page.id}
-										container={container}
-										block={block}
-										selected={block.id === selectedBlockId}
-										multiSelected={multiSelectedBlockIds.includes(block.id)}
-										onMeasuredHeight={reportHeight}
-									/>
-								);
-							})}
+		// `data-page-id` is how the page-navigator drawer scrolls to a page
+		// without threading a ref per page up through the canvas.
+		<div className="canvas-page-group" data-page-id={page.id}>
+			{/* §3 ⑤: "Above each page: the page name (uppercase), a centered `+`
+			    (insert page after), and a `…` menu." Deliberately outside
+			    `.canvas-page` — this is page *chrome*, not page content, and
+			    keeping it out of the frame is what lets the frame's dimensions
+			    stay honestly equal to the physical page (§10). */}
+			<div className="canvas-page-header">
+				<input
+					ref={nameInputRef}
+					className="canvas-page-name"
+					value={page.name}
+					onChange={(e) => runCommand(renamePage(page.id, e.target.value), { coalesceKey: `page-name-${page.id}` })}
+					onBlur={endCoalescing}
+					aria-label="Page name"
+				/>
+				<button
+					type="button"
+					className="canvas-page-insert"
+					aria-label="Insert page after"
+					onClick={() => runCommand(addPage(pageIndex + 1, createBlankPage('Untitled page')))}
+				>
+					+
+				</button>
+				<div className="canvas-page-menu-anchor">
+					<button type="button" aria-label="Page options" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
+						…
+					</button>
+					{menuOpen && (
+						<PageMenu
+							page={page}
+							pageIndex={pageIndex}
+							pageCount={pageCount}
+							onClose={() => setMenuOpen(false)}
+							// `select()` rather than `focus()`: "Rename" implies
+							// replacing the name, so the existing text starts
+							// highlighted and typing overwrites it.
+							onRequestRename={() => nameInputRef.current?.select()}
+						/>
+					)}
+				</div>
+			</div>
+			<SortableContext items={page.blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+				{physicalPages.map((physicalPageBlockIds, physicalPageIndex) => {
+					const isLast = physicalPageIndex === physicalPages.length - 1;
+					return (
+						// Index as key is fine here — physicalPages is fully recomputed
+						// as one array every time, not a stable list of independently
+						// identified items being reordered.
+						<div className="canvas-page" key={physicalPageIndex} style={pageBackgroundStyle(page)}>
+							<div className="canvas-page-blocks">
+								{physicalPageBlockIds.map((blockId) => {
+									const block = blocksById.get(blockId);
+									if (!block) return null;
+									return (
+										<SortableBlock
+											key={block.id}
+											pageId={page.id}
+											container={container}
+											block={block}
+											selected={block.id === selectedBlockId}
+											multiSelected={multiSelectedBlockIds.includes(block.id)}
+											onMeasuredHeight={reportHeight}
+										/>
+									);
+								})}
+							</div>
+							{isLast && <AddBlockMenu onInsert={(block) => runCommand(insertBlock(container, page.blocks.length, block))} />}
+							{showPageNumbers && <div className="canvas-page-number">Page {startPageNumber + physicalPageIndex}</div>}
 						</div>
-						{isLast && <AddBlockMenu onInsert={(block) => runCommand(insertBlock(container, page.blocks.length, block))} />}
-						{showPageNumbers && <div className="canvas-page-number">Page {startPageNumber + physicalPageIndex}</div>}
-					</div>
-				);
-			})}
-		</SortableContext>
+					);
+				})}
+			</SortableContext>
+		</div>
 	);
 }

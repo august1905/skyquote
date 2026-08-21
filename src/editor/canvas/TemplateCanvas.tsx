@@ -97,10 +97,12 @@ export function TemplateCanvas() {
 
 	return (
 		<div className="canvas" style={{ ...themeCssVars(theme), ...pageCssVars(pageSettings) }}>
-			{pages.map((page) => (
+			{pages.map((page, pageIndex) => (
 				<PageFrame
 					key={page.id}
 					page={page}
+					pageIndex={pageIndex}
+					pageCount={pages.length}
 					selectedBlockId={selection?.pageId === page.id ? selection.blockId : null}
 					multiSelectedBlockIds={selection?.pageId === page.id ? multiSelectedBlockIds : []}
 					pageContentHeightPx={contentHeightPx}

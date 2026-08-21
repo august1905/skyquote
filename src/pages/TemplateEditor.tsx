@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getTemplate } from '../api/templates';
 import { listCatalogItems } from '../api/catalogItems';
 import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
+import { PageNavigator } from '../editor/canvas/PageNavigator';
 import { EditorDndProvider } from '../editor/dnd/EditorDndProvider';
 import { useAutosave, type AutosaveStatus } from '../editor/autosave/useAutosave';
 import { useEditorStore } from '../editor/store/editorStore';
@@ -47,6 +48,11 @@ function TemplateEditor() {
 	const { status: autosaveStatus, reloadFromServer, flush } = useAutosave();
 	const [wizardOpen, setWizardOpen] = useState(false);
 	const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
+	// §2's page-navigator drawer: toggled from the toolbar, rendered beside the
+	// canvas, so neither of those two components can own the state alone.
+	// Closed by default — it's a navigation aid, and a template usually has one
+	// page, so opening it unprompted would just narrow the canvas.
+	const [pagesOpen, setPagesOpen] = useState(false);
 	const setCatalogItems = useEditorStore((s) => s.setCatalogItems);
 	const setCatalogItemsStatus = useEditorStore((s) => s.setCatalogItemsStatus);
 
@@ -149,7 +155,7 @@ function TemplateEditor() {
 						</div>
 					</div>
 				</div>
-				<EditorToolbar />
+				<EditorToolbar pagesOpen={pagesOpen} onTogglePages={() => setPagesOpen((open) => !open)} />
 				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} />}
 				{autosaveStatus === 'conflict' && (
 					<div className="template-editor-conflict-banner" role="alert">
@@ -161,6 +167,7 @@ function TemplateEditor() {
 				)}
 				<EditorDndProvider>
 					<div className="template-editor-body">
+						{pagesOpen && <PageNavigator onClose={() => setPagesOpen(false)} />}
 						<div className="template-editor-canvas-area">
 							<TemplateCanvas />
 						</div>

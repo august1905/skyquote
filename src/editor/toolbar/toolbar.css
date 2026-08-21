@@ -60,6 +60,20 @@
 	cursor: pointer;
 }
 
+/* §2's page-count badge on the navigator toggle. */
+.editor-toolbar-badge {
+	display: inline-block;
+	min-width: 15px;
+	padding: 0 3px;
+	border-radius: 7px;
+	background: #dfe6f5;
+	color: #33487a;
+	font-size: 0.65rem;
+	font-weight: 600;
+	line-height: 15px;
+	text-align: center;
+}
+
 .editor-toolbar-divider {
 	width: 1px;
 	height: 18px;

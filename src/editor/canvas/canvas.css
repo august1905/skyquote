@@ -12,8 +12,104 @@
    overflow content across additional physical-page frames instead of
    letting one frame grow arbitrarily), but a frame with less content than
    fits still shows its full physical page size, not a shrink-to-fit box. */
+/* One authored Page and every physical page it spills onto. Owns the 32px
+   gap that used to come from `.canvas` itself, now that physical pages are
+   nested inside this wrapper rather than being direct children of the
+   canvas. */
+.canvas-page-group {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 32px;
+}
+
+/* §3 ⑤'s above-the-page chrome: name (left), insert-after (centre), options
+   (right). Width-matched to the page so the controls line up with its edges. */
+.canvas-page-header {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	width: var(--page-width, 816px);
+}
+
+.canvas-page-header .canvas-page-menu-anchor {
+	justify-self: end;
+	position: relative;
+}
+
+.canvas-page-insert,
+.canvas-page-menu-anchor > button {
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	color: #555;
+	font-size: 0.95rem;
+	line-height: 1;
+	padding: 3px 8px;
+	cursor: pointer;
+}
+
+.canvas-page-insert:hover,
+.canvas-page-menu-anchor > button:hover {
+	background: rgba(0, 0, 0, 0.06);
+}
+
+.page-menu-popover {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	z-index: 30;
+	display: flex;
+	flex-direction: column;
+	min-width: 170px;
+	margin-top: 4px;
+	padding: 4px;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.page-menu-popover > button {
+	padding: 6px 8px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	text-align: left;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.page-menu-popover > button:hover:not(:disabled) {
+	background: #f0f0f0;
+}
+
+.page-menu-popover > button:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.page-menu-popover .page-menu-danger:hover:not(:disabled) {
+	background: #fdecec;
+	color: #b3261e;
+}
+
+.page-menu-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 6px 8px;
+	font-size: 0.8rem;
+	color: #444;
+}
+
 .canvas-page {
-	background: var(--theme-page-background, #fff);
+	/* Two-level fallback: an explicit per-page background (§3 ⑤'s page menu)
+	   wins, otherwise the Theme panel's template-wide page colour, otherwise
+	   white. "Unset" therefore means "follow the theme", which is what makes
+	   Clear background different from picking white. */
+	background: var(--page-background, var(--theme-page-background, #fff));
 	width: var(--page-width, 816px);
 	min-height: var(--page-height, 1056px);
 	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
@@ -26,11 +122,16 @@
 
 .canvas-page-name {
 	border: none;
+	background: transparent;
 	font-weight: 600;
 	font-size: 0.85rem;
 	color: #666;
-	margin-bottom: 12px;
 	padding: 4px 0;
+	/* §3 ⑤ shows the page name uppercase ("COVER PAGE"). A display transform,
+	   not a data one — the stored `Page.name` keeps whatever case was typed,
+	   so this never mangles what round-trips through Stratus. */
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .canvas-page-name:focus {

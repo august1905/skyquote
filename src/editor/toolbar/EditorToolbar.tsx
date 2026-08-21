@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
+import { addPage, createBlankPage } from '../commands';
+import { useEditorStore } from '../store/editorStore';
 import { useActiveRichTextEditor } from '../richtext/useActiveRichTextEditor';
 import {
 	FONT_FAMILY_OPTIONS,
@@ -64,14 +66,22 @@ function applyParagraphStyle(editor: Editor, style: ParagraphStyleId): void {
  * - *Letter case* (§2's `…` group) — a destructive text transform rather than
  *   a mark, so it can't round-trip or be toggled off the way everything else
  *   in that group can. Left out until there's a reason to want it.
- * - The toolbar's *left* group (page-thumbnail drawer, "+ Document"). Undo/
- *   Redo already exist as header buttons and are deliberately left there
- *   rather than moved for the sake of matching the reference layout — they
- *   work, and moving them would churn the header's existing e2e coverage for
- *   no behavioral gain.
+ * §2's *left* group (page navigator toggle with a page-count badge, and
+ * "+ Document") is built and lives here too. Undo/Redo are the one part of
+ * that group deliberately left in the header rather than moved down to match
+ * the reference layout — they work where they are, and moving them would
+ * churn the header's existing e2e coverage for no behavioral gain.
  */
-export function EditorToolbar() {
+interface EditorToolbarProps {
+	/** §2: the page-navigator toggle is a toolbar control, but the drawer itself renders beside the canvas — so its open state is owned by `TemplateEditor` and passed in. */
+	pagesOpen: boolean;
+	onTogglePages: () => void;
+}
+
+export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) {
 	const editor = useActiveRichTextEditor();
+	const runCommand = useEditorStore((s) => s.runCommand);
+	const pageCount = useEditorStore((s) => s.body?.pages.length ?? 0);
 	const [moreOpen, setMoreOpen] = useState(false);
 	const moreRef = useRef<HTMLDivElement>(null);
 
@@ -120,7 +130,23 @@ export function EditorToolbar() {
 	}
 
 	return (
-		<div className="editor-toolbar" role="toolbar" aria-label="Text formatting">
+		<div className="editor-toolbar" role="toolbar" aria-label="Editor toolbar">
+			{/* §2's left group — "always visible", i.e. never contextual on a
+			    text selection the way everything after the divider is. */}
+			<button type="button" aria-label="Pages" aria-expanded={pagesOpen} onClick={onTogglePages}>
+				🗐 <span className="editor-toolbar-badge">{pageCount}</span>
+			</button>
+			{/* §2's "+ Document" is an `OPEN` question in the spec, resolved
+			    there as "implement as an 'add page' alias" until multi-document
+			    templates are actually required — so that's exactly what this is,
+			    labelled for what it really does rather than for the reference
+			    product's own wording. */}
+			<button type="button" onClick={() => runCommand(addPage(pageCount, createBlankPage('Untitled page')))}>
+				+ Page
+			</button>
+
+			<span className="editor-toolbar-divider" />
+
 			<select
 				aria-label="Paragraph style"
 				value={style}

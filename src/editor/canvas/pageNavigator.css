@@ -1,0 +1,133 @@
+.page-navigator {
+	flex: 0 0 200px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px;
+	border-right: 1px solid #e5e5e5;
+	background: #fafafa;
+	overflow-y: auto;
+}
+
+.page-navigator-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 0.85rem;
+	color: #444;
+}
+
+.page-navigator-header button {
+	border: none;
+	background: transparent;
+	font-size: 1rem;
+	line-height: 1;
+	color: #666;
+	cursor: pointer;
+}
+
+.page-navigator-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.page-navigator-item {
+	display: flex;
+	align-items: stretch;
+	gap: 2px;
+}
+
+.page-navigator-goto {
+	flex: 1;
+	min-width: 0;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-template-areas:
+		'index name'
+		'index meta';
+	gap: 0 8px;
+	padding: 6px 8px;
+	border: 1px solid #e0e0e0;
+	border-radius: 4px;
+	background: #fff;
+	text-align: left;
+	cursor: pointer;
+}
+
+.page-navigator-goto:hover {
+	border-color: #b8c8f0;
+	background: #f5f8ff;
+}
+
+.page-navigator-index {
+	grid-area: index;
+	align-self: center;
+	min-width: 18px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #888;
+}
+
+.page-navigator-name {
+	grid-area: name;
+	font-size: 0.8rem;
+	color: #333;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.page-navigator-meta {
+	grid-area: meta;
+	font-size: 0.7rem;
+	color: #999;
+}
+
+.page-navigator-actions {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 1px;
+}
+
+.page-navigator-actions button {
+	border: 1px solid transparent;
+	border-radius: 3px;
+	background: transparent;
+	font-size: 0.7rem;
+	line-height: 1;
+	padding: 2px 4px;
+	color: #666;
+	cursor: pointer;
+}
+
+.page-navigator-actions button:hover:not(:disabled) {
+	background: #ececec;
+}
+
+.page-navigator-actions button:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.page-navigator-add {
+	margin-top: 4px;
+	padding: 6px 8px;
+	border: 1px dashed #ccc;
+	border-radius: 4px;
+	background: transparent;
+	font-size: 0.8rem;
+	color: #555;
+	cursor: pointer;
+}
+
+.page-navigator-add:hover {
+	background: #f0f0f0;
+	border-color: #aaa;
+}
