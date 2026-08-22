@@ -1,6 +1,5 @@
 import { embedUrlFor } from '../editor/blocks/videoEmbed';
 import { FieldPreview } from '../editor/fields/FieldPreview';
-import { resolvePublicAssetUrl } from '../api/documents';
 import { computePricingTableTotals, computeQuoteBuilderTotals, type LineTotal } from '../pricing/computeTotals';
 import { formatMoney } from '../pricing/formatMoney';
 import type { Block, PricingItem, PricingTableBlock, QuoteBuilderBlock } from '../editor/types';
@@ -10,8 +9,14 @@ import './document-view.css';
 
 interface DocumentBlockViewProps {
 	block: Block;
-	documentId: string;
-	token: string;
+	/**
+	 * How an `ImageBlock`'s `assetId` becomes a `src`. Injected rather than
+	 * derived here because the same renderer now serves callers with different
+	 * answers: a recipient's document uses the token-gated public mirror (they
+	 * have no session), while the PDF print tree uses a `data:` URI, because
+	 * SmartBrowz's headless Chromium has neither a session nor a token.
+	 */
+	resolveImageSrc: (assetId: string) => string;
 	/** The viewing recipient's own role, or `null` if nothing should ever be live (there's no such thing as an anonymous viewer for a real document, but this keeps the component usable for a future authenticated preview too). */
 	viewerRoleId: string | null;
 	fieldInteraction?: FieldInteraction | undefined;
@@ -35,7 +40,7 @@ interface DocumentBlockViewProps {
  * nav would be a reasonable future enhancement but isn't spec'd; rendering
  * literal-but-meaningless page numbers here would be worse than nothing.
  */
-export function DocumentBlockView({ block, documentId, token, viewerRoleId, fieldInteraction, smartContentContext }: DocumentBlockViewProps) {
+export function DocumentBlockView({ block, resolveImageSrc, viewerRoleId, fieldInteraction, smartContentContext }: DocumentBlockViewProps) {
 	switch (block.type) {
 		case 'text':
 			return <RichTextView doc={block.doc} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />;
@@ -43,7 +48,7 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId, fiel
 			return (
 				<img
 					className="doc-view-image"
-					src={resolvePublicAssetUrl(documentId, token, block.assetId)}
+					src={resolveImageSrc(block.assetId)}
 					alt={block.alt}
 					style={{ width: block.width, height: block.height, borderRadius: block.shape === 'circle' ? '50%' : undefined }}
 				/>
@@ -86,8 +91,7 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId, fiel
 								<DocumentBlockView
 									key={child.id}
 									block={child}
-									documentId={documentId}
-									token={token}
+									resolveImageSrc={resolveImageSrc}
 									viewerRoleId={viewerRoleId}
 									fieldInteraction={fieldInteraction}
 									smartContentContext={smartContentContext}
@@ -129,8 +133,7 @@ export function DocumentBlockView({ block, documentId, token, viewerRoleId, fiel
 						<DocumentBlockView
 							key={child.id}
 							block={child}
-							documentId={documentId}
-							token={token}
+							resolveImageSrc={resolveImageSrc}
 							viewerRoleId={viewerRoleId}
 							fieldInteraction={fieldInteraction}
 							smartContentContext={smartContentContext}

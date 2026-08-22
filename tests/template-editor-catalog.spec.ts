@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIRequestContext } from '@playwright/test';
 
 // §7.7: browse the catalog, drag an item into a pricing table, and see a
 // "price changed since insert" indicator once the catalog's price diverges
@@ -13,10 +13,38 @@ interface CatalogItemResponse {
 	catalogItem: { id: string; name: string };
 }
 
+const FIXTURE_SKU = 'PW-CATALOG-1';
+const FIXTURE_NAME = 'Playwright Catalog Item';
+
+/**
+ * Deletes any leftover fixture item **before** creating a fresh one.
+ *
+ * The `finally` below is not enough on its own: a run killed mid-test (a crashed
+ * browser, a dropped connection) never reaches it, and the abandoned row then
+ * makes the *next* run's panel show two identical cards — which fails as a
+ * Playwright strict-mode violation ("resolved to 2 elements") that reads like a
+ * selector bug rather than leftover data. Errors are swallowed for the same
+ * reason the content-library spec swallows its own: cleanup must never be what
+ * replaces a real diagnosis.
+ */
+async function deleteFixtureItems(request: APIRequestContext) {
+	try {
+		const response = await request.get(`${BACKEND}/catalog-items`);
+		if (!response.ok()) return;
+		const { catalogItems } = (await response.json()) as { catalogItems: Array<{ id: string; sku: string }> };
+		for (const item of catalogItems) {
+			if (item.sku === FIXTURE_SKU) await request.delete(`${BACKEND}/catalog-items/${item.id}`);
+		}
+	} catch {
+		// See above.
+	}
+}
+
 test.describe('Catalog integration', () => {
 	test('browsing, searching, dragging into a pricing table, and the price-changed indicator all work end to end', async ({ page, request }) => {
+		await deleteFixtureItems(request);
 		const created = await request.post(`${BACKEND}/catalog-items`, {
-			data: { sku: 'PW-CATALOG-1', name: 'Playwright Catalog Item', description: 'e2e fixture', price: 15000, category: 'Testing' },
+			data: { sku: FIXTURE_SKU, name: FIXTURE_NAME, description: 'e2e fixture', price: 15000, category: 'Testing' },
 		});
 		expect(created.ok()).toBe(true);
 		const { catalogItem } = (await created.json()) as CatalogItemResponse;
@@ -82,7 +110,9 @@ test.describe('Catalog integration', () => {
 			await expect(indicator).toBeVisible();
 			await expect(indicator).toHaveAttribute('title', 'Catalog price is now $175.00 (was $150.00 when added)');
 		} finally {
-			await request.delete(`${BACKEND}/catalog-items/${catalogItem.id}`);
+			// By sku rather than by the id just created: if an earlier run leaked a
+			// row that the pre-test sweep somehow missed, this clears that too.
+			await deleteFixtureItems(request);
 		}
 	});
 });

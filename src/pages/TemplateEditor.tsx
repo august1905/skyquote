@@ -13,6 +13,7 @@ import { useAuth } from '../auth/AuthContext';
 import { clearLocalDraft, describeDraft, readLocalDraft, type LocalDraft } from '../editor/autosave/localDraft';
 import { RightRail } from '../editor/rightrail/RightRail';
 import { CommentsSidebar } from '../editor/comments/CommentsSidebar';
+import { PdfExporter } from '../print/PdfExporter';
 import { groupIntoThreads, unresolvedThreadCount } from '../editor/comments/commentAnchors';
 import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import { HeaderTotal } from '../editor/header/HeaderTotal';
@@ -83,6 +84,10 @@ function TemplateEditor() {
 	const setCommentsStatus = useEditorStore((s) => s.setCommentsStatus);
 	const setMentionableUsers = useEditorStore((s) => s.setMentionableUsers);
 	const comments = useEditorStore((s) => s.comments);
+	// §10's PDF export renders the body itself, and reuses the canvas's own
+	// physical-page map so the PDF's page breaks are the ones on screen.
+	const body = useEditorStore((s) => s.body);
+	const blockPageNumbers = useEditorStore((s) => s.blockPageNumbers);
 
 	// §9.3's shortcut layer. Registered unconditionally (not gated on
 	// loadStatus) so the hook order stays stable across the early returns
@@ -94,6 +99,22 @@ function TemplateEditor() {
 	// Threads, not messages: five replies to one question is one thing needing
 	// attention, not five.
 	const unresolvedCount = useMemo(() => unresolvedThreadCount(groupIntoThreads(comments)), [comments]);
+
+	// §10's PDF export. `pdfExporting` mounts `PdfExporter`, whose render *is*
+	// the work — see that file. The flush first is deliberate: exporting a
+	// template whose latest edits are still sitting in the autosave debounce
+	// would hand the author a PDF of a version nobody has, which is a worse
+	// failure than a slightly slower export.
+	const [pdfExporting, setPdfExporting] = useState(false);
+	const [pdfMessage, setPdfMessage] = useState<string | null>(null);
+	const startPdfExport = useCallback(() => {
+		setPdfMessage(null);
+		void flush().finally(() => setPdfExporting(true));
+	}, [flush]);
+	const handlePdfFinished = useCallback((error: string | null) => {
+		setPdfExporting(false);
+		setPdfMessage(error);
+	}, []);
 
 	// §12's exclusive edit lock. Acquired in parallel with the template load
 	// rather than before it — serialising two round trips would slow every
@@ -274,6 +295,14 @@ function TemplateEditor() {
 								</span>
 							)}
 						</div>
+						{/* §3's header "⋮ overflow → Export PDF". Promoted to its own
+						    button rather than building the whole overflow menu, whose other
+						    items (Duplicate, Rename, Move, Version history, Delete) aren't
+						    built — a menu with one real entry and five dead ones would be
+						    worse than a button. */}
+						<button type="button" onClick={() => startPdfExport()} disabled={pdfExporting}>
+							{pdfExporting ? 'Exporting…' : 'Export PDF'}
+						</button>
 						<button type="button" onClick={() => setWizardOpen(true)}>
 							Create document
 						</button>
@@ -286,6 +315,17 @@ function TemplateEditor() {
 					</div>
 				</div>
 				<EditorToolbar pagesOpen={pagesOpen} onTogglePages={() => setPagesOpen((open) => !open)} />
+				{pdfMessage && (
+					<div className="template-editor-conflict-banner" role="alert">
+						<span>{pdfMessage}</span>
+						<button type="button" onClick={() => setPdfMessage(null)}>
+							Dismiss
+						</button>
+					</div>
+				)}
+				{pdfExporting && body && (
+					<PdfExporter body={body} blockPageNumbers={blockPageNumbers} filename={`${meta.name || 'template'}.pdf`} onFinished={handlePdfFinished} />
+				)}
 				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} />}
 				{recoverableDraft && (
 					<div className="template-editor-draft-banner" role="alert">

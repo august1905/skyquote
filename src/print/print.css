@@ -1,0 +1,80 @@
+/* §10's print layout. These rules ship in the app bundle *and* get inlined
+   into the standalone HTML handed to SmartBrowz (see serializeForPdf.ts), so
+   they must not depend on anything outside this file plus the document/canvas
+   styles that are collected alongside them. */
+
+.print-root {
+	/* Offscreen while it's being measured and serialized in the app. The
+	   serializer strips this positioning from the copy it sends — a page
+	   positioned at -20000px prints as blank sheets. */
+	position: absolute;
+	left: -20000px;
+	top: 0;
+	background: #fff;
+}
+
+.print-page {
+	box-sizing: border-box;
+	position: relative;
+	background: var(--theme-page-background, #fff);
+	font-family: var(--theme-body-font, inherit);
+	color: var(--theme-text-color, inherit);
+	overflow: hidden;
+	/* Each sheet is a fixed-size box and Chromium is told to break after it, so
+	   the PDF's page boundaries are exactly the canvas's. `break-after` is the
+	   modern property; `page-break-after` is kept for the older engine alias
+	   Chromium still honours in print. */
+	break-after: page;
+	page-break-after: always;
+}
+
+/* No trailing blank page from a break after the last sheet. */
+.print-page:last-child {
+	break-after: auto;
+	page-break-after: auto;
+}
+
+.print-page-blocks {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.print-page-number {
+	position: absolute;
+	bottom: 24px;
+	right: 32px;
+	font-size: 0.75rem;
+	color: #888;
+}
+
+.print-toc-title {
+	font-family: var(--theme-heading-font, inherit);
+	color: var(--theme-primary-color, inherit);
+	font-size: 1.2rem;
+	margin-bottom: 8px;
+}
+
+.print-toc ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.print-toc li {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 2px 0;
+}
+
+.print-toc-page {
+	color: #666;
+}
+
+@page {
+	/* The sheet divs already carry the real page size and margins, so the page
+	   box itself must add nothing — a margin here would inset every sheet again
+	   and push each one onto two pages. */
+	margin: 0;
+}

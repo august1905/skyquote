@@ -169,8 +169,7 @@ function DocumentView() {
 							<DocumentBlockView
 								key={block.id}
 								block={block}
-								documentId={documentId}
-								token={token}
+								resolveImageSrc={(assetId) => resolvePublicAssetUrl(documentId, token, assetId)}
 								viewerRoleId={data.recipient.roleId}
 								fieldInteraction={fieldInteraction}
 								smartContentContext={smartContentContext}
