@@ -4,6 +4,7 @@ import PasswordReset from './pages/PasswordReset';
 import DocumentView from './pages/DocumentView';
 import Home from './pages/Home';
 import Documents from './pages/Documents';
+import DocumentDetail from './pages/DocumentDetail';
 import Templates from './pages/Templates';
 import TemplateEditor from './pages/TemplateEditor';
 import Contacts from './pages/Contacts';
@@ -48,6 +49,18 @@ function App() {
 						element={
 							<RequireAuth>
 								<Documents />
+							</RequireAuth>
+						}
+					/>
+					{/* Before /documents/:documentId there was no way to *read* a
+					    document internally — the list opened a modal of its status and
+					    total. Note this is not `/d/:documentId/:token`, which is a
+					    recipient's unauthenticated link view. */}
+					<Route
+						path="/documents/:documentId"
+						element={
+							<RequireAuth>
+								<DocumentDetail />
 							</RequireAuth>
 						}
 					/>

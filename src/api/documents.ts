@@ -48,7 +48,7 @@ export function createDocument(input: CreateDocumentInput): Promise<CreateDocume
 	});
 }
 
-/** Every non-archived document, newest first — no folders/tabs/search yet, same "later phase" scope note the Templates list has. */
+/** Every document, newest first — no folders/tabs/search yet, unlike the Templates list. */
 export function listDocuments(): Promise<{ documents: DocumentMeta[] }> {
 	return apiFetch<{ documents: DocumentMeta[] }>('/documents');
 }
@@ -56,10 +56,23 @@ export function listDocuments(): Promise<{ documents: DocumentMeta[] }> {
 export interface GetDocumentResult {
 	document: DocumentMeta;
 	recipients: DocumentRecipient[];
+	/** The stored body, so the internal view can render the document rather than describe it. */
+	body: DocumentBody;
 }
 
 export function getDocument(id: string): Promise<GetDocumentResult> {
 	return apiFetch<GetDocumentResult>(`/documents/${id}`);
+}
+
+/**
+ * A real delete — the row, its recipients and its stored body.
+ *
+ * **Destroys every recipient's link**, unrecoverably: tokens are stored only as
+ * hashes, so there is no copy of the link to restore and no regenerating it for a
+ * document that no longer exists. Callers must confirm, and say that.
+ */
+export function deleteDocument(id: string): Promise<{ deleted: boolean }> {
+	return apiFetch<{ deleted: boolean }>(`/documents/${id}`, { method: 'DELETE' });
 }
 
 export function regenerateRecipientToken(documentId: string, recipientId: string): Promise<{ recipient: DocumentRecipientWithToken }> {

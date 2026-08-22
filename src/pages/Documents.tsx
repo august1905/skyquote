@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { listDocuments } from '../api/documents';
 import type { DocumentMeta, DocumentStatus } from '../editor/types';
 import { formatMoney } from '../pricing/formatMoney';
-import { DocumentDetailModal } from '../documents/DocumentDetailModal';
 import AppShell from '../components/AppShell';
 import './Documents.css';
 
@@ -15,16 +15,26 @@ const STATUS_LABEL: Record<DocumentStatus, string> = {
 };
 
 /**
- * The real list view — no folders/tabs/search yet (same "later phase" scope
- * note `Templates.tsx`'s own placeholder carries; this is the first of the
- * two to actually get built, since it closes a real gap: before this,
- * there was no way to ever find a document again, or recover a recipient's
- * link, once the Create Document wizard's own success screen was closed.
+ * The Documents list. Exists to close a real gap: before it, there was no way to
+ * find a document again — or recover a recipient's link — once the Create
+ * Document wizard's success screen was closed.
+ *
+ * Clicking a row **opens the document** at `/documents/:id`. It used to open a
+ * modal listing status, total and recipients; Grayson, 2026-08-22: "When I click
+ * on a document off of the document list, or anywhere, I want it to actually
+ * open, in that tab. Right now it just shows a few pieces of info." Everything
+ * that modal did (recipients, regenerate a link) lives on that page now, next to
+ * the document itself.
+ *
+ * Still short of `BASIC_ARCHITECHTURE.md` for this screen: no folders, no tabs
+ * (All / Created by me / Recent), no search, no `New folder`. The Templates list
+ * has all of that, and `templates/templateListView.ts` is the shape this one
+ * would reuse.
  */
 function Documents() {
+	const navigate = useNavigate();
 	const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 	const [documents, setDocuments] = useState<DocumentMeta[]>([]);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -41,6 +51,10 @@ function Documents() {
 			cancelled = true;
 		};
 	}, []);
+
+	function open(id: string) {
+		void navigate(`/documents/${id}`);
+	}
 
 	return (
 		<AppShell>
@@ -62,16 +76,23 @@ function Documents() {
 						</thead>
 						<tbody>
 							{documents.map((doc) => (
-								<tr key={doc.id}>
-									<td>{doc.title}</td>
+								<tr key={doc.id} className="documents-row">
+									<td>
+										{/* A button rather than a whole clickable row: the row has
+										    other controls in it, and a nested interactive element
+										    inside a clickable row is a keyboard trap. */}
+										<button type="button" className="documents-title-button" onClick={() => open(doc.id)}>
+											{doc.title}
+										</button>
+									</td>
 									<td>
 										<span className={`documents-status-pill documents-status-${doc.status}`}>{STATUS_LABEL[doc.status]}</span>
 									</td>
 									<td>{formatMoney(doc.computedTotal, doc.currency)}</td>
 									<td>{new Date(doc.createdAt).toLocaleDateString()}</td>
 									<td>
-										<button type="button" onClick={() => setSelectedId(doc.id)}>
-											View
+										<button type="button" onClick={() => open(doc.id)}>
+											Open
 										</button>
 									</td>
 								</tr>
@@ -80,7 +101,6 @@ function Documents() {
 					</table>
 				)}
 			</div>
-			{selectedId && <DocumentDetailModal documentId={selectedId} onClose={() => setSelectedId(null)} />}
 		</AppShell>
 	);
 }

@@ -26,10 +26,9 @@ interface TemplateOverflowMenuProps {
  * Settings are the shell's own actions — because §3 describes *where a user
  * reaches these from*, not seven separate implementations.
  *
- * Delete archives rather than destroying (see `api/templates.ts`), but the menu
- * still says "Delete": that's what the user is doing, and the reversibility is
- * an implementation kindness rather than a different feature. It confirms first,
- * since it's the one item here that ends the editing session.
+ * Delete really deletes — the template, its version history, its comments and
+ * its body (see `api/templates.ts`). It confirms first because of that, and
+ * because it's the one item here that ends the editing session.
  */
 export function TemplateOverflowMenu({
 	onExportPdf,

@@ -1,6 +1,23 @@
+/* The logged-in shell: a fixed-height viewport with a non-scrolling sidebar and
+   a content column that scrolls on its own.
+
+   It used to be `min-height: 100vh` with no height constraint anywhere, which
+   meant the *document* scrolled. Two consequences, both reported: the sidebar is
+   a flex child, so it stretched to the full content height and scrolled away with
+   it (a five-page template gave you five pages of navy sidebar), and the
+   editor's own `.template-editor-canvas-area { overflow-y: auto }` never actually
+   scrolled, because `height: 100%` on its ancestors resolved against nothing. */
+
 .app-shell {
 	display: flex;
-	min-height: 100vh;
+	/* dvh so mobile browser chrome appearing/disappearing doesn't leave a gap or
+	   force a scroll; vh first as the fallback for anything that lacks it. */
+	height: 100vh;
+	height: 100dvh;
+	/* The shell itself never scrolls — whichever child owns the scrolling does.
+	   This is also what removes the page-level elastic overscroll: there is no
+	   document-level scroll left to rubber-band. */
+	overflow: hidden;
 	background: var(--grey-50);
 	color: var(--grey-900);
 	text-align: left;
@@ -9,8 +26,22 @@
 .app-shell-main {
 	flex: 1;
 	min-width: 0;
+	height: 100%;
+	overflow-y: auto;
+	/* No bounce past the top or bottom of the content, and no scroll chaining out
+	   to whatever is behind it. */
+	overscroll-behavior: none;
 	padding: 32px 40px 60px;
 	box-sizing: border-box;
+}
+
+/* For a page that manages its own scrolling internally — the template editor,
+   whose canvas is a scroll region beside a fixed rail. Padding here would push
+   its 100%-height layout past the viewport and produce a second, outer
+   scrollbar; the editor draws its own spacing instead. */
+.app-shell-main-flush {
+	padding: 0;
+	overflow: hidden;
 }
 
 .app-shell-main h1 {
@@ -25,8 +56,17 @@
 		flex-direction: column;
 	}
 
+	/* Stacked: the sidebar becomes a horizontal bar of its natural height and the
+	   content column takes the rest, still scrolling on its own. */
 	.app-shell-main {
+		height: auto;
+		flex: 1;
+		min-height: 0;
 		padding: 20px 16px 40px;
+	}
+
+	.app-shell-main-flush {
+		padding: 0;
 	}
 
 	.app-shell-main h1 {

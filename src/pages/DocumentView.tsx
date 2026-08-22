@@ -7,7 +7,7 @@ import type { FieldValue } from '../editor/fields/FieldPreview';
 import type { FillableField } from '../editor/types';
 import { computeTotals } from '../pricing/computeTotals';
 import type { SmartContentContext } from '../smartContent/evaluateRules';
-import { DocumentBlockView } from '../documents/DocumentBlockView';
+import { DocumentPages } from '../documents/DocumentPages';
 import type { FieldInteraction } from '../documents/RichTextView';
 import './DocumentView.css';
 
@@ -162,51 +162,13 @@ function DocumentView() {
 					{recipientStatus === 'declined' && <span className="doc-view-status-pill doc-view-status-declined"> · Declined</span>}
 				</span>
 			</header>
-			<div className="doc-view-pages">
-				{data.body.pages.map((page) => (
-					<div key={page.id} className="doc-view-page">
-						{page.blocks.map((block) => (
-							<DocumentBlockView
-								key={block.id}
-								block={block}
-								resolveImageSrc={(assetId) => resolvePublicAssetUrl(documentId, token, assetId)}
-								viewerRoleId={data.recipient.roleId}
-								fieldInteraction={fieldInteraction}
-								smartContentContext={smartContentContext}
-							/>
-						))}
-					</div>
-				))}
-			</div>
-			{/* §3's attachments — "files appended to generated documents". They
-			    ride along in the document's snapshotted body, so nothing had to be
-			    plumbed through the public route; the bytes come from the same
-			    token-gated asset mirror images already use, because a recipient has
-			    no session and `/assets/:id/file` would 401.
-
-			    Rendered after the pages rather than inside them: they're appended to
-			    the document, not part of its layout, and they must not land between
-			    a page and the fields the recipient still has to fill in. */}
-			{(data.body.attachments ?? []).length > 0 && (
-				<section className="doc-view-attachments" aria-label="Attachments">
-					<h2>Attachments</h2>
-					<ul>
-						{(data.body.attachments ?? []).map((attachment) => (
-							<li key={attachment.assetId}>
-								<a
-									href={resolvePublicAssetUrl(documentId, token, attachment.assetId)}
-									// `download` rather than a new tab: for a recipient this is a
-									// file to keep, and it also keeps a PDF from replacing the
-									// document they're partway through filling in.
-									download={attachment.filename}
-								>
-									{attachment.name || attachment.filename}
-								</a>
-							</li>
-						))}
-					</ul>
-				</section>
-			)}
+			<DocumentPages
+				body={data.body}
+				resolveImageSrc={(assetId) => resolvePublicAssetUrl(documentId, token, assetId)}
+				viewerRoleId={data.recipient.roleId}
+				fieldInteraction={fieldInteraction}
+				smartContentContext={smartContentContext}
+			/>
 			{/* Always shown, regardless of whether this role owns any fields —
 			    a recipient can still decline (or just mark "done") a document
 			    with nothing to fill in; only Submit's enabled-state depends on

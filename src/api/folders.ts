@@ -31,10 +31,9 @@ export function renameFolder(id: string, name: string): Promise<Folder> {
 
 /**
  * Deletes an **empty** folder. Rejects with an `ApiError` whose `.status` is 409
- * when it still has contents — folders have no archive column, so this is a real
- * delete, and cascading it would either destroy templates or orphan them against
- * a folder_id that no longer resolves. The 409's message is already
- * human-readable.
+ * when it still has contents: cascading would either destroy the templates
+ * inside or orphan them against a folder_id that no longer resolves. The 409's
+ * message is already human-readable.
  */
 export function deleteFolder(id: string): Promise<{ deleted: boolean }> {
 	return apiFetch<{ deleted: boolean }>(`/folders/${id}`, { method: 'DELETE' });

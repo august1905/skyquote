@@ -1,0 +1,111 @@
+/* The internal document view. Reuses `.doc-view-*` for the rendered pages
+   themselves (that's `DocumentPages`, shared with the recipient's link view) and
+   `.documents-status-*` for the status pill, so a document looks the same
+   wherever it's read. Only the surrounding chrome is local. */
+
+.document-detail {
+	padding-bottom: 48px;
+}
+
+.document-detail-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.document-detail-header h1 {
+	margin: 6px 0 8px;
+}
+
+.document-detail-back {
+	border: none;
+	background: transparent;
+	padding: 0;
+	font: inherit;
+	font-size: 0.85rem;
+	color: #1d4ed8;
+	cursor: pointer;
+}
+
+.document-detail-meta {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin: 0;
+	font-size: 0.88rem;
+	color: #555;
+}
+
+.document-detail-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.document-detail-delete {
+	border: 1px solid #f0cfcc;
+	background: #fff;
+	color: #b3261e;
+	border-radius: 4px;
+	padding: 6px 12px;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+.document-detail-delete:hover {
+	background: #fdf3f2;
+}
+
+.document-detail-confirm {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	max-width: 460px;
+	padding: 8px 10px;
+	border: 1px solid #f0cfcc;
+	border-radius: 6px;
+	background: #fdf3f2;
+	font-size: 0.82rem;
+	color: #7f1d1d;
+}
+
+.document-detail-confirm button {
+	border: 1px solid #d5d5d5;
+	background: #fff;
+	border-radius: 4px;
+	padding: 4px 10px;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.document-detail-recipients {
+	margin-top: 24px;
+	max-width: 640px;
+}
+
+.document-detail-recipients h2 {
+	font-size: 1rem;
+	margin: 0 0 4px;
+}
+
+/* The rendered document sits on its own ground, the way it does for a recipient
+   — it's a printed page, not a panel in an admin screen. */
+.document-detail-render {
+	margin-top: 28px;
+	padding: 24px 0;
+	background: #f4f4f5;
+	border-radius: 8px;
+	/* Pages are a fixed physical width; a narrow window scrolls them sideways
+	   rather than letting the page body scroll horizontally. */
+	overflow-x: auto;
+}
+
+.document-detail-render .doc-view-attachments {
+	max-width: 816px;
+	margin: 0 auto;
+	padding: 0 16px;
+}

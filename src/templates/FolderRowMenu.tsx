@@ -18,9 +18,9 @@ interface FolderRowMenuProps {
  * Delete only works on an empty folder, and the backend's 409 message is shown
  * verbatim rather than replaced with "couldn't delete" — "that folder still has
  * things in it" tells the user what to do next, where a generic failure leaves
- * them clicking again. Folders have no archive column, so unlike a template this
- * is a real delete; that's why the emptiness rule exists rather than a cascade
- * (see `routes/folders.js`).
+ * them clicking again. Emptying the folder first is what the rule exists for:
+ * cascading would either destroy the templates inside or orphan them against a
+ * folder_id that no longer resolves (see `routes/folders.js`).
  */
 export function FolderRowMenu({ folder, open, onToggle, onClose, onRename, onChanged }: FolderRowMenuProps) {
 	const [busy, setBusy] = useState(false);

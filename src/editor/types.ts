@@ -393,7 +393,6 @@ export interface TemplateMeta {
 	updatedBy: UserId;
 	createdAt: string;
 	updatedAt: string;
-	archivedAt: string | null;
 }
 
 /**
@@ -457,7 +456,6 @@ export interface DocumentMeta {
 	updatedAt: string;
 	sentAt: string | null;
 	completedAt: string | null;
-	archivedAt: string | null;
 }
 
 /** Role→contact binding. Promoted out of the JSON because it's queried. */

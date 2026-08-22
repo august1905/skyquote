@@ -154,7 +154,7 @@ test.describe('Header bar (§3 ①)', () => {
 		await page.getByRole('button', { name: 'Yes, delete' }).click();
 		await page.waitForURL(/\/templates$/);
 
-		// Archived, so every read path treats it as gone.
+		// Really gone — the row, its versions, its comments and its body.
 		await page.goto(`/templates/${id}/edit`);
 		await expect(page.getByText("Couldn't load this template.")).toBeVisible();
 	});

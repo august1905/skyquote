@@ -50,7 +50,7 @@ async function cleanupFixtures(request: APIRequestContext) {
 			}
 		}
 		// Folders after templates: a folder only deletes once it's empty, and the
-		// templates that were in it have just been archived.
+		// templates that were in it have just been deleted.
 		const folderResponse = await request.get(`${BACKEND}/folders?kind=template`);
 		if (folderResponse.ok()) {
 			const folders = (await folderResponse.json()) as FolderRow[];
@@ -277,9 +277,9 @@ test.describe('Templates list', () => {
 		await openFolderMenu(page, folderName);
 		await page.getByRole('menuitem', { name: 'Delete' }).click();
 
-		// Folders have no archive column, so this is a real delete — the refusal is
-		// deliberate, and the backend's own message is shown because "that folder
-		// still has things in it" tells the user what to do next.
+		// The refusal is deliberate — cascading would destroy or orphan what's
+		// inside — and the backend's own message is shown because "that folder still
+		// has things in it" tells the user what to do next.
 		await expect(page.getByRole('alert')).toContainText('still has things in it');
 		await expect(folderRow(page, folderName)).toBeVisible();
 

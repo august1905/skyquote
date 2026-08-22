@@ -55,3 +55,23 @@
 	background: #dbeafe;
 	color: #1d4ed8;
 }
+
+.documents-row:hover {
+	background: #fafafa;
+}
+
+.documents-title-button {
+	border: none;
+	background: transparent;
+	padding: 4px 0;
+	font: inherit;
+	font-size: 0.9rem;
+	color: #1a1a1a;
+	text-align: left;
+	cursor: pointer;
+}
+
+.documents-title-button:hover {
+	color: #1d4ed8;
+	text-decoration: underline;
+}

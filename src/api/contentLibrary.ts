@@ -36,7 +36,7 @@ export interface ContentLibraryPayload {
 	page?: Pick<Page, 'name'> & { background?: Page['background'] };
 }
 
-/** Every non-archived item, newest first. Search and the Recent/Featured split are both client-side — see ContentLibraryPanel. */
+/** Every item, newest first. Search and the Recent/Featured split are both client-side — see ContentLibraryPanel. */
 export async function listContentLibraryItems(): Promise<ContentLibraryItem[]> {
 	const { contentLibraryItems } = await apiFetch<{ contentLibraryItems: ContentLibraryItem[] }>('/content-library-items');
 	return contentLibraryItems;

@@ -84,6 +84,15 @@ a:hover {
   opacity: 0.75;
 }
 
+/* No elastic rubber-band past the top or bottom of any page. Set at the root as
+   well as on the individual scroll containers, because the bounce belongs to
+   whichever element is actually scrolling — and on the pages that scroll the
+   document itself (login, a recipient's document view) that's this one. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   min-width: 320px;

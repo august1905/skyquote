@@ -36,8 +36,8 @@ export interface TemplateListResponse {
 }
 
 /**
- * Every non-archived template, metadata only — no bodies, so the list page
- * costs one request no matter how many templates exist.
+ * Every template, metadata only — no bodies, so the list page costs one request
+ * no matter how many templates exist.
  *
  * Unsorted as far as callers should be concerned: the page groups by folder, so
  * the query order isn't the visible order. Sort with `sortTemplates`.
@@ -86,14 +86,15 @@ export function patchTemplate(id: string, patch: { name?: string; folderId?: str
 }
 
 /**
- * §3's header ⋮ "Delete" — **archives**, so it's reversible.
+ * §3's header ⋮ "Delete" — a **real delete**, and not undoable.
  *
- * The backend sets `archived_time`, which every read path already treats as
- * gone. From the user's side this is deletion; what it isn't is destruction of
- * somebody's accumulated work on a mis-click. There's no restore UI yet.
+ * The backend cascades to the template's version snapshots, its comments and its
+ * Stratus body (`utils/cascadeDelete.js`). This used to archive; Grayson's call,
+ * 2026-08-22: "Deleting should just delete." Every caller therefore confirms
+ * first, because nothing downstream will.
  */
-export function deleteTemplate(id: string): Promise<{ archived: boolean }> {
-	return apiFetch<{ archived: boolean }>(`/templates/${id}`, { method: 'DELETE' });
+export function deleteTemplate(id: string): Promise<{ deleted: boolean }> {
+	return apiFetch<{ deleted: boolean }>(`/templates/${id}`, { method: 'DELETE' });
 }
 
 /**

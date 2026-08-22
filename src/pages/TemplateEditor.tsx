@@ -285,7 +285,9 @@ function TemplateEditor() {
 	}
 
 	return (
-		<AppShell>
+		// `scroll="self"`: the editor's canvas is its own scroll region beside a
+		// fixed rail, so the shell must not add padding or a second scrollbar.
+		<AppShell scroll="self">
 			<div className="template-editor">
 				<div className="template-editor-header">
 					{/* §3 ①'s object-type indicator, immediately before the name. */}

@@ -7,6 +7,13 @@
 	padding: 24px 16px;
 	background: var(--navy);
 	color: #fff;
+	/* Full viewport height, fixed in place: the shell no longer scrolls the
+	   document, so this stays put however long the content column gets. `auto`
+	   rather than `hidden` so a future long nav is still reachable — and
+	   `overscroll-behavior` so scrolling *it* can't chain out to anything else. */
+	height: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 
 .app-sidebar-brand {
@@ -76,7 +83,12 @@
 		align-items: center;
 		gap: 12px;
 		padding: 12px 16px;
+		/* Stacked above the content rather than beside it, so it's a bar of its
+		   own natural height that scrolls sideways if the links don't fit. */
+		height: auto;
+		flex-shrink: 0;
 		overflow-x: auto;
+		overflow-y: visible;
 	}
 
 	.app-sidebar-brand {
