@@ -1,9 +1,5 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { test, expect } from '@playwright/test';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEST_IMAGE_PATH = path.join(__dirname, 'fixtures', 'test-image.png');
+import { insertImageFromLibrary } from './imageLibrary';
 
 // Real backend, no mocking. Home for phase 2's per-block-type coverage as
 // the block catalog (§15 phase 2) grows — one describe per block type.
@@ -200,13 +196,14 @@ test.describe('Table block', () => {
 });
 
 test.describe('Image block', () => {
-	test('uploads a real file through the backend, resizes, toggles circle shape, edits alt text, and persists', async ({ page }) => {
+	test('is chosen from the image library, then resizes, toggles circle shape, edits alt text, and persists', async ({ page }) => {
 		await page.goto('/templates');
 		await page.getByRole('button', { name: '+ New template' }).click();
 		await page.waitForURL(/\/templates\/.+\/edit/);
 
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.locator('.canvas-add-block-options input[type="file"]').setInputFiles(TEST_IMAGE_PATH);
+		// "Image" opens the library picker rather than a file prompt (2026-08-22) —
+		// this uploads through the picker and then picks what it uploaded.
+		await insertImageFromLibrary(page);
 
 		const image = page.locator('.block-image');
 		await expect(image).toBeVisible();
@@ -248,13 +245,23 @@ test.describe('Image block', () => {
 		await page.waitForURL(/\/templates\/.+\/edit/);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.locator('.canvas-add-block-options input[type="file"]').setInputFiles({
+		await page.getByRole('menuitem', { name: 'Image' }).click();
+		const picker = page.getByRole('dialog', { name: 'Choose an image' });
+
+		// Declared `image/png` with a plausible name, so the client-side check in
+		// `imageLibrary.ts` waves it through — this is specifically the *server*
+		// sniffing real bytes (routes/assets.js), which is the layer that matters.
+		await picker.getByLabel('Upload images').setInputFiles({
 			name: 'not-an-image.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from('this is not actually a png'),
 		});
 
-		await expect(page.getByRole('alert')).toContainText(/not a recognized/i);
+		// The server's own message, in the per-file upload row.
+		await expect(picker.locator('.image-upload-failed')).toContainText(/not a recognized/i);
+		// Nothing lands in the library, and nothing is inserted.
+		await expect(picker.locator('.image-tile-highlight')).toHaveCount(0);
+		await picker.getByRole('button', { name: 'Close image picker' }).click();
 		await expect(page.locator('.block-image')).toHaveCount(0);
 	});
 });

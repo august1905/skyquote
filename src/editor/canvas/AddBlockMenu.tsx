@@ -1,13 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
-import { INSERTABLE_BLOCK_KINDS, INSERTABLE_FIELD_KINDS, createFieldBlockOfType, type InsertableBlockKind } from '../blocks/insertable';
+import {
+	INSERTABLE_BLOCK_KINDS,
+	INSERTABLE_FIELD_KINDS,
+	createFieldBlockOfType,
+	createImageBlockFromAsset,
+	type InsertableBlockKind,
+} from '../blocks/insertable';
+import { ImageLibraryPicker } from '../../images/ImageLibraryPicker';
 import { useEditorStore } from '../store/editorStore';
 import { collectAllFields } from '../fields/collectFields';
-import type { Block, Role } from '../types';
+import type { Block, BlockType, Role } from '../types';
 import './canvas.css';
 
 // A stable, module-level empty-array reference — see the `roles` selector
 // below for why a fresh `[]` literal on every render would be a problem.
 const EMPTY_ROLES: Role[] = [];
+
+/** One glyph per block type, so the menu is scannable by shape rather than read line by line. */
+const BLOCK_ICONS: Partial<Record<BlockType, string>> = {
+	text: '¶',
+	image: '🖼',
+	video: '▶',
+	table: '▦',
+	pricing_table: '$',
+	quote_builder: '☑',
+	toc: '≡',
+	columns: '▥',
+	smart_content: '◈',
+	page_break: '⤓',
+	field: '✎',
+};
 
 interface AddBlockMenuProps {
 	onInsert: (block: Block) => void;
@@ -25,6 +47,7 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 	const [status, setStatus] = useState<'idle' | 'working' | 'error'>('idle');
 	const [errorMessage, setErrorMessage] = useState('');
 	const [urlDraft, setUrlDraft] = useState('');
+	const [pickingImage, setPickingImage] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const body = useEditorStore((s) => s.body);
 	// `body?.roles` directly (not `?? []`) — the store's own array reference
@@ -49,11 +72,11 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 		return () => document.removeEventListener('mousedown', handleOutsideClick);
 	}, [open]);
 
-	// Shared by both async kinds (`createFromFile` — Image's real upload —
-	// and `createFromUrl` — Video's oEmbed fetch): a real "working" state to
-	// show, and a real failure mode (too large/wrong format/network for
-	// Image; unsupported provider/not-found for Video) to surface, unlike the
-	// synchronous `create()` kinds.
+	// Video's oEmbed fetch: a real "working" state to show, and a real failure
+	// mode (unsupported provider, not found) to surface, unlike the synchronous
+	// `create()` kinds. Image used to share this path when inserting meant
+	// uploading; it now picks from the library instead, and the picker owns its
+	// own progress and errors.
 	async function resolveAndInsert(kind: InsertableBlockKind, run: () => Promise<Block>) {
 		setOpen(false);
 		setStatus('working');
@@ -83,23 +106,26 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 			</button>
 			{open && (
 				<div className="canvas-add-block-options" role="menu">
+					<p className="canvas-add-block-section-label">Content</p>
 					{kinds.map((kind) => {
-						if (kind.createFromFile) {
+						const icon = BLOCK_ICONS[kind.type] ?? '▢';
+
+						if (kind.picksFromLibrary) {
 							return (
-								<label key={kind.type} role="menuitem" className="canvas-add-block-file-option">
+								<button
+									key={kind.type}
+									type="button"
+									role="menuitem"
+									onClick={() => {
+										setOpen(false);
+										setPickingImage(true);
+									}}
+								>
+									<span className="canvas-add-block-icon" aria-hidden="true">
+										{icon}
+									</span>
 									{kind.label}
-									<input
-										type="file"
-										accept={kind.fileAccept}
-										className="canvas-add-block-file-input"
-										onChange={(e) => {
-											const file = e.target.files?.[0];
-											// Reset so picking the same file twice in a row still fires onChange.
-											e.target.value = '';
-											if (file) void resolveAndInsert(kind, () => kind.createFromFile!(file));
-										}}
-									/>
-								</label>
+								</button>
 							);
 						}
 						if (kind.createFromUrl) {
@@ -136,6 +162,9 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 									setOpen(false);
 								}}
 							>
+								<span className="canvas-add-block-icon" aria-hidden="true">
+									{icon}
+								</span>
 								{kind.label}
 							</button>
 						);
@@ -166,6 +195,9 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 											setOpen(false);
 										}}
 									>
+										<span className="canvas-add-block-icon" aria-hidden="true">
+											{BLOCK_ICONS.field}
+										</span>
 										{kind.label}
 									</button>
 								))}
@@ -178,6 +210,15 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 				<p className="canvas-add-block-error" role="alert">
 					{errorMessage}
 				</p>
+			)}
+			{pickingImage && (
+				<ImageLibraryPicker
+					onPick={(asset) => {
+						setPickingImage(false);
+						onInsert(createImageBlockFromAsset(asset));
+					}}
+					onClose={() => setPickingImage(false)}
+				/>
 			)}
 		</div>
 	);

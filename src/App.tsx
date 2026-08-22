@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Documents from './pages/Documents';
 import DocumentDetail from './pages/DocumentDetail';
 import Templates from './pages/Templates';
+import Images from './pages/Images';
 import TemplateEditor from './pages/TemplateEditor';
 import Contacts from './pages/Contacts';
 import AdminUsers from './pages/AdminUsers';
@@ -77,6 +78,14 @@ function App() {
 						element={
 							<RequireAuth>
 								<TemplateEditor />
+							</RequireAuth>
+						}
+					/>
+					<Route
+						path="/images"
+						element={
+							<RequireAuth>
+								<Images />
 							</RequireAuth>
 						}
 					/>

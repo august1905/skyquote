@@ -7,8 +7,11 @@ export interface UploadedAsset {
 	filename: string;
 	contentType: string;
 	sizeBytes: number;
+	/** Null for non-image assets (§3's attachments) — that's what this column pair's nullability is for. */
 	width: number | null;
 	height: number | null;
+	createdAt: string;
+	createdBy: string;
 }
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -66,4 +69,50 @@ export function assetFileRelativePath(assetId: string): string {
 
 export function resolveAssetUrl(relativePath: string): string {
 	return joinUrl(BACKEND_BASE_URL, relativePath);
+}
+
+/**
+ * The image library — the Images section in the sidebar, and the picker the
+ * editor's "Image" block opens.
+ *
+ * Scoped to images server-side: `Assets` also holds §3's attachment files, and a
+ * PDF spec sheet has no business appearing in an image picker. Metadata only; the
+ * bytes come from `/assets/:id/file` per tile, which the browser caches for a year
+ * (assets are immutable — there's no update-in-place endpoint).
+ */
+export async function listImageAssets(): Promise<UploadedAsset[]> {
+	const { assets } = await apiFetch<{ assets: UploadedAsset[] }>('/assets?kind=image');
+	return assets;
+}
+
+/**
+ * Renames an image. `filename` is also its display name — there's no separate
+ * `name` column, and adding one would mean two fields meaning the same thing to
+ * everyone but the code. The stored object is keyed by uuid, so renaming can't
+ * break a template already pointing at it.
+ */
+export function renameAsset(id: string, filename: string): Promise<UploadedAsset> {
+	return apiFetch<UploadedAsset>(`/assets/${id}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ filename }),
+	});
+}
+
+/**
+ * Deletes an image for real — row and stored object.
+ *
+ * **Nothing can tell whether it's in use.** An `ImageBlock` holds an `assetId`
+ * inside a template's or document's Stratus body and there's no reverse index, so
+ * a template already using this image will render a broken one afterwards. Say
+ * that in the confirmation rather than implying a safety check that doesn't exist.
+ */
+export function deleteAsset(id: string): Promise<{ deleted: boolean }> {
+	return apiFetch<{ deleted: boolean }>(`/assets/${id}`, { method: 'DELETE' });
+}
+
+/** Human-readable size for a library tile. Binary units, matching what an OS file browser shows. */
+export function formatFileSize(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

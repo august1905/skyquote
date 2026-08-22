@@ -1,0 +1,59 @@
+/* The Images page's own chrome. The drop zone, tiles and upload list are shared
+   with the editor's picker — see images/imageLibrary.css. */
+
+.images-page {
+	padding-bottom: 48px;
+}
+
+.images-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin-bottom: 20px;
+}
+
+.images-header h1 {
+	margin: 0 0 4px;
+}
+
+.images-subtitle {
+	margin: 0;
+	font-size: 0.88rem;
+	color: var(--grey-500);
+}
+
+.images-search {
+	font: inherit;
+	font-size: 0.9rem;
+	padding: 9px 13px;
+	min-width: 220px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.images-search:focus {
+	outline: none;
+	border-color: var(--sky-blue);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 18%, transparent);
+}
+
+.images-status {
+	margin-top: 24px;
+	color: var(--grey-500);
+	font-size: 0.9rem;
+}
+
+.images-error {
+	margin: 14px 0 0;
+	font-size: 0.85rem;
+	color: var(--orange-deep);
+}
+
+/* The grid sits below the drop zone and its progress list. */
+.images-page .image-grid {
+	margin-top: 24px;
+}

@@ -301,122 +301,175 @@
 }
 
 .canvas-add-block {
-	background: none;
-	border: 1px dashed #999;
-	border-radius: 4px;
-	padding: 6px 12px;
+	background: #fff;
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--radius-sm);
+	padding: 7px 14px;
+	font-size: 0.85rem;
+	font-weight: 600;
 	cursor: pointer;
-	color: #555;
+	color: var(--grey-700);
+	transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.canvas-add-block:hover:not(:disabled) {
+	border-color: var(--sky-blue);
+	border-style: solid;
+	color: var(--navy);
+	background: var(--grey-50);
+}
+
+.canvas-add-block:disabled {
+	color: var(--grey-500);
+	cursor: default;
 }
 
 .canvas-add-block-options {
 	position: absolute;
-	top: calc(100% + 4px);
+	top: calc(100% + 6px);
 	left: 0;
 	display: flex;
 	flex-direction: column;
-	min-width: 140px;
+	min-width: 216px;
+	padding: 6px;
 	background: #fff;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-hover);
 	z-index: 10;
+	/* A long menu (ten block types plus ten field types) shouldn't run off the
+	   canvas; it scrolls inside itself instead. */
+	max-height: min(420px, 60vh);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.canvas-add-block-section-label {
+	margin: 2px 0 4px;
+	padding: 0 8px;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.07em;
+	text-transform: uppercase;
+	color: var(--grey-500);
 }
 
 .canvas-add-block-options button {
+	display: flex;
+	align-items: center;
+	gap: 9px;
 	background: none;
 	border: none;
+	border-radius: var(--radius-sm);
 	text-align: left;
-	padding: 8px 12px;
+	padding: 7px 8px;
 	cursor: pointer;
-	font-size: 0.9rem;
+	font-size: 0.86rem;
+	color: var(--grey-900);
+	transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .canvas-add-block-options button:hover {
-	background: #f2f2f2;
+	background: var(--grey-100);
+	color: var(--navy);
 }
 
-.canvas-add-block-file-option {
-	display: block;
-	padding: 8px 12px;
-	cursor: pointer;
-	font-size: 0.9rem;
-}
-
-.canvas-add-block-file-option:hover {
-	background: #f2f2f2;
-}
-
-.canvas-add-block-file-input {
-	display: none;
+/* A fixed-width glyph column, so every label starts at the same x — the menu is
+   scanned by shape, not read line by line. */
+.canvas-add-block-icon {
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
+	border-radius: var(--radius-sm);
+	background: var(--grey-100);
+	font-size: 0.78rem;
+	color: var(--grey-700);
 }
 
 .canvas-add-block-url-option {
 	display: flex;
-	gap: 4px;
-	padding: 6px 8px;
+	gap: 5px;
+	padding: 4px 8px 6px;
 }
 
 .canvas-add-block-url-input {
 	flex: 1;
 	min-width: 0;
-	padding: 4px 6px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	font-size: 0.85rem;
+	padding: 5px 8px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	font: inherit;
+	font-size: 0.82rem;
+}
+
+.canvas-add-block-url-input:focus {
+	outline: none;
+	border-color: var(--sky-blue);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 16%, transparent);
 }
 
 .canvas-add-block-url-option button {
-	padding: 4px 8px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	background: #f2f2f2;
+	padding: 5px 10px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: var(--grey-50);
 	cursor: pointer;
-	font-size: 0.85rem;
+	font-size: 0.82rem;
+	font-weight: 600;
 }
 
 .canvas-add-block-url-option button:disabled {
-	opacity: 0.5;
+	color: var(--grey-500);
 	cursor: not-allowed;
 }
 
 .canvas-add-block-error {
-	margin: 4px 0 0;
+	margin: 6px 0 0;
 	font-size: 0.8rem;
-	color: #c0392b;
+	color: var(--orange-deep);
 }
 
 .canvas-add-block-fields-section {
 	display: flex;
 	flex-direction: column;
-	border-top: 1px solid #eee;
-	margin-top: 4px;
-	padding-top: 4px;
+	border-top: 1px solid var(--border-subtle);
+	margin-top: 6px;
+	padding-top: 6px;
 }
 
 .canvas-add-block-fields-hint {
 	margin: 0;
-	padding: 8px 12px;
-	font-size: 0.8rem;
-	color: #777;
+	padding: 6px 8px;
+	font-size: 0.78rem;
+	color: var(--grey-500);
 	max-width: 200px;
+	line-height: 1.4;
 }
 
 .canvas-add-block-fields-role {
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	padding: 4px 12px 8px;
-	font-size: 0.8rem;
-	color: #555;
+	padding: 2px 8px 8px;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.07em;
+	text-transform: uppercase;
+	color: var(--grey-500);
 }
 
 .canvas-add-block-fields-role select {
 	flex: 1;
-	padding: 2px 4px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	font-size: 0.8rem;
+	padding: 4px 6px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	font-size: 0.78rem;
+	font-weight: 400;
+	letter-spacing: normal;
+	text-transform: none;
+	color: var(--grey-900);
 }
 
 .block-page-break {

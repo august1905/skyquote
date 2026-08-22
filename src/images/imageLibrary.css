@@ -1,0 +1,387 @@
+/* The image library — the Images page and the editor's picker share every rule
+   here, so an image looks the same wherever it's chosen from. Brand tokens only
+   (index.css); no hard-coded hex. */
+
+/* ── Drop zone ────────────────────────────────────────────────────────────── */
+
+.image-dropzone {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 32px 24px;
+	border: 2px dashed var(--border-strong);
+	border-radius: var(--radius-md);
+	background: var(--grey-50);
+	text-align: center;
+	transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.image-dropzone-compact {
+	padding: 18px 16px;
+	gap: 6px;
+}
+
+/* Held steady by ImageDropZone's enter/leave counter — a plain boolean flickers
+   as the pointer crosses the children. */
+.image-dropzone-active {
+	border-color: var(--sky-blue);
+	background: color-mix(in srgb, var(--sky-blue) 8%, #fff);
+}
+
+/* The drop target is the whole zone; this input exists only to be clicked
+   programmatically by the button, and to be reachable by name in tests. */
+.image-dropzone-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.image-dropzone-icon {
+	font-size: 1.6rem;
+	line-height: 1;
+}
+
+.image-dropzone-compact .image-dropzone-icon {
+	font-size: 1.2rem;
+}
+
+.image-dropzone-label {
+	font-weight: 600;
+	font-size: 0.92rem;
+	color: var(--grey-900);
+}
+
+.image-dropzone-browse {
+	border: 1px solid var(--navy);
+	background: var(--navy);
+	color: #fff;
+	border-radius: var(--radius-sm);
+	padding: 7px 16px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.image-dropzone-browse:hover {
+	background: var(--navy-light);
+	box-shadow: var(--shadow-glow-navy);
+}
+
+.image-dropzone-hint {
+	font-size: 0.76rem;
+	color: var(--grey-500);
+}
+
+/* ── Upload progress ──────────────────────────────────────────────────────── */
+
+.image-uploads {
+	margin-top: 14px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	box-shadow: var(--shadow-resting);
+	overflow: hidden;
+}
+
+.image-uploads-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	background: var(--grey-50);
+	border-bottom: 1px solid var(--border-subtle);
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--grey-700);
+}
+
+.image-uploads-header button {
+	border: none;
+	background: transparent;
+	padding: 2px 6px;
+	font: inherit;
+	font-size: 0.8rem;
+	color: var(--navy-light);
+	cursor: pointer;
+}
+
+.image-uploads ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.image-upload-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 12px;
+	font-size: 0.82rem;
+	border-top: 1px solid var(--grey-100);
+}
+
+.image-upload-row:first-child {
+	border-top: none;
+}
+
+.image-upload-state {
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
+	border-radius: var(--radius-pill);
+	font-size: 0.7rem;
+	font-weight: 700;
+	background: var(--grey-100);
+	color: var(--grey-700);
+}
+
+.image-upload-done .image-upload-state {
+	background: color-mix(in srgb, var(--sky-blue) 18%, #fff);
+	color: var(--sky-blue-deep);
+}
+
+.image-upload-failed .image-upload-state {
+	background: color-mix(in srgb, var(--orange) 18%, #fff);
+	color: var(--orange-deep);
+}
+
+.image-upload-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--grey-900);
+}
+
+.image-upload-error {
+	color: var(--orange-deep);
+	font-size: 0.78rem;
+}
+
+.image-upload-row > button {
+	border: none;
+	background: transparent;
+	color: var(--grey-500);
+	font-size: 1rem;
+	line-height: 1;
+	padding: 0 4px;
+	cursor: pointer;
+}
+
+/* ── Tile grid ────────────────────────────────────────────────────────────── */
+
+.image-grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	/* auto-fill so the grid reflows to whatever width it's given — the page is
+	   wide, the picker modal is not, and neither needs its own breakpoints. */
+	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+	gap: 16px;
+}
+
+.image-tile {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-md);
+	background: #fff;
+	overflow: hidden;
+	box-shadow: var(--shadow-resting);
+	transition: box-shadow var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.image-tile:hover {
+	box-shadow: var(--shadow-hover);
+	border-color: var(--border-strong);
+}
+
+.image-tile-highlight {
+	border-color: var(--sky-blue);
+	box-shadow: var(--shadow-glow-blue);
+}
+
+.image-tile-thumb {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	border: none;
+	/* A checkerboard, so a transparent PNG reads as transparent rather than as a
+	   white rectangle on a white tile. */
+	background-color: var(--grey-100);
+	background-image:
+		linear-gradient(45deg, var(--grey-200) 25%, transparent 25%, transparent 75%, var(--grey-200) 75%),
+		linear-gradient(45deg, var(--grey-200) 25%, transparent 25%, transparent 75%, var(--grey-200) 75%);
+	background-size: 16px 16px;
+	background-position: 0 0, 8px 8px;
+	overflow: hidden;
+}
+
+.image-tile-thumb img {
+	max-width: 100%;
+	max-height: 100%;
+	/* `contain`, never `cover`: a logo cropped to fill a 4:3 tile is unrecognizable,
+	   and picking the right image is the entire job of this grid. */
+	object-fit: contain;
+}
+
+.image-tile-select {
+	cursor: pointer;
+}
+
+.image-tile-select-hint {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	background: color-mix(in srgb, var(--navy) 62%, transparent);
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.85rem;
+	letter-spacing: 0.02em;
+	opacity: 0;
+	transition: opacity var(--transition-fast);
+}
+
+.image-tile-select:hover .image-tile-select-hint,
+.image-tile-select:focus-visible .image-tile-select-hint {
+	opacity: 1;
+}
+
+.image-tile-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 9px 11px 8px;
+}
+
+.image-tile-name {
+	font-size: 0.84rem;
+	font-weight: 600;
+	color: var(--grey-900);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.image-tile-detail {
+	display: flex;
+	gap: 8px;
+	font-size: 0.74rem;
+	color: var(--grey-500);
+}
+
+.image-tile-rename {
+	font: inherit;
+	font-size: 0.84rem;
+	padding: 3px 6px;
+	border: 1px solid var(--sky-blue);
+	border-radius: var(--radius-sm);
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.image-tile-actions {
+	display: flex;
+	gap: 4px;
+	padding: 0 9px 9px;
+	/* Present but recessed until the tile is hovered/focused — visible enough to
+	   discover, quiet enough not to compete with the images. */
+	opacity: 0;
+	transition: opacity var(--transition-fast);
+}
+
+.image-tile:hover .image-tile-actions,
+.image-tile:focus-within .image-tile-actions {
+	opacity: 1;
+}
+
+.image-tile-actions button {
+	flex: 1;
+	border: 1px solid var(--border-subtle);
+	background: var(--grey-50);
+	border-radius: var(--radius-sm);
+	padding: 4px 8px;
+	font-size: 0.76rem;
+	font-weight: 600;
+	color: var(--grey-700);
+	cursor: pointer;
+	transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.image-tile-actions button:hover {
+	background: var(--grey-100);
+	border-color: var(--border-strong);
+}
+
+.image-tile-danger {
+	color: var(--orange-deep) !important;
+}
+
+.image-tile-danger:hover {
+	background: color-mix(in srgb, var(--orange) 10%, #fff) !important;
+	border-color: color-mix(in srgb, var(--orange) 35%, #fff) !important;
+}
+
+.image-tile-confirm {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0 9px 9px;
+	padding: 8px 9px;
+	border-radius: var(--radius-sm);
+	background: color-mix(in srgb, var(--orange) 8%, #fff);
+	border: 1px solid color-mix(in srgb, var(--orange) 30%, #fff);
+	font-size: 0.76rem;
+	color: var(--grey-900);
+	line-height: 1.35;
+}
+
+.image-tile-confirm > div {
+	display: flex;
+	gap: 6px;
+}
+
+.image-tile-confirm button {
+	flex: 1;
+	border: 1px solid var(--border-strong);
+	background: #fff;
+	border-radius: var(--radius-sm);
+	padding: 4px 8px;
+	font-size: 0.76rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
+.image-library-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 40px 20px;
+	color: var(--grey-500);
+	text-align: center;
+}
+
+.image-library-empty strong {
+	color: var(--grey-700);
+	font-size: 0.95rem;
+}
+
+.image-library-empty span {
+	font-size: 0.85rem;
+}

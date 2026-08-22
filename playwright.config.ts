@@ -7,6 +7,28 @@ import { STORAGE_STATE_PATH } from './tests/auth-storage-state';
 export default defineConfig({
 	testDir: './tests',
 	fullyParallel: false,
+	/**
+	 * Capped deliberately. Playwright defaults to half the CPU count, which on this
+	 * machine meant four Chrome instances, a Vite dev server, a single-process
+	 * `catalyst serve` and real multi-megabyte uploads all competing at once — and
+	 * every request in this suite is a real Data Store or Stratus round trip, since
+	 * nothing is mocked.
+	 *
+	 * At four workers the suite started failing in ways that had nothing to do with
+	 * the code under test: assertions timing out with the editor still showing
+	 * "Loading…" because `GET /templates/:id` hadn't returned, and once a browser
+	 * session dying outright ("Protocol error … session closed"). Every one of them
+	 * passed on its own. Two workers is the fix for that — the contention was real,
+	 * so the answer is less of it rather than retries or longer timeouts papering
+	 * over a starved machine.
+	 */
+	workers: 2,
+	expect: {
+		// 5s is tight for an assertion that's really waiting on a Data Store row plus
+		// a Stratus object read. Long enough to absorb that; short enough that a
+		// genuine failure still fails promptly.
+		timeout: 10000,
+	},
 	// One shared login for the whole run (see global-setup.ts) instead of
 	// every test logging in itself — Data Store calls are billed, and login
 	// is by far the biggest per-test cost. Tests that need their own login

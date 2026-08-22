@@ -14,26 +14,27 @@ import {
 	createVideoBlock,
 } from '../commands';
 import { isContainerBlockType } from '../commands/blockTree';
-import { assetFileRelativePath, uploadImageAsset } from '../../api/assets';
+import { assetFileRelativePath, type UploadedAsset } from '../../api/assets';
+import { MAX_INSERTED_IMAGE_WIDTH, scaleToFit } from '../../images/imageLibrary';
 import { fetchOEmbed } from './videoEmbed';
 import { FIELD_TYPES, FIELD_TYPE_LABELS } from '../fields/fieldTypes';
 
-// Page content is 816px wide minus 48px padding on each side (canvas.css) —
-// an upload at its full natural pixel size could badly overflow that, so
-// inserted images are scaled down (never up) to fit within it.
-const MAX_INSERTED_IMAGE_WIDTH = 320;
-
-function scaleToFit(width: number, height: number, maxWidth: number): { width: number; height: number } {
-	if (width <= maxWidth) return { width, height };
-	const scale = maxWidth / width;
-	return { width: maxWidth, height: Math.round(height * scale) };
-}
-
-async function createImageBlockFromFile(file: File): Promise<Block> {
-	const asset = await uploadImageAsset(file);
+/**
+ * An `ImageBlock` for a library image.
+ *
+ * Sizing is scale-down-only (`scaleToFit`) — page content is 816px wide minus
+ * 48px of padding each side, so a photo at its natural pixel size would badly
+ * overflow it, while a 40px logo blown up to 320 would look broken.
+ *
+ * The `?? MAX_INSERTED_IMAGE_WIDTH` fallback covers an asset whose dimensions
+ * are null. That shouldn't happen for an image (the upload route reads them
+ * before inserting the row), but a square default beats `NaN` in a width
+ * attribute.
+ */
+export function createImageBlockFromAsset(asset: UploadedAsset): Block {
 	const naturalWidth = asset.width ?? MAX_INSERTED_IMAGE_WIDTH;
 	const naturalHeight = asset.height ?? MAX_INSERTED_IMAGE_WIDTH;
-	const { width, height } = scaleToFit(naturalWidth, naturalHeight, MAX_INSERTED_IMAGE_WIDTH);
+	const { width, height } = scaleToFit(naturalWidth, naturalHeight);
 	return createImageBlock({ assetId: asset.id, url: assetFileRelativePath(asset.id), alt: '', width, height });
 }
 
@@ -45,12 +46,17 @@ async function createVideoBlockFromUrl(url: string): Promise<Block> {
 export interface InsertableBlockKind {
 	type: BlockType;
 	label: string;
-	/** Exactly one of `create`/`createFromFile`/`createFromUrl` is set, matched by whether the block type can be synthesized blank, needs a source file first, or needs a pasted URL resolved first — see the Image/Video entries below. */
+	/** Exactly one of `create`/`picksFromLibrary`/`createFromUrl` is set, matched by whether the block type can be synthesized blank, needs something chosen first, or needs a pasted URL resolved first — see the Image/Video entries below. */
 	create?: () => Block;
-	/** File-picker-driven creation (currently just Image) — `AddBlockMenu` renders these as a hidden file input instead of a plain button, and awaits the upload before inserting. */
-	createFromFile?: (file: File) => Promise<Block>;
-	/** Passed through to the file input's `accept` attribute; only meaningful alongside `createFromFile`. */
-	fileAccept?: string;
+	/**
+	 * Needs something picked before a block exists (currently just Image).
+	 * `AddBlockMenu` renders these as a plain button that opens the library picker.
+	 *
+	 * This replaced a `createFromFile` file-input flow on 2026-08-22: inserting an
+	 * image *was* an upload, so the same logo got re-uploaded once per template and
+	 * nothing was reusable. See `images/ImageLibraryPicker`.
+	 */
+	picksFromLibrary?: boolean;
 	/** URL-driven creation (currently just Video) — `AddBlockMenu` renders these as an inline text input + submit button instead of a plain button. */
 	createFromUrl?: (url: string) => Promise<Block>;
 	/** Placeholder text for the URL input; only meaningful alongside `createFromUrl`. */
@@ -74,7 +80,7 @@ export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'table', label: 'Table (2×2)', create: () => createTableBlock(2, 2) },
 	{ type: 'pricing_table', label: 'Pricing table', create: createPricingTableBlock },
 	{ type: 'quote_builder', label: 'Quote builder', create: createQuoteBuilderBlock },
-	{ type: 'image', label: 'Image', createFromFile: createImageBlockFromFile, fileAccept: 'image/png,image/jpeg,image/gif,image/webp' },
+	{ type: 'image', label: 'Image', picksFromLibrary: true },
 	{
 		type: 'video',
 		label: 'Video',

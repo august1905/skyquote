@@ -1,0 +1,113 @@
+/* The picker modal's own shell. Its contents (drop zone, tiles, upload list) are
+   the shared library UI — see imageLibrary.css. */
+
+.image-picker-backdrop {
+	position: fixed;
+	inset: 0;
+	/* Above the editor's dialogs (z-index 60) — this can be opened from a nested
+	   "+ Add block" inside a columns block. */
+	z-index: 80;
+	background: color-mix(in srgb, var(--grey-900) 32%, transparent);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+}
+
+.image-picker {
+	display: flex;
+	flex-direction: column;
+	width: min(820px, 100%);
+	max-height: min(720px, 90vh);
+	background: #fff;
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-hover);
+	overflow: hidden;
+}
+
+.image-picker-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--border-subtle);
+	background: var(--grey-50);
+}
+
+.image-picker-header > div {
+	flex: 1;
+	min-width: 0;
+}
+
+.image-picker-header h2 {
+	margin: 0;
+	font-size: 1.05rem;
+}
+
+.image-picker-header p {
+	margin: 2px 0 0;
+	font-size: 0.8rem;
+	color: var(--grey-500);
+}
+
+.image-picker-search {
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 7px 11px;
+	width: 180px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.image-picker-search:focus {
+	outline: none;
+	border-color: var(--sky-blue);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 18%, transparent);
+}
+
+.image-picker-close {
+	border: none;
+	background: transparent;
+	color: var(--grey-500);
+	font-size: 1.4rem;
+	line-height: 1;
+	padding: 2px 8px;
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.image-picker-close:hover {
+	background: var(--grey-200);
+	color: var(--grey-900);
+}
+
+/* The body scrolls, not the modal — the header stays put over a long library.
+   `overscroll-behavior` so scrolling to the end of the grid can't chain out to
+   the editor canvas behind it. */
+.image-picker-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 18px 20px 24px;
+}
+
+.image-picker-body .image-grid {
+	margin-top: 18px;
+}
+
+.image-picker-status {
+	margin: 24px 0 0;
+	text-align: center;
+	color: var(--grey-500);
+	font-size: 0.88rem;
+}
+
+.image-picker-error {
+	margin: 12px 0 0;
+	font-size: 0.82rem;
+	color: var(--orange-deep);
+}

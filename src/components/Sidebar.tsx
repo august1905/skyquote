@@ -37,6 +37,9 @@ function Sidebar() {
 				<NavLink to="/templates" className="app-sidebar-link">
 					Templates
 				</NavLink>
+				<NavLink to="/images" className="app-sidebar-link">
+					Images
+				</NavLink>
 				<NavLink to="/contacts" className="app-sidebar-link">
 					Contacts
 				</NavLink>

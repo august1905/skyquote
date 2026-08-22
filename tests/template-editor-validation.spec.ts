@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { insertImageFromLibrary } from './imageLibrary';
 
 // Real backend, no mocking, same convention as the rest of this suite. §9.4's
 // persistent, dismissible issues indicator.
@@ -50,10 +51,7 @@ test.describe('Validation surface', () => {
 		await page.keyboard.type('[Client.Name');
 		await page.keyboard.press('Enter');
 
-		const fixtureImage = 'tests/fixtures/test-image.png';
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		const fileInput = page.locator('.canvas-add-block-file-input');
-		await fileInput.setInputFiles(fixtureImage);
+		await insertImageFromLibrary(page);
 		await expect(page.locator('.block-image')).toBeVisible();
 
 		const badge = page.locator('.validation-indicator-badge');
