@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
+import { useEditorStore } from '../store/editorStore';
 import { ThemePanel } from './ThemePanel';
 import { RolesPanel } from './RolesPanel';
 import { VariablesPanel } from './VariablesPanel';
@@ -30,15 +31,20 @@ const RAIL_ITEMS = [
 	{ key: 'theme', icon: '🎨', label: 'Theme' },
 ] as const;
 
-type RailKey = (typeof RAIL_ITEMS)[number]['key'];
+// No local key type: the open state lives in the store, and `setOpenRailPanel`'s
+// own parameter type is what keeps these two lists from drifting — adding a rail
+// item whose key the store doesn't know is a compile error at the call site below.
 
 export function RightRail() {
-	const [openPanel, setOpenPanel] = useState<RailKey | null>(null);
+	// The open panel lives in the store, not here: §3's header "Manage" button
+	// opens the Roles panel too — see editorStore.ts's `openRailPanel`.
+	const openPanel = useEditorStore((s) => s.openRailPanel);
+	const setOpenPanel = useEditorStore((s) => s.setOpenRailPanel);
 
 	// §13's keyboard operability: Escape closes whichever panel is open. Owned
-	// here rather than in each panel because this is where the open state lives
-	// — five panels, one handler.
-	const closePanel = useCallback(() => setOpenPanel(null), []);
+	// here rather than in each panel because this is where the open state is
+	// read — six panels, one handler.
+	const closePanel = useCallback(() => setOpenPanel(null), [setOpenPanel]);
 	useCloseOnEscape(openPanel !== null, closePanel);
 
 	return (
@@ -57,7 +63,7 @@ export function RightRail() {
 						className={`right-rail-icon${openPanel === item.key ? ' right-rail-icon-active' : ''}`}
 						aria-label={item.label}
 						aria-pressed={openPanel === item.key}
-						onClick={() => setOpenPanel((current) => (current === item.key ? null : item.key))}
+						onClick={() => setOpenPanel(openPanel === item.key ? null : item.key)}
 					>
 						{item.icon}
 					</button>

@@ -20,6 +20,16 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REAL_PDF_BYTES = fs.readFileSync(path.join(__dirname, 'fixtures', 'test-attachment.pdf'));
 
+/**
+ * §3 ①'s ⋮ overflow owns "Export PDF" — that's where the spec puts it, so the
+ * export is started the way a user actually reaches it rather than through a
+ * shortcut the UI doesn't have.
+ */
+async function startExport(page: Page) {
+	await page.getByRole('button', { name: 'More template actions' }).click();
+	await page.getByRole('menuitem', { name: 'Export PDF' }).click();
+}
+
 async function newTemplateWithText(page: Page, text: string) {
 	await page.goto('/templates');
 	await page.getByRole('button', { name: '+ New template' }).click();
@@ -47,7 +57,7 @@ test.describe('PDF export (§10)', () => {
 		});
 
 		const downloadPromise = page.waitForEvent('download');
-		await page.getByRole('button', { name: 'Export PDF' }).click();
+		await startExport(page);
 		const download = await downloadPromise;
 
 		// The download is named from the template, so a folder of exports is
@@ -103,7 +113,7 @@ test.describe('PDF export (§10)', () => {
 		});
 
 		const downloadPromise = page.waitForEvent('download');
-		await page.getByRole('button', { name: 'Export PDF' }).click();
+		await startExport(page);
 		await downloadPromise;
 
 		const sheetCount = (sentHtml.match(/class="print-page"/g) ?? []).length;
@@ -122,13 +132,14 @@ test.describe('PDF export (§10)', () => {
 		// code path, without spending a minute of suite time proving it.
 		await page.route('**/pdf', (route) => route.abort('failed'));
 
-		await page.getByRole('button', { name: 'Export PDF' }).click();
+		await startExport(page);
 
 		await expect(page.getByText('Could not reach the server to generate the PDF')).toBeVisible();
-		// The button comes back — a failed export must not leave the editor stuck
-		// on "Exporting…" with nothing to click, which is exactly what happened
-		// before the timeout existed.
-		await expect(page.getByRole('button', { name: 'Export PDF' })).toBeEnabled();
+		// The action comes back — a failed export must not leave the menu item
+		// permanently disabled with nothing to click, which is exactly what
+		// happened before the timeout existed.
+		await page.getByRole('button', { name: 'More template actions' }).click();
+		await expect(page.getByRole('menuitem', { name: 'Export PDF' })).toBeEnabled();
 		await expect(page.locator('[data-testid="pdf-print-tree"]')).toHaveCount(0);
 	});
 });

@@ -166,6 +166,16 @@ interface EditorState {
 	 * stayed closed. Setting it outright from those actions has no such gap.
 	 */
 	commentsSidebarOpen: boolean;
+	/**
+	 * Which of §3's right-rail panels (③) is open, or null. One at a time, as
+	 * the spec requires.
+	 *
+	 * In the store rather than `RightRail`'s own `useState` because the header
+	 * opens one too: §3's "Manage" button opens the *same* role-management panel
+	 * the rail's 👥 icon does, and duplicating the panel in a dialog so the
+	 * header could own its own copy would be two implementations of one thing.
+	 */
+	openRailPanel: 'roles' | 'variables' | 'catalog' | 'contentLibrary' | 'attachments' | 'theme' | null;
 	/** True since the last load/save — i.e. there's something for autosave to pick up. */
 	dirty: boolean;
 
@@ -249,6 +259,7 @@ interface EditorState {
 	setActiveCommentId: (id: string | null) => void;
 	setPendingCommentAnchor: (anchor: EditorState['pendingCommentAnchor']) => void;
 	setCommentsSidebarOpen: (open: boolean) => void;
+	setOpenRailPanel: (panel: EditorState['openRailPanel']) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -270,6 +281,7 @@ export const useEditorStore = create<EditorState>()(
 		activeCommentId: null,
 		pendingCommentAnchor: null,
 		commentsSidebarOpen: false,
+		openRailPanel: null,
 		dirty: false,
 		undoStack: [],
 		redoStack: [],
@@ -541,6 +553,11 @@ export const useEditorStore = create<EditorState>()(
 		setCommentsSidebarOpen: (open) =>
 			set((state) => {
 				state.commentsSidebarOpen = open;
+			}),
+
+		setOpenRailPanel: (panel) =>
+			set((state) => {
+				state.openRailPanel = panel;
 			}),
 	}))
 );

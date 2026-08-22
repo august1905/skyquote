@@ -8,6 +8,12 @@ import { test, expect, type Page } from '@playwright/test';
 // on form controls — rather than re-asserting the ARIA labels that the rest of
 // the suite already depends on for its own selectors.
 
+/** §3 ①'s ⋮ overflow now owns Settings and Export PDF, matching the spec's own placement — so reaching them goes through the menu. */
+async function fromTemplateMenu(page: Page, item: string) {
+	await page.getByRole('button', { name: 'More template actions' }).click();
+	await page.getByRole('menuitem', { name: item }).click();
+}
+
 async function newTemplate(page: Page) {
 	await page.goto('/templates');
 	await page.getByRole('button', { name: '+ New template' }).click();
@@ -38,8 +44,8 @@ test.describe('Keyboard operation and focus (§13)', () => {
 	test('Escape closes the popovers and menus too, innermost first', async ({ page }) => {
 		await newTemplate(page);
 
-		// Page settings (header).
-		await page.getByRole('button', { name: 'Page settings' }).click();
+		// Page settings, reached through §3's ⋮ overflow where the spec puts it.
+		await fromTemplateMenu(page, 'Settings');
 		await expect(page.locator('.page-settings-panel')).toBeVisible();
 		await page.keyboard.press('Escape');
 		await expect(page.locator('.page-settings-panel')).toHaveCount(0);

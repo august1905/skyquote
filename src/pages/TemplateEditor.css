@@ -21,6 +21,13 @@
 	justify-content: space-between;
 	padding: 16px 24px;
 	border-bottom: 1px solid #e2e2e2;
+	/* §3 ①'s full header is a lot of controls. Wrapping is what keeps the ⋮ menu
+	   reachable on a narrow window instead of pushed off the right edge — the
+	   same overflow lesson the block toolbar learned the hard way (see
+	   SortableBlock.tsx), except here wrapping is the correct answer rather than
+	   the bug, because nothing in this row is a drag target. */
+	flex-wrap: wrap;
+	gap: 8px 12px;
 }
 
 .template-editor-header h1 {
@@ -31,7 +38,11 @@
 .template-editor-header-actions {
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: 8px;
+	/* Keeps the actions together on the right when the row has spare width, and
+	   lets them wrap under the name when it doesn't. */
+	justify-content: flex-end;
 }
 
 .template-editor-header-total {

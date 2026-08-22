@@ -21,6 +21,12 @@ async function insertPageBreak(page: import('@playwright/test').Page) {
 	await page.getByRole('menuitem', { name: 'Page break' }).click();
 }
 
+/** §3 ①'s ⋮ overflow owns Settings and Export PDF, matching the spec's own placement — so reaching them goes through the menu. */
+async function fromTemplateMenu(page: import('@playwright/test').Page, item: string) {
+	await page.getByRole('button', { name: 'More template actions' }).click();
+	await page.getByRole('menuitem', { name: item }).click();
+}
+
 test.describe('Real pagination (§10)', () => {
 	test('content overflowing the default page content height spills onto a second physical page, and it persists through a reload', async ({ page }) => {
 		await page.goto('/templates');
@@ -89,7 +95,7 @@ test.describe('Real pagination (§10)', () => {
 		expect(Math.round(letterPortraitBox.width)).toBe(816);
 		expect(Math.round(letterPortraitBox.height)).toBe(1056);
 
-		await page.getByRole('button', { name: 'Page settings' }).click();
+		await fromTemplateMenu(page, 'Settings');
 		await page.getByLabel('Page size').selectOption('A4');
 		const a4Box = await canvasPage.boundingBox();
 		if (!a4Box) throw new Error('expected a bounding box after switching to A4');
@@ -131,7 +137,7 @@ test.describe('Real pagination (§10)', () => {
 		await insertPageBreak(page);
 		await insertTextBlock(page, 'Page three content');
 
-		await page.getByRole('button', { name: 'Page settings' }).click();
+		await fromTemplateMenu(page, 'Settings');
 		await page.getByLabel('Page numbers').check();
 		await page.getByRole('button', { name: 'Close page settings' }).click();
 

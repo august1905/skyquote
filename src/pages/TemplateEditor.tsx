@@ -16,6 +16,12 @@ import { CommentsSidebar } from '../editor/comments/CommentsSidebar';
 import { PdfExporter } from '../print/PdfExporter';
 import { groupIntoThreads, unresolvedThreadCount } from '../editor/comments/commentAnchors';
 import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
+import { startRenamingTemplate } from '../editor/header/renameRequest';
+import { TemplateFolderChip } from '../editor/header/TemplateFolderChip';
+import { RoleAvatarStack } from '../editor/header/RoleAvatarStack';
+import { TemplateOverflowMenu } from '../editor/header/TemplateOverflowMenu';
+import { VersionHistoryPanel } from '../editor/header/VersionHistoryPanel';
+import { computeValidationIssues } from '../editor/validation/computeValidationIssues';
 import { HeaderTotal } from '../editor/header/HeaderTotal';
 import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
 import { PageSettingsPanel } from '../editor/header/PageSettingsPanel';
@@ -44,12 +50,15 @@ const AUTOSAVE_STATUS_LABEL: Record<Exclude<AutosaveStatus, 'conflict'>, string>
 	offline: 'Offline — your changes are saved on this device',
 };
 
-// The editor shell. §2's toolbar (both groups), §9.3's keyboard layer, §3's
-// page chrome + navigator drawer, and five of the right rail's panels are all
-// real now. Still missing from §3: the header bar's ⋮ overflow, the folder
-// breadcrumb and role-avatar stack, and the Approval/Attachments/Automations/
-// Integrations panels — see BUILD_STATUS.md for the current list rather than
-// trusting this comment to stay exhaustive.
+// The editor shell. §3's header bar is complete apart from "Need help" (there
+// are no docs to launch) — the hamburger and user avatar belong to `AppShell`,
+// which owns global nav. §2's toolbar, §9.3's keyboard layer, §3's page chrome +
+// navigator drawer, and six of the right rail's panels are all real.
+//
+// Deliberately absent: the Approval workflow / Automations / Integrations
+// panels, parked until the spec is finished and the app is stable. See
+// BUILD_STATUS.md for the current list rather than trusting this comment to
+// stay exhaustive.
 function TemplateEditor() {
 	const { id } = useParams<{ id: string }>();
 	const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -99,6 +108,19 @@ function TemplateEditor() {
 	// Threads, not messages: five replies to one question is one thing needing
 	// attention, not five.
 	const unresolvedCount = useMemo(() => unresolvedThreadCount(groupIntoThreads(comments)), [comments]);
+
+	// §3/§11.1's gate on "Create document". Only `error`-severity issues block;
+	// `ValidationIndicator` shows both severities either way.
+	const blockingIssues = useMemo(
+		() => (body ? computeValidationIssues(body, meta?.name ?? '').filter((issue) => issue.severity === 'error') : []),
+		[body, meta?.name]
+	);
+
+	// §3 ①'s ⋮ menu dialogs. Held here rather than inside the menu because the
+	// folder dialog has two entry points — the 📁 chip and the menu's "Move" —
+	// so neither of those owns it.
+	const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+	const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
 
 	// §10's PDF export. `pdfExporting` mounts `PdfExporter`, whose render *is*
 	// the work — see that file. The flush first is deliberate: exporting a
@@ -266,9 +288,15 @@ function TemplateEditor() {
 		<AppShell>
 			<div className="template-editor">
 				<div className="template-editor-header">
+					{/* §3 ①'s object-type indicator, immediately before the name. */}
+					<span className="header-type-badge">TEMPLATES</span>
 					<TemplateNameEditor />
 					<div className="template-editor-header-actions">
 						<HeaderTotal />
+						{/* §3 ①'s metadata row: the folder, click-to-move. */}
+						<TemplateFolderChip dialogOpen={moveDialogOpen} onDialogOpenChange={setMoveDialogOpen} />
+						{/* §3 ①'s role avatar stack, and the Manage button beside it. */}
+						<RoleAvatarStack />
 						<PreviewRoleToggle />
 						<ValidationIndicator />
 						<span className="template-editor-autosave-status" data-status={autosaveStatus}>
@@ -295,25 +323,41 @@ function TemplateEditor() {
 								</span>
 							)}
 						</div>
-						{/* §3's header "⋮ overflow → Export PDF". Promoted to its own
-						    button rather than building the whole overflow menu, whose other
-						    items (Duplicate, Rename, Move, Version history, Delete) aren't
-						    built — a menu with one real entry and five dead ones would be
-						    worse than a button. */}
-						<button type="button" onClick={() => startPdfExport()} disabled={pdfExporting}>
-							{pdfExporting ? 'Exporting…' : 'Export PDF'}
-						</button>
-						<button type="button" onClick={() => setWizardOpen(true)}>
+						{/* §3/§11.1: "Disabled with tooltip if the template has validation
+						    errors." Warnings deliberately don't block — an image missing alt
+						    text is worth flagging, not worth refusing to send a quote over. */}
+						<button
+							type="button"
+							onClick={() => setWizardOpen(true)}
+							disabled={blockingIssues.length > 0}
+							{...(blockingIssues.length > 0
+								? {
+										title: `Fix ${blockingIssues.length === 1 ? 'this problem' : `these ${blockingIssues.length} problems`} first: ${blockingIssues
+											.map((issue) => issue.message)
+											.join('; ')}`,
+									}
+								: {})}
+						>
 							Create document
 						</button>
+						{/* §3 ①'s "⋮ overflow: Duplicate, Rename, Move, Export PDF, Version
+						    history, Settings, Delete" — all seven. Export PDF and Settings
+						    moved in here from their own header buttons, which is where §3
+						    puts them; the header was also running out of room. */}
+						<TemplateOverflowMenu
+							onExportPdf={startPdfExport}
+							onOpenSettings={() => setPageSettingsOpen(true)}
+							onOpenVersionHistory={() => setVersionHistoryOpen(true)}
+							onMove={() => setMoveDialogOpen(true)}
+							onRename={startRenamingTemplate}
+							exporting={pdfExporting}
+						/>
 						<div className="page-settings-panel-anchor">
-							<button type="button" onClick={() => setPageSettingsOpen((o) => !o)}>
-								Page settings
-							</button>
 							{pageSettingsOpen && <PageSettingsPanel onClose={() => setPageSettingsOpen(false)} />}
 						</div>
 					</div>
 				</div>
+				{versionHistoryOpen && <VersionHistoryPanel onClose={() => setVersionHistoryOpen(false)} />}
 				<EditorToolbar pagesOpen={pagesOpen} onTogglePages={() => setPagesOpen((open) => !open)} />
 				{pdfMessage && (
 					<div className="template-editor-conflict-banner" role="alert">

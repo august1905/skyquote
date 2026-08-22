@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditorStore } from '../store/editorStore';
+import { registerRenameHandler } from './renameRequest';
 import { allVariables } from '../variables/systemVariables';
 import type { VariableDef } from '../types';
 import './templateNameEditor.css';
@@ -33,6 +34,12 @@ export function TemplateNameEditor() {
 		setDraft(meta?.name ?? '');
 		setEditing(true);
 	}
+
+	// Registered for the ⋮ menu's "Rename" — see renameRequest.ts.
+	useEffect(() => {
+		registerRenameHandler(startEditing);
+		return () => registerRenameHandler(null);
+	});
 
 	function stopEditing() {
 		setEditing(false);
