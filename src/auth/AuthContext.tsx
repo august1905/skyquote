@@ -1,7 +1,24 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { me, type CurrentUser } from '../api/auth';
+import { ApiError } from '../api/client';
 
-type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
+/**
+ * `unreachable` is deliberately distinct from `unauthenticated`.
+ *
+ * Every failure of `me()` used to collapse into `unauthenticated`, which means a
+ * *redirect to the login page* — so a single 500, a dropped connection or a
+ * backend hiccup during page load looked exactly like being signed out, and took
+ * the URL you were on with it. It was also silent: nothing said the check had
+ * failed rather than come back negative. This was the root cause of an
+ * intermittent e2e failure whose only symptom was a test landing on the login
+ * screen while every later test in the same run stayed signed in — the session
+ * was fine the whole time.
+ *
+ * Only the server actually saying "not authenticated" (401) means logged out.
+ * Anything else means we don't know, and saying so is more useful than guessing
+ * the answer that throws away the user's place.
+ */
+type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated' | 'unreachable';
 
 interface AuthContextValue {
 	status: AuthStatus;
@@ -26,9 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				setStatus('authenticated');
 				return data;
 			})
-			.catch(() => {
+			.catch((err: unknown) => {
 				setUser(null);
-				setStatus('unauthenticated');
+				// A 401 is an answer; anything else is the absence of one. See
+				// AuthStatus above for why the difference matters.
+				setStatus(err instanceof ApiError && err.status === 401 ? 'unauthenticated' : 'unreachable');
 				return null;
 			});
 	}, []);

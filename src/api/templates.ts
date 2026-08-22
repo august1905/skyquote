@@ -24,6 +24,28 @@ export function getTemplate(id: string): Promise<TemplateEnvelope> {
 	return apiFetch<TemplateEnvelope>(`/templates/${id}`);
 }
 
+/** A user's display name, for the list's Owner column. Sent as a separate map so twenty templates by one person carry their name once. */
+export interface TemplateOwner {
+	id: string;
+	name: string;
+}
+
+export interface TemplateListResponse {
+	templates: TemplateMeta[];
+	owners: TemplateOwner[];
+}
+
+/**
+ * Every non-archived template, metadata only — no bodies, so the list page
+ * costs one request no matter how many templates exist.
+ *
+ * Unsorted as far as callers should be concerned: the page groups by folder, so
+ * the query order isn't the visible order. Sort with `sortTemplates`.
+ */
+export function listTemplates(): Promise<TemplateListResponse> {
+	return apiFetch<TemplateListResponse>('/templates');
+}
+
 export interface SaveTemplateInput {
 	/** The version last read — the save fails with a 409 ApiError if it's stale. */
 	version: number;

@@ -126,7 +126,7 @@ export function TemplateOverflowMenu({
 						</button>
 					)}
 					{error && (
-						<p className="header-dialog-error" role="alert">
+						<p className="app-dialog-error" role="alert">
 							{error}
 						</p>
 					)}

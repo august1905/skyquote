@@ -1,0 +1,36 @@
+/* Shown in place of a whole route, so it centers itself rather than sitting
+   inside an app shell — at this point we don't know enough about the session to
+   draw the nav. */
+
+.session-unreachable {
+	max-width: 420px;
+	margin: 18vh auto 0;
+	padding: 0 20px;
+	text-align: center;
+}
+
+.session-unreachable h1 {
+	font-size: 1.25rem;
+	margin: 0 0 10px;
+}
+
+.session-unreachable p {
+	margin: 0 0 16px;
+	color: #666;
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+.session-unreachable button {
+	border: 1px solid #d5d5d5;
+	background: #fff;
+	border-radius: 4px;
+	padding: 7px 16px;
+	font-size: 0.88rem;
+	cursor: pointer;
+}
+
+.session-unreachable button:disabled {
+	color: #999;
+	cursor: default;
+}

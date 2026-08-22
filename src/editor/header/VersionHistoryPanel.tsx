@@ -90,14 +90,14 @@ export function VersionHistoryPanel({ onClose }: { onClose: () => void }) {
 	}
 
 	return (
-		<div className="header-dialog-backdrop" onClick={onClose}>
-			<div className="header-dialog" role="dialog" aria-modal="true" aria-label="Version history" onClick={(event) => event.stopPropagation()}>
+		<div className="app-dialog-backdrop" onClick={onClose}>
+			<div className="app-dialog" role="dialog" aria-modal="true" aria-label="Version history" onClick={(event) => event.stopPropagation()}>
 				<h2>Version history</h2>
-				<p className="header-dialog-hint">
+				<p className="app-dialog-hint">
 					Checkpoints are saved automatically as you work. Restoring keeps a copy of the current version first, so you can always come back.
 				</p>
 
-				<div className="header-dialog-new">
+				<div className="app-dialog-new">
 					<input
 						type="text"
 						aria-label="Version label"
@@ -110,13 +110,13 @@ export function VersionHistoryPanel({ onClose }: { onClose: () => void }) {
 					</button>
 				</div>
 
-				{status === 'loading' && <p className="header-dialog-hint">Loading history…</p>}
+				{status === 'loading' && <p className="app-dialog-hint">Loading history…</p>}
 				{status === 'error' && (
-					<p className="header-dialog-error" role="alert">
+					<p className="app-dialog-error" role="alert">
 						Couldn&apos;t load version history.
 					</p>
 				)}
-				{status === 'ready' && versions.length === 0 && <p className="header-dialog-hint">No saved versions yet.</p>}
+				{status === 'ready' && versions.length === 0 && <p className="app-dialog-hint">No saved versions yet.</p>}
 
 				<ul className="header-version-list">
 					{versions.map((version) => (
@@ -133,11 +133,11 @@ export function VersionHistoryPanel({ onClose }: { onClose: () => void }) {
 				</ul>
 
 				{error && (
-					<p className="header-dialog-error" role="alert">
+					<p className="app-dialog-error" role="alert">
 						{error}
 					</p>
 				)}
-				<button type="button" className="header-dialog-close" onClick={onClose}>
+				<button type="button" className="app-dialog-close" onClick={onClose}>
 					Close
 				</button>
 			</div>

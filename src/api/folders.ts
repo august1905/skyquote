@@ -20,3 +20,22 @@ export function createFolder(input: { name: string; kind: FolderKind; parentFold
 		body: JSON.stringify(input),
 	});
 }
+
+/** Rename only — re-parenting would need a cycle check and nothing asks for it. */
+export function renameFolder(id: string, name: string): Promise<Folder> {
+	return apiFetch<Folder>(`/folders/${id}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ name }),
+	});
+}
+
+/**
+ * Deletes an **empty** folder. Rejects with an `ApiError` whose `.status` is 409
+ * when it still has contents — folders have no archive column, so this is a real
+ * delete, and cascading it would either destroy templates or orphan them against
+ * a folder_id that no longer resolves. The 409's message is already
+ * human-readable.
+ */
+export function deleteFolder(id: string): Promise<{ deleted: boolean }> {
+	return apiFetch<{ deleted: boolean }>(`/folders/${id}`, { method: 'DELETE' });
+}

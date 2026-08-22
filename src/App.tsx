@@ -11,14 +11,17 @@ import AdminUsers from './pages/AdminUsers';
 import RequireAuth from './auth/RequireAuth';
 import RequireAdmin from './auth/RequireAdmin';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import { SessionUnreachable } from './auth/SessionUnreachable';
 
 // Bare "/" (and, via the catch-all, any unrecognized path) sends an already
 // logged-in visitor to /home, and only falls back to /login once we know for
-// sure there's no session.
+// sure there's no session — "the check failed" is not that certainty, so it gets
+// the explicit screen rather than a guess in either direction.
 function RootRedirect() {
 	const { status } = useAuth();
 
 	if (status === 'checking') return null;
+	if (status === 'unreachable') return <SessionUnreachable />;
 	return <Navigate to={status === 'authenticated' ? '/home' : '/login'} replace />;
 }
 

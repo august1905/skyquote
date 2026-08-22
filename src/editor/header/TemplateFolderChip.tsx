@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createFolder, listFolders, type Folder } from '../../api/folders';
 import { patchTemplate } from '../../api/templates';
-import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
+import { MoveToFolderDialog } from '../../components/MoveToFolderDialog';
 import { useEditorStore } from '../store/editorStore';
 import './header.css';
 
@@ -9,7 +9,9 @@ import './header.css';
  * §3 ①'s metadata row: `📁 {folderName}` — "click → move-to-folder dialog".
  *
  * The same control is §3's ⋮ "Move", so the menu triggers this dialog rather
- * than implementing its own; one move flow, two entry points.
+ * than implementing its own; one move flow, two entry points. The picker itself
+ * is `components/MoveToFolderDialog`, shared with the Templates list page's row
+ * menu — a third entry point to the same one flow.
  *
  * Moving goes through `PATCH /templates/:id`, not the ordinary save: it's
  * metadata, it doesn't touch the body, and it deliberately doesn't bump
@@ -21,11 +23,8 @@ export function TemplateFolderChip({ dialogOpen, onDialogOpenChange }: { dialogO
 	const advanceSavedMeta = useEditorStore((s) => s.advanceSavedMeta);
 	const [folders, setFolders] = useState<Folder[]>([]);
 	const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-	const [newFolderName, setNewFolderName] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-
-	useCloseOnEscape(dialogOpen, () => onDialogOpenChange(false));
 
 	// Fetched when the dialog opens, **and** on mount when this template is
 	// actually in a folder — §3 asks for `📁 {folderName}`, and the name lives on
@@ -76,15 +75,13 @@ export function TemplateFolderChip({ dialogOpen, onDialogOpenChange }: { dialogO
 		}
 	}
 
-	async function createAndMove() {
-		const name = newFolderName.trim();
+	async function createAndMove(name: string) {
 		if (!name) return;
 		setBusy(true);
 		setError(null);
 		try {
 			const folder = await createFolder({ name, kind: 'template' });
 			setFolders((existing) => [...existing, folder]);
-			setNewFolderName('');
 			await moveTo(folder.id);
 		} catch {
 			setError('Could not create that folder.');
@@ -98,51 +95,16 @@ export function TemplateFolderChip({ dialogOpen, onDialogOpenChange }: { dialogO
 				📁 {chipLabel}
 			</button>
 			{dialogOpen && (
-				<div className="header-dialog-backdrop" onClick={() => onDialogOpenChange(false)}>
-					<div className="header-dialog" role="dialog" aria-modal="true" aria-label="Move template" onClick={(event) => event.stopPropagation()}>
-						<h2>Move template</h2>
-						{status === 'loading' && <p className="header-dialog-hint">Loading folders…</p>}
-						{status === 'error' && (
-							<p className="header-dialog-error" role="alert">
-								Couldn&apos;t load folders.
-							</p>
-						)}
-						<ul className="header-dialog-list">
-							<li>
-								<button type="button" disabled={busy || !meta.folderId} onClick={() => void moveTo(null)}>
-									All templates {meta.folderId ? '' : '(current)'}
-								</button>
-							</li>
-							{folders.map((folder) => (
-								<li key={folder.id}>
-									<button type="button" disabled={busy || folder.id === meta.folderId} onClick={() => void moveTo(folder.id)}>
-										{folder.name} {folder.id === meta.folderId ? '(current)' : ''}
-									</button>
-								</li>
-							))}
-						</ul>
-						<div className="header-dialog-new">
-							<input
-								type="text"
-								aria-label="New folder name"
-								placeholder="New folder…"
-								value={newFolderName}
-								onChange={(event) => setNewFolderName(event.target.value)}
-							/>
-							<button type="button" disabled={busy || !newFolderName.trim()} onClick={() => void createAndMove()}>
-								Create and move
-							</button>
-						</div>
-						{error && (
-							<p className="header-dialog-error" role="alert">
-								{error}
-							</p>
-						)}
-						<button type="button" className="header-dialog-close" onClick={() => onDialogOpenChange(false)}>
-							Cancel
-						</button>
-					</div>
-				</div>
+				<MoveToFolderDialog
+					folders={folders}
+					currentFolderId={meta.folderId}
+					status={status}
+					busy={busy}
+					error={error}
+					onMove={(folderId) => void moveTo(folderId)}
+					onCreateAndMove={(name) => void createAndMove(name)}
+					onClose={() => onDialogOpenChange(false)}
+				/>
 			)}
 		</>
 	);
