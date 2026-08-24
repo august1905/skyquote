@@ -3,6 +3,7 @@ import { defaultPageSettings, defaultTheme } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import type { BlockId, TemplateSettings, Theme } from '../types';
 import { pageContentHeight, pageDimensions } from '../pagination/pageDimensions';
+import { AddPageMenu } from './AddPageMenu';
 import { PageFrame } from './PageFrame';
 import './canvas.css';
 
@@ -108,10 +109,17 @@ export function TemplateCanvas() {
 					pageContentHeightPx={contentHeightPx}
 					blockGapPx={theme.baseSpacing}
 					showPageNumbers={pageSettings.showPageNumbers}
+					themePageImageUrl={theme.pageBackgroundImageUrl}
 					startPageNumber={startPageNumberByLogicalPage[page.id] ?? 1}
 					onPhysicalPagesChange={handlePhysicalPagesChange}
 				/>
 			))}
+			{/* §3 ⑤ puts a `+` above each page, which inserts *after* it — so the only
+			    way to append at the end was to reach for the control above the last
+			    page and reason about where its page would land. Reported as "there is
+			    no + to add a page at the bottom, its only in between and on top".
+			    A trailing control says what it does and sits where the new page will. */}
+			<AddPageMenu insertAtIndex={pages.length} label="Add page at the end" variant="trailing" />
 		</div>
 	);
 }

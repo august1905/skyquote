@@ -41,6 +41,17 @@ export default defineConfig({
 	// blow templates-list's own cleanup budget.
 	globalTeardown: './tests/global-teardown.ts',
 	use: {
+		/**
+		 * Keeps a full trace (DOM snapshots, network, console) for any test that
+		 * fails, discarded for those that pass.
+		 *
+		 * Added after an `admin-users` failure could not be diagnosed: the run
+		 * finished, the spec passed on its own, and re-running it deleted the
+		 * `test-results` context that would have said why. A trace costs nothing
+		 * on a green run and is the difference between root-causing an
+		 * intermittent failure and guessing at it.
+		 */
+		trace: 'retain-on-failure',
 		baseURL: 'http://localhost:5173',
 		channel: 'chrome',
 		storageState: STORAGE_STATE_PATH,

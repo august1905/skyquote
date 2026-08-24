@@ -61,6 +61,114 @@
 	background: rgba(0, 0, 0, 0.06);
 }
 
+/* §3 ⑤'s page `+`, which now asks blank-or-image instead of inserting outright. */
+.add-page-menu {
+	position: relative;
+}
+
+.add-page-menu-inline {
+	justify-self: center;
+}
+
+/* The trailing "Add page" under the last page. Wide and labelled rather than a
+   bare `+`: it's the only page control that isn't attached to an existing page,
+   so it has to say what it does and sit where the new page will appear. */
+.canvas-add-page-trailing {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: var(--page-width, 816px);
+	max-width: 100%;
+	padding: 14px 0;
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--radius-md);
+	background: rgba(255, 255, 255, 0.6);
+	color: var(--grey-700);
+	font: inherit;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.canvas-add-page-trailing:hover {
+	border-color: var(--sky-blue);
+	border-style: solid;
+	background: #fff;
+	color: var(--navy);
+}
+
+.canvas-add-page-trailing span[aria-hidden] {
+	font-size: 1.05rem;
+	line-height: 1;
+}
+
+.add-page-menu-trailing {
+	display: flex;
+	justify-content: center;
+}
+
+.add-page-options {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 30;
+	display: flex;
+	flex-direction: column;
+	min-width: 268px;
+	padding: 6px;
+	background: #fff;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-hover);
+}
+
+.add-page-options button {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 9px 10px;
+	border: none;
+	border-radius: var(--radius-sm);
+	background: none;
+	text-align: left;
+	font: inherit;
+	color: var(--grey-900);
+	cursor: pointer;
+	transition: background-color var(--transition-fast);
+}
+
+.add-page-options button:hover {
+	background: var(--grey-100);
+}
+
+.add-page-options strong {
+	display: block;
+	font-size: 0.86rem;
+	font-weight: 600;
+}
+
+.add-page-options small {
+	display: block;
+	margin-top: 2px;
+	font-size: 0.74rem;
+	line-height: 1.35;
+	color: var(--grey-500);
+}
+
+.add-page-option-icon {
+	width: 26px;
+	height: 26px;
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
+	border-radius: var(--radius-sm);
+	background: var(--grey-100);
+	font-size: 0.85rem;
+}
+
 .page-menu-popover {
 	position: absolute;
 	top: 100%;

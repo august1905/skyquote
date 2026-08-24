@@ -24,6 +24,7 @@ import { HeaderTotal } from '../editor/header/HeaderTotal';
 import { PreviewRoleToggle } from '../editor/header/PreviewRoleToggle';
 import { PageSettingsPanel } from '../editor/header/PageSettingsPanel';
 import { EditorToolbar } from '../editor/toolbar/EditorToolbar';
+import { RedoIcon, UndoIcon } from '../editor/toolbar/EditorIcons';
 import { useEditorShortcuts } from '../editor/keyboard/useEditorShortcuts';
 import { useTemplateLock } from '../editor/lock/useTemplateLock';
 import { TemplateLockedScreen } from '../editor/lock/TemplateLockedScreen';
@@ -253,11 +254,15 @@ function TemplateEditor() {
 						<span className="template-editor-autosave-status" data-status={autosaveStatus}>
 							{autosaveStatus === 'conflict' ? '' : AUTOSAVE_STATUS_LABEL[autosaveStatus]}
 						</span>
-						<button type="button" onClick={undo} disabled={!canUndo}>
-							Undo
+						{/* Icons, not words: they sit in a header that had grown to eleven
+						    controls, and an arrow curving back is more legible at a glance
+						    than a four-letter label. `aria-label` keeps the accessible name
+						    (and every existing test locator) exactly as it was. */}
+						<button type="button" className="header-icon-button" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (⌘Z)">
+							<UndoIcon size={16} />
 						</button>
-						<button type="button" onClick={redo} disabled={!canRedo}>
-							Redo
+						<button type="button" className="header-icon-button" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
+							<RedoIcon size={16} />
 						</button>
 						{/* §3's header comment icon, "shows unread badge". The count is
 						    **unresolved threads**, not unread ones: per-user read state

@@ -5,21 +5,28 @@
 	flex-shrink: 0;
 }
 
+/* Wider than it looks like it needs to be, on purpose. At 46px with 36px icons
+   there were 5px of margin either side, so the whole strip read as squashed
+   against the window edge — reported as "the toolbar is pinched toward the edge
+   of the screen and does not look great". The icons are the same size; what
+   changed is the room around them. */
 .right-rail {
 	display: flex;
 	flex-direction: column;
-	width: 46px;
-	padding: 10px 0;
-	gap: 4px;
+	align-items: center;
+	width: 60px;
+	padding: 14px 0;
+	gap: 6px;
 	background: var(--grey-50);
 }
 
 .right-rail-icon {
-	width: 36px;
-	height: 36px;
-	margin: 0 5px;
+	width: 40px;
+	height: 40px;
+	display: grid;
+	place-items: center;
 	border: none;
-	border-radius: var(--radius-sm);
+	border-radius: var(--radius-md);
 	background: transparent;
 	font-size: 1.05rem;
 	line-height: 1;
@@ -48,10 +55,14 @@
 .right-rail-icon-primary {
 	background: var(--navy);
 	color: #fff;
-	border-radius: var(--radius-pill);
-	font-size: 1.2rem;
+	/* A true circle, not a rounded rectangle — it reads as the one primary action
+	   in the strip rather than a slightly-different icon button. */
+	border-radius: 50%;
+	font-size: 1.25rem;
 	font-weight: 600;
-	margin-bottom: 6px;
+	/* Separated from the panel toggles below it by more than the shared gap: it
+	   opens the palette, the rest switch panels. */
+	margin-bottom: 10px;
 }
 
 .right-rail-icon-primary:hover,
@@ -485,4 +496,117 @@
 	font-size: 0.72rem;
 	color: #4a6fd4;
 	cursor: pointer;
+}
+
+/* ── Shared form controls for every rail panel ──────────────────────────────
+   These were each declared per panel with a bare `1px solid #ddd` and no focus
+   treatment, so the Theme panel's font fields, the Roles panel's name field and
+   the Variables panel's selects all looked like unstyled browser defaults
+   sitting inside otherwise-designed panels. One declaration covers them, with
+   the brand tokens and a real focus ring. */
+.right-rail-wrapper input[type='text'],
+.right-rail-wrapper input[type='number'],
+.right-rail-wrapper input[type='url'],
+.right-rail-wrapper select {
+	padding: 6px 9px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	font: inherit;
+	font-size: 0.82rem;
+	color: var(--grey-900);
+	transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.right-rail-wrapper select {
+	cursor: pointer;
+	/* Native select arrows differ per platform and none of them match the rest of
+	   this UI; a drawn caret plus room for it is consistent everywhere. */
+	appearance: none;
+	background-image: linear-gradient(45deg, transparent 50%, var(--grey-500) 50%), linear-gradient(135deg, var(--grey-500) 50%, transparent 50%);
+	background-position: calc(100% - 14px) 52%, calc(100% - 9px) 52%;
+	background-size: 5px 5px, 5px 5px;
+	background-repeat: no-repeat;
+	padding-right: 26px;
+}
+
+.right-rail-wrapper input[type='text']:hover,
+.right-rail-wrapper input[type='number']:hover,
+.right-rail-wrapper select:hover {
+	border-color: var(--border-strong);
+}
+
+.right-rail-wrapper input[type='text']:focus,
+.right-rail-wrapper input[type='number']:focus,
+.right-rail-wrapper input[type='url']:focus,
+.right-rail-wrapper select:focus {
+	outline: none;
+	border-color: var(--sky-blue);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 16%, transparent);
+}
+
+/* A colour swatch is a control, not a text box — the default rendering is a
+   bevelled button with an inset well that looks nothing like the inputs beside
+   it. */
+.right-rail-wrapper input[type='color'] {
+	width: 38px;
+	height: 28px;
+	padding: 2px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	cursor: pointer;
+}
+
+.right-rail-wrapper input[type='color']:hover {
+	border-color: var(--border-strong);
+}
+
+.right-rail-wrapper input[type='color']::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.right-rail-wrapper input[type='color']::-webkit-color-swatch {
+	border: none;
+	border-radius: 3px;
+}
+
+/* The theme panel's default-page-image control. */
+.theme-panel-row-stacked {
+	align-items: center;
+}
+
+.theme-panel-image-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.theme-panel-image-actions button {
+	padding: 5px 10px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--grey-700);
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.theme-panel-image-actions button:hover {
+	border-color: var(--sky-blue);
+	color: var(--navy);
+	background: var(--grey-50);
+}
+
+/* Shown at the page's own aspect-ish ratio so a full-bleed background is
+   recognisable before it's applied to anything. */
+.theme-panel-image-preview {
+	height: 96px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
 }

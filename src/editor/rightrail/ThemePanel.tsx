@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { defaultTheme, setTheme } from '../commands';
+import { ImageLibraryPicker } from '../../images/ImageLibraryPicker';
+import { assetFileRelativePath } from '../../api/assets';
 import { useEditorStore } from '../store/editorStore';
 import type { Theme } from '../types';
 import './rightrail.css';
@@ -16,6 +19,7 @@ interface ThemePanelProps {
  */
 export function ThemePanel({ onClose }: ThemePanelProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
+	const [pickingImage, setPickingImage] = useState(false);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
 	const theme = useEditorStore((s) => s.body?.settings.theme ?? defaultTheme());
 
@@ -61,6 +65,42 @@ export function ThemePanel({ onClose }: ThemePanelProps) {
 				<span>Page background</span>
 				<input type="color" value={theme.pageBackgroundColor} onChange={(e) => update({ pageBackgroundColor: e.target.value })} />
 			</label>
+			{/* The template-wide default image. A page that sets its own background
+			    image still wins — see canvas.css's fallback chain — so this is the
+			    branded sheet for the whole document, not a fourth thing to keep in
+			    step per page. */}
+			<div className="theme-panel-row theme-panel-row-stacked">
+				<span>Default page image</span>
+				<div className="theme-panel-image-actions">
+					<button type="button" onClick={() => setPickingImage(true)}>
+						{theme.pageBackgroundImageUrl ? 'Replace' : 'Choose image'}
+					</button>
+					{theme.pageBackgroundImageUrl && (
+						<button
+							type="button"
+							onClick={() => {
+								// Both keys deleted rather than set to undefined: this object is
+								// serialised into the template body, and an id pointing at an
+								// image nothing renders is just a stale reference to carry around.
+								const next = { ...theme };
+								delete next.pageBackgroundImageUrl;
+								delete next.pageBackgroundAssetId;
+								runCommand(setTheme(next));
+							}}
+						>
+							Remove
+						</button>
+					)}
+				</div>
+			</div>
+			{theme.pageBackgroundImageUrl && (
+				<div
+					className="theme-panel-image-preview"
+					style={{ backgroundImage: `url(${theme.pageBackgroundImageUrl})` }}
+					role="img"
+					aria-label="Current default page background"
+				/>
+			)}
 			<label className="theme-panel-row">
 				<span>Block spacing (px)</span>
 				<input
@@ -74,6 +114,15 @@ export function ThemePanel({ onClose }: ThemePanelProps) {
 					onBlur={endCoalescing}
 				/>
 			</label>
+			{pickingImage && (
+				<ImageLibraryPicker
+					onPick={(asset) => {
+						setPickingImage(false);
+						update({ pageBackgroundImageUrl: assetFileRelativePath(asset.id), pageBackgroundAssetId: asset.id });
+					}}
+					onClose={() => setPickingImage(false)}
+				/>
+			)}
 		</div>
 	);
 }

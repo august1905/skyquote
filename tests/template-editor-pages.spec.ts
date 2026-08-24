@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openNewTemplate, saveNow } from './templateFixture';
+import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // §3 ⑤'s per-page chrome (name, insert-after, `…` menu) and §3 ②'s page
 // navigator drawer. Real backend, no mocking — same convention as the rest of
@@ -21,6 +22,15 @@ function pageGroups(page: Page) {
  * its own "Duplicate" and "Delete", so an unscoped `getByRole('button', {name:
  * 'Duplicate'})` is ambiguous the moment a block is also selected.
  */
+/**
+ * The page `+` opens a blank-or-image menu now rather than inserting outright,
+ * so every "just give me a page" caller picks Blank explicitly.
+ */
+async function insertBlankPageAfter(page: Page, groupIndex: number) {
+	await pageGroups(page).nth(groupIndex).getByRole('button', { name: 'Insert page after' }).click();
+	await page.getByRole('menuitem', { name: /Blank page/ }).click();
+}
+
 async function openPageMenu(page: Page, groupIndex: number) {
 	await pageGroups(page).nth(groupIndex).getByRole('button', { name: 'Page options' }).click();
 	const menu = pageGroups(page).nth(groupIndex).locator('.page-menu-popover');
@@ -39,11 +49,11 @@ test.describe('Page management (§3 ⑤)', () => {
 		// Insert after page 1 — the new page lands second, not appended blindly
 		// at the end (which would look identical with only one page, hence the
 		// third page added below to actually discriminate).
-		await pageGroups(page).nth(0).getByRole('button', { name: 'Insert page after' }).click();
+		await insertBlankPageAfter(page, 0);
 		await expect(pageGroups(page)).toHaveCount(2);
 		await pageGroups(page).nth(1).getByLabel('Page name').fill('Terms');
 
-		await pageGroups(page).nth(0).getByRole('button', { name: 'Insert page after' }).click();
+		await insertBlankPageAfter(page, 0);
 		await expect(pageGroups(page)).toHaveCount(3);
 		// Inserted directly after "Cover", pushing "Terms" to last.
 		await expect(pageGroups(page).nth(0).getByLabel('Page name')).toHaveValue('Cover');
@@ -90,7 +100,7 @@ test.describe('Page management (§3 ⑤)', () => {
 		await page.keyboard.press('Escape');
 
 		await pageGroups(page).nth(0).getByLabel('Page name').fill('First');
-		await pageGroups(page).nth(0).getByRole('button', { name: 'Insert page after' }).click();
+		await insertBlankPageAfter(page, 0);
 		await pageGroups(page).nth(1).getByLabel('Page name').fill('Second');
 
 		// Move up on the first page and move down on the last are both no-ops
@@ -115,7 +125,7 @@ test.describe('Page management (§3 ⑤)', () => {
 
 	test('setting a page background overrides the theme for that page only, and clearing restores inheritance', async ({ page }) => {
 		await newTemplate(page);
-		await pageGroups(page).nth(0).getByRole('button', { name: 'Insert page after' }).click();
+		await insertBlankPageAfter(page, 0);
 		await expect(pageGroups(page)).toHaveCount(2);
 
 		// Page.background has existed in the domain model since phase 1 with
@@ -185,5 +195,81 @@ test.describe('Page navigator (§3 ②)', () => {
 
 		await drawer.getByRole('button', { name: 'Close pages panel' }).click();
 		await expect(page.locator('.page-navigator')).toHaveCount(0);
+	});
+});
+
+// Adding pages, and the per-page background image — §3 ⑤'s page chrome rather
+// than the navigator drawer above.
+test.describe('Adding pages and page backgrounds', () => {
+	test('a page can be added at the bottom, not only between and above', async ({ page }) => {
+		// The only page control used to be a `+` above each page that inserted
+		// *after* it, so appending meant reaching for the control above the last
+		// page and reasoning about where its page would land.
+		await newTemplate(page);
+		await expect(pageGroups(page)).toHaveCount(1);
+
+		await pageGroups(page).nth(0).getByLabel('Page name').fill('First');
+		await page.getByRole('button', { name: 'Add page at the end' }).click();
+		await page.getByRole('menuitem', { name: /Blank page/ }).click();
+
+		await expect(pageGroups(page)).toHaveCount(2);
+		// Appended, not prepended — the new page is below the one that was there.
+		await expect(pageGroups(page).nth(0).getByLabel('Page name')).toHaveValue('First');
+		await expect(pageGroups(page).nth(1).getByLabel('Page name')).toHaveValue('Untitled page');
+	});
+
+	test('a page background image can be set from the ⋯ menu, survives a reload, and is removable without losing the colour', async ({ page, request }) => {
+		const upload = uniqueImageUpload('page-bg');
+		try {
+			await newTemplate(page);
+
+			// A colour first, so removing the image later can be shown not to take
+			// the colour with it — the two are independent.
+			const menu = await openPageMenu(page, 0);
+			await menu.getByLabel('This page background').fill('#123456');
+			await menu.getByRole('button', { name: 'Set background image' }).click();
+
+			const picker = page.getByRole('dialog', { name: 'Choose an image' });
+			await expect(picker).toBeVisible();
+			await picker.getByLabel('Upload images').setInputFiles(upload);
+			await picker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
+
+			const canvasPage = page.locator('.canvas-page').first();
+			await expect(canvasPage).toHaveAttribute('style', /background-image: url/);
+			await expect(canvasPage).toHaveAttribute('style', /background-size: cover/);
+
+			await saveNow(page);
+			await page.reload();
+			await expect(page.locator('.canvas-page').first()).toHaveAttribute('style', /background-image: url/);
+
+			// Removing the image leaves the colour behind.
+			const menuAfter = await openPageMenu(page, 0);
+			await menuAfter.getByRole('button', { name: 'Remove background image' }).click();
+			await expect(page.locator('.canvas-page').first()).not.toHaveAttribute('style', /background-image/);
+			await expect(page.locator('.canvas-page').first()).toHaveAttribute('style', /--page-background: ?#123456/);
+		} finally {
+			await cleanupFixtureImages(request);
+		}
+	});
+
+	test('the + menu creates a page already backed by a library image', async ({ page, request }) => {
+		const upload = uniqueImageUpload('page-bg-new');
+		try {
+			await newTemplate(page);
+
+			await page.getByRole('button', { name: 'Add page at the end' }).click();
+			await page.getByRole('menuitem', { name: /Image background/ }).click();
+
+			const picker = page.getByRole('dialog', { name: 'Choose an image' });
+			await picker.getByLabel('Upload images').setInputFiles(upload);
+			await picker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
+
+			await expect(pageGroups(page)).toHaveCount(2);
+			// The new page carries the background; the original is untouched.
+			await expect(page.locator('.canvas-page').nth(1)).toHaveAttribute('style', /background-image: url/);
+			await expect(page.locator('.canvas-page').nth(0)).not.toHaveAttribute('style', /background-image/);
+		} finally {
+			await cleanupFixtureImages(request);
+		}
 	});
 });

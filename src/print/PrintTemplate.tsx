@@ -1,9 +1,10 @@
 import { DocumentBlockView } from '../documents/DocumentBlockView';
 import { collectHeadings } from '../editor/toc/collectHeadings';
 import { pageDimensions } from '../editor/pagination/pageDimensions';
-import type { Block, BlockId, TemplateBody } from '../editor/types';
+import type { Block, BlockId, Page, TemplateBody } from '../editor/types';
 import type { SmartContentContext } from '../smartContent/evaluateRules';
 import './print.css';
+import { readOnlyPageBackgroundStyle } from '../documents/pageBackground';
 
 interface PrintTemplateProps {
 	body: TemplateBody;
@@ -58,7 +59,10 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 	// A block with no entry (nothing measured it yet) falls onto the logical
 	// page's first sheet rather than being dropped — a missing measurement
 	// shouldn't lose content.
-	const sheets: Array<{ key: string; blocks: Block[]; pageNumber: number }> = [];
+	// `page` rides along so each sheet can carry its logical page's background —
+	// every physical sheet a page spills onto gets the same one, which is what a
+	// full-bleed background means.
+	const sheets: Array<{ key: string; blocks: Block[]; pageNumber: number; page: Page }> = [];
 	for (const page of body.pages) {
 		const byPageNumber = new Map<number, Block[]>();
 		const fallback = Math.min(...page.blocks.map((block) => blockPageNumbers.get(block.id) ?? Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER);
@@ -70,9 +74,9 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 		}
 		// An empty logical page still prints as a blank sheet — it's a page the
 		// author deliberately has in their template.
-		if (byPageNumber.size === 0) sheets.push({ key: `${page.id}-empty`, blocks: [], pageNumber: sheets.length + 1 });
+		if (byPageNumber.size === 0) sheets.push({ key: `${page.id}-empty`, blocks: [], pageNumber: sheets.length + 1, page });
 		for (const number of [...byPageNumber.keys()].sort((a, b) => a - b)) {
-			sheets.push({ key: `${page.id}-${number}`, blocks: byPageNumber.get(number) ?? [], pageNumber: number });
+			sheets.push({ key: `${page.id}-${number}`, blocks: byPageNumber.get(number) ?? [], pageNumber: number, page });
 		}
 	}
 
@@ -104,6 +108,9 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 						paddingRight: `${margins.right}px`,
 						paddingBottom: `${margins.bottom}px`,
 						paddingLeft: `${margins.left}px`,
+						// Spread last so a page's own background wins over the sheet's
+						// default, exactly as it does on the canvas.
+						...readOnlyPageBackgroundStyle(sheet.page, resolveImageSrc, theme),
 					}}
 				>
 					<div className="print-page-blocks" style={{ gap: `${theme.baseSpacing}px` }}>

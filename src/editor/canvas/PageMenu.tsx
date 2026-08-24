@@ -4,6 +4,8 @@ import { deletePage, duplicatePage, movePage, setPageBackground } from '../comma
 import { SaveToLibraryDialog } from '../contentLibrary/SaveToLibraryDialog';
 import { useContentLibrary } from '../contentLibrary/useContentLibrary';
 import { useEditorStore } from '../store/editorStore';
+import { ImageLibraryPicker } from '../../images/ImageLibraryPicker';
+import { assetFileRelativePath } from '../../api/assets';
 import type { Page } from '../types';
 import './canvas.css';
 
@@ -33,6 +35,7 @@ export function PageMenu({ page, pageIndex, pageCount, onClose, onRequestRename 
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const { savePage } = useContentLibrary();
 	const [saveToLibraryOpen, setSaveToLibraryOpen] = useState(false);
+	const [pickingImage, setPickingImage] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	useCloseOnEscape(true, onClose);
@@ -94,12 +97,50 @@ export function PageMenu({ page, pageIndex, pageCount, onClose, onRequestRename 
 					onChange={(e) => runCommand(setPageBackground(page.id, { ...page.background, color: e.target.value }), { coalesceKey: `page-bg-${page.id}` })}
 				/>
 			</label>
+			{/* The other half of a page background, and the half that gets used:
+			    a full-bleed image behind the page, picked from the same library the
+			    Image block uses. `Page.background.imageUrl` has been in the model
+			    since phase 1 with no way to set it — this is that control.
+
+			    Stays open behind the picker so cancelling returns you to the menu. */}
+			<button type="button" onClick={() => setPickingImage(true)}>
+				{page.background?.imageUrl ? 'Replace background image' : 'Set background image'}
+			</button>
+			{page.background?.imageUrl && (
+				// Removing the image without touching the colour: the two are
+				// independent, and a page is often an image over a brand colour.
+				<button
+					type="button"
+					onClick={() =>
+						runAndClose(() => {
+							const { color } = page.background ?? {};
+							runCommand(setPageBackground(page.id, color ? { color } : undefined));
+						})
+					}
+				>
+					Remove background image
+				</button>
+			)}
+
 			{/* Clearing is distinct from picking white: with no background set
 			    the page inherits the Theme panel's own page colour, so this is
 			    "follow the theme again", not "paint it #ffffff". */}
 			<button type="button" disabled={!page.background} onClick={() => runAndClose(() => runCommand(setPageBackground(page.id, undefined)))}>
 				Clear background
 			</button>
+
+			{pickingImage && (
+				<ImageLibraryPicker
+					onPick={(asset) => {
+						setPickingImage(false);
+						// `assetId` travels with the URL so the recipient view and the PDF
+						// can rebuild a URL that works for them — see `Page.background`.
+						runCommand(setPageBackground(page.id, { ...page.background, imageUrl: assetFileRelativePath(asset.id), assetId: asset.id }));
+						onClose();
+					}}
+					onClose={() => setPickingImage(false)}
+				/>
+			)}
 
 			{/* §3 ⑤ lists delete, but the canvas must always have at least one
 			    page — the command layer deliberately doesn't enforce that (see

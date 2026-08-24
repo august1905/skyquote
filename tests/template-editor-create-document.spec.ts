@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { openNewTemplate, saveNow } from './templateFixture';
+import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // §11's Create Document wizard + the recipient's own public web-link view.
 // Real backend, no mocking. The wizard runs as the logged-in admin; the
@@ -7,7 +8,7 @@ import { openNewTemplate, saveNow } from './templateFixture';
 // browser context to genuinely exercise "no login required" rather than
 // relying on the admin's own cookie happening to be harmless there.
 
-test("creating a document produces a per-recipient link that opens with no login, with that role's own field live and the pricing table's frozen total shown @core", async ({ page, context }) => {
+test("creating a document produces a per-recipient link that opens with no login, with that role's own field live and the pricing table's frozen total shown @core", async ({ page, context, request }) => {
 	await openNewTemplate(page);
 
 	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
@@ -25,6 +26,17 @@ test("creating a document produces a per-recipient link that opens with no login
 	await table.getByRole('button', { name: '+ Item' }).click();
 	await table.locator('.pricing-item-row').first().locator('.pricing-item-name').fill('Weekly cleaning');
 	await table.locator('.pricing-item-row').first().locator('.pricing-item-price').fill('120');
+
+	// A page background, so the recipient assertion below can prove it survives
+	// into their view. Until this was wired, a background was an editor-only
+	// effect: an author could set a branded cover and send a document without it.
+	const upload = uniqueImageUpload('doc-page-bg');
+	await page.getByRole('button', { name: 'Page options' }).click();
+	await page.locator('.page-menu-popover').getByRole('button', { name: 'Set background image' }).click();
+	const bgPicker = page.getByRole('dialog', { name: 'Choose an image' });
+	await bgPicker.getByLabel('Upload images').setInputFiles(upload);
+	await bgPicker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
+	await expect(page.locator('.canvas-page').first()).toHaveAttribute('style', /background-image: url/);
 
 	await saveNow(page);
 
@@ -76,10 +88,17 @@ test("creating a document produces a per-recipient link that opens with no login
 	await expect(recipientPage.locator('.doc-view-pricing-row')).toContainText('Weekly cleaning');
 	await expect(recipientPage.locator('.doc-view-pricing-footer-total')).toContainText('$120.00');
 
+	// The page background reaches the recipient, through *their* token-gated URL —
+	// the stored `/assets/:id/file` path needs a session they don't have.
+	const recipientPageStyle = await recipientPage.locator('.doc-view-page').first().getAttribute('style');
+	expect(recipientPageStyle).toMatch(/background-image: url/);
+	expect(recipientPageStyle).toMatch(/\/public\/documents\//);
+
 	// A wrong token on the same document id is rejected, not silently shown.
 	const documentId = link.match(/\/d\/(\d+)\//)![1];
 	await recipientPage.goto(`/d/${documentId}/not-a-real-token`);
 	await expect(recipientPage.getByRole('alert')).toHaveText('This link is invalid or has expired.');
 
 	await recipientContext.close();
+	await cleanupFixtureImages(request);
 });

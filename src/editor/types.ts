@@ -332,7 +332,18 @@ export interface Page {
 	name: string;
 	order: number;
 	blocks: Block[];
-	background?: { color?: string; imageUrl?: string };
+	/**
+	 * §3 ⑤'s per-page background — a colour, a full-bleed image, or both.
+	 *
+	 * `assetId` is the canonical reference and `imageUrl` is a convenience for the
+	 * editor, exactly as `ImageBlock` splits the two. The distinction is
+	 * load-bearing downstream: a stored `/assets/:id/file` path only resolves for
+	 * someone with a session, so a recipient's view and the PDF exporter rebuild
+	 * the URL from `assetId` through their own `resolveImageSrc` instead. A
+	 * background written before `assetId` existed still renders in the editor from
+	 * `imageUrl` alone.
+	 */
+	background?: { color?: string; imageUrl?: string; assetId?: string };
 }
 
 /**
@@ -352,6 +363,18 @@ export interface Theme {
 	primaryColor: string;
 	textColor: string;
 	pageBackgroundColor: string;
+	/**
+	 * A template-wide **default** background image, applied to every page that
+	 * doesn't set one of its own — the same relationship `pageBackgroundColor`
+	 * already has with `Page.background.color`. A branded sheet is usually the
+	 * whole document, not one page, and setting it per page was the only option.
+	 *
+	 * `assetId` is canonical and `imageUrl` a convenience, for the same reason as
+	 * `Page.background`: the stored path only resolves for a viewer with a
+	 * session, so the recipient view and the PDF rebuild it from the id.
+	 */
+	pageBackgroundImageUrl?: string;
+	pageBackgroundAssetId?: string;
 	/** px gap between blocks with no margin of their own. */
 	baseSpacing: number;
 }

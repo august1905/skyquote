@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { openNewTemplate, saveNow } from './templateFixture';
+import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // Real backend, no mocking, same convention as the rest of this suite. §3's
 // Theme panel — the last phase-2 item.
@@ -40,4 +41,49 @@ test.describe('Theme panel', () => {
 		await expect(page.getByLabel('Block spacing (px)')).toHaveValue('40');
 	});
 
+	test('a default page background image applies to every page, and a page can still override it', async ({ page, request }) => {
+		const themeImage = uniqueImageUpload('theme-bg');
+		const pageImage = uniqueImageUpload('page-override');
+		try {
+			await openNewTemplate(page);
+
+			// A second page, so "applies to every page" means something.
+			await page.getByRole('button', { name: 'Add page at the end' }).click();
+			await page.getByRole('menuitem', { name: /Blank page/ }).click();
+			await expect(page.locator('.canvas-page')).toHaveCount(2);
+
+			await page.getByRole('button', { name: 'Theme' }).click();
+			await page.locator('.theme-panel').getByRole('button', { name: 'Choose image' }).click();
+			const picker = page.getByRole('dialog', { name: 'Choose an image' });
+			await picker.getByLabel('Upload images').setInputFiles(themeImage);
+			await picker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
+
+			// Both pages pick it up — it's the template's default, not one page's.
+			await expect(page.locator('.canvas-page').nth(0)).toHaveAttribute('style', /background-image: url/);
+			await expect(page.locator('.canvas-page').nth(1)).toHaveAttribute('style', /background-image: url/);
+			const themeUrl = await page.locator('.canvas-page').nth(0).getAttribute('style');
+
+			await page.getByRole('button', { name: 'Close theme panel' }).click();
+
+			// Page 2 sets its own, which must win over the default.
+			await page.locator('.canvas-page-group').nth(1).getByRole('button', { name: 'Page options' }).click();
+			await page.locator('.page-menu-popover').getByRole('button', { name: 'Set background image' }).click();
+			const pagePicker = page.getByRole('dialog', { name: 'Choose an image' });
+			await pagePicker.getByLabel('Upload images').setInputFiles(pageImage);
+			await pagePicker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
+
+			// Page 1 still shows the theme's; page 2 shows its own.
+			await expect(page.locator('.canvas-page').nth(0)).toHaveAttribute('style', String(themeUrl));
+			const overriddenStyle = await page.locator('.canvas-page').nth(1).getAttribute('style');
+			expect(overriddenStyle).toMatch(/background-image: url/);
+			expect(overriddenStyle).not.toBe(themeUrl);
+
+			await saveNow(page);
+			await page.reload();
+			await expect(page.locator('.canvas-page').nth(0)).toHaveAttribute('style', /background-image: url/);
+			await expect(page.locator('.canvas-page').nth(1)).toHaveAttribute('style', /background-image: url/);
+		} finally {
+			await cleanupFixtureImages(request);
+		}
+	});
 });

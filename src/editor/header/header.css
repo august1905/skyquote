@@ -163,3 +163,31 @@
 	cursor: pointer;
 	white-space: nowrap;
 }
+
+/* Undo/Redo, and any other header control that is an icon rather than a word.
+   Square, so the two of them read as a pair rather than as two more buttons in
+   a row of text ones. */
+.header-icon-button {
+	display: inline-grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	color: var(--grey-700);
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.header-icon-button:hover:not(:disabled) {
+	border-color: var(--sky-blue);
+	color: var(--navy);
+	background: var(--grey-50);
+}
+
+.header-icon-button:disabled {
+	color: var(--grey-300);
+	cursor: default;
+}

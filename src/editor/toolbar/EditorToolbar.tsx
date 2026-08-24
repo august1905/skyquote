@@ -13,6 +13,7 @@ import {
 	type ParagraphStyleId,
 } from './paragraphStyle';
 import './toolbar.css';
+import { AlignCenterIcon, AlignJustifyIcon, AlignLeftIcon, AlignRightIcon } from './EditorIcons';
 
 const DEFAULT_HIGHLIGHT = '#fff3a3';
 
@@ -73,6 +74,17 @@ function applyParagraphStyle(editor: Editor, style: ParagraphStyleId): void {
  * the reference layout — they work where they are, and moving them would
  * churn the header's existing e2e coverage for no behavioral gain.
  */
+/**
+ * §2's alignment group. Drawn icons, not glyphs — see EditorIcons for why four
+ * near-identical Unicode characters made this row unreadable.
+ */
+const ALIGNMENTS = [
+	{ alignment: 'left', Icon: AlignLeftIcon },
+	{ alignment: 'center', Icon: AlignCenterIcon },
+	{ alignment: 'right', Icon: AlignRightIcon },
+	{ alignment: 'justify', Icon: AlignJustifyIcon },
+] as const;
+
 interface EditorToolbarProps {
 	/** §2: the page-navigator toggle is a toolbar control, but the drawer itself renders beside the canvas — so its open state is owned by `TemplateEditor` and passed in. */
 	pagesOpen: boolean;
@@ -276,7 +288,7 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 
 			<span className="editor-toolbar-divider" />
 
-			{(['left', 'center', 'right', 'justify'] as const).map((alignment) => (
+			{ALIGNMENTS.map(({ alignment, Icon }) => (
 				<button
 					key={alignment}
 					type="button"
@@ -287,7 +299,7 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 					disabled={disabled}
 					onClick={() => editor?.chain().focus().setTextAlign(alignment).run()}
 				>
-					{alignment === 'left' ? '⯇' : alignment === 'center' ? '≡' : alignment === 'right' ? '⯈' : '☰'}
+					<Icon />
 				</button>
 			))}
 

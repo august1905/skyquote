@@ -3,6 +3,7 @@ import type { RoleId } from '../editor/types';
 import type { SmartContentContext } from '../smartContent/evaluateRules';
 import { DocumentBlockView } from './DocumentBlockView';
 import type { FieldInteraction } from './RichTextView';
+import { readOnlyPageBackgroundStyle } from './pageBackground';
 
 interface DocumentPagesProps {
 	body: DocumentBody;
@@ -32,7 +33,11 @@ export function DocumentPages({ body, resolveImageSrc, viewerRoleId, fieldIntera
 		<>
 			<div className="doc-view-pages">
 				{body.pages.map((page) => (
-					<div key={page.id} className="doc-view-page">
+					// §3 ⑤'s per-page background, which the recipient sees for the first
+					// time here — the editor could set one long before anything else
+					// rendered it. See documents/pageBackground.ts for why the URL is
+					// rebuilt rather than used as stored.
+					<div key={page.id} className="doc-view-page" style={readOnlyPageBackgroundStyle(page, resolveImageSrc, body.settings.theme)}>
 						{page.blocks.map((block) => (
 							<DocumentBlockView
 								key={block.id}
