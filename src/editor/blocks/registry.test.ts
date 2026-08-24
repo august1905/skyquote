@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { allBlockTypes, blockTypeLabel, getBlockRegistryEntry } from './registry';
 import { TextBlockView } from './TextBlockView';
 import { PageBreakBlockView } from './PageBreakBlockView';
+import { SpacerBlockView } from './SpacerBlockView';
 import { ColumnsBlockView } from './ColumnsBlockView';
 import { TableBlockView } from './TableBlockView';
 import { ImageBlockView } from './ImageBlockView';
@@ -23,6 +24,7 @@ const ALL_BLOCK_TYPES: BlockType[] = [
 	'quote_builder',
 	'toc',
 	'page_break',
+	'spacer',
 	'smart_content',
 	'columns',
 	'field',
@@ -34,6 +36,7 @@ const ALL_BLOCK_TYPES: BlockType[] = [
 const REAL_VIEWS: Record<string, unknown> = {
 	text: TextBlockView,
 	page_break: PageBreakBlockView,
+	spacer: SpacerBlockView,
 	columns: ColumnsBlockView,
 	table: TableBlockView,
 	image: ImageBlockView,

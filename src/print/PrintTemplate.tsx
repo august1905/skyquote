@@ -5,6 +5,7 @@ import type { Block, BlockId, Page, TemplateBody } from '../editor/types';
 import type { SmartContentContext } from '../smartContent/evaluateRules';
 import './print.css';
 import { readOnlyPageBackgroundStyle } from '../documents/pageBackground';
+import { blockStyleToCss } from '../documents/blockStyle';
 
 interface PrintTemplateProps {
 	body: TemplateBody;
@@ -116,7 +117,13 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 					<div className="print-page-blocks" style={{ gap: `${theme.baseSpacing}px` }}>
 						{expandSmartContent(sheet.blocks, smartContent).map((block) =>
 							block.type === 'toc' ? (
-								<PrintTableOfContents key={block.id} body={body} levels={block.levels} blockPageNumbers={blockPageNumbers} />
+								// The one block that bypasses `DocumentBlockView` (page numbers are
+								// a pagination concept the web view has no answer for), so it applies
+								// the shared block style itself rather than being the one place a
+								// padded block quietly loses its padding.
+								<div key={block.id} style={blockStyleToCss(block.style)}>
+									<PrintTableOfContents body={body} levels={block.levels} blockPageNumbers={blockPageNumbers} />
+								</div>
 							) : (
 								<DocumentBlockView
 									key={block.id}

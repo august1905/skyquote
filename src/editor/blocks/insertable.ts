@@ -6,6 +6,7 @@ import {
 	createFieldBlock,
 	createImageBlock,
 	createPageBreakBlock,
+	createSpacerBlock,
 	createPricingTableBlock,
 	createQuoteBuilderBlock,
 	createSmartContentBlock,
@@ -74,6 +75,7 @@ export interface InsertableBlockKind {
 export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'text', label: 'Text', create: createBlankTextBlock },
 	{ type: 'page_break', label: 'Page break', create: createPageBreakBlock },
+	{ type: 'spacer', label: 'Spacer', create: () => createSpacerBlock() },
 	{ type: 'toc', label: 'Table of contents', create: createTocBlock },
 	{ type: 'smart_content', label: 'Smart content', create: () => createSmartContentBlock() },
 	{ type: 'columns', label: 'Columns (2)', create: () => createColumnsBlock(2) },

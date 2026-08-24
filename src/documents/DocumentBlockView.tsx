@@ -5,6 +5,7 @@ import { formatMoney } from '../pricing/formatMoney';
 import type { Block, PricingItem, PricingTableBlock, QuoteBuilderBlock } from '../editor/types';
 import { evaluateSmartContent, type SmartContentContext } from '../smartContent/evaluateRules';
 import { RichTextView, type FieldInteraction } from './RichTextView';
+import { blockStyleToCss } from './blockStyle';
 import './document-view.css';
 
 interface DocumentBlockViewProps {
@@ -40,7 +41,24 @@ interface DocumentBlockViewProps {
  * nav would be a reasonable future enhancement but isn't spec'd; rendering
  * literal-but-meaningless page numbers here would be worse than nothing.
  */
-export function DocumentBlockView({ block, resolveImageSrc, viewerRoleId, fieldInteraction, smartContentContext }: DocumentBlockViewProps) {
+export function DocumentBlockView(props: DocumentBlockViewProps) {
+	const content = renderBlockContent(props);
+	// A block that renders nothing gets no wrapper at all — a hidden smart-content
+	// block or a `toc` would otherwise leave an empty div carrying its padding and
+	// background, i.e. a visible gap where the author expected nothing.
+	if (content === null) return null;
+	const css = blockStyleToCss(props.block.style);
+	// And an unstyled block keeps the exact DOM it had before this existed, rather
+	// than gaining a wrapper div around every paragraph in every document.
+	if (Object.keys(css).length === 0) return content;
+	return (
+		<div className="doc-view-block" style={css}>
+			{content}
+		</div>
+	);
+}
+
+function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInteraction, smartContentContext }: DocumentBlockViewProps) {
 	switch (block.type) {
 		case 'text':
 			return <RichTextView doc={block.doc} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />;
@@ -103,6 +121,12 @@ export function DocumentBlockView({ block, resolveImageSrc, viewerRoleId, fieldI
 			);
 		case 'page_break':
 			return <div className="doc-view-page-break" />;
+		case 'spacer':
+			// Height and nothing else: no outline, no background, no label. The
+			// editor's dashed placeholder is authoring chrome (see SpacerBlockView),
+			// and drawing any of it here would make a deliberately empty gap look
+			// like a rendering artefact to the recipient.
+			return <div style={{ height: block.height }} aria-hidden="true" />;
 		case 'field': {
 			const live = viewerRoleId !== null && viewerRoleId === block.field.roleId;
 			return (

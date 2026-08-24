@@ -49,17 +49,6 @@ export const FONT_FAMILY_OPTIONS: { value: string; label: string }[] = [
 	{ value: 'Verdana, Geneva, sans-serif', label: 'Verdana' },
 ];
 
-/** §2's font-size dropdown, in px to match how `BlockStyle`/theme spacing are already expressed everywhere else in this app. */
-export const FONT_SIZE_OPTIONS: { value: string; label: string }[] = [
-	{ value: '', label: 'Theme size' },
-	{ value: '12px', label: '12' },
-	{ value: '14px', label: '14' },
-	{ value: '16px', label: '16' },
-	{ value: '18px', label: '18' },
-	{ value: '24px', label: '24' },
-	{ value: '32px', label: '32' },
-];
-
 /** §2's "Line spacing". Unitless multipliers, which is what CSS `line-height` wants for text that should scale with its own font size. */
 export const LINE_HEIGHT_OPTIONS: { value: string; label: string }[] = [
 	{ value: '', label: 'Theme spacing' },

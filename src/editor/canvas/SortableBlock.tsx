@@ -1,12 +1,13 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
-import type { Block, BlockStyle, PageId } from '../types';
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import type { Block, PageId } from '../types';
 import { deleteBlock, duplicateBlock, toggleBlockLock, wrapInSmartContent, type BlockContainer } from '../commands';
 import { findBlockById, isContainerBlockType } from '../commands/blockTree';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { usePaletteDropHint } from '../dnd/dragContext';
 import { useEditorStore } from '../store/editorStore';
+import { blockStyleToCss } from '../../documents/blockStyle';
 import { BlockView } from '../blocks/BlockView';
 import { blockTypeLabel } from '../blocks/registry';
 import { SaveToLibraryDialog } from '../contentLibrary/SaveToLibraryDialog';
@@ -37,44 +38,17 @@ interface SortableBlockProps {
 }
 
 /**
- * Maps `BlockStyle` (§2's generic per-block styling) onto the inner content
- * wrapper — deliberately never the outer `.canvas-block` div, which owns its
- * own border/padding for selection highlighting and toolbar positioning;
- * letting user style land there would fight that (e.g. a custom border would
- * outrank `.canvas-block-selected`'s border-color override via inline-style
- * specificity, making selection invisible).
+ * `BlockStyle` lands on the inner content wrapper — deliberately never the outer
+ * `.canvas-block` div, which owns its own border/padding for selection
+ * highlighting and toolbar positioning; letting user style land there would
+ * fight that (e.g. a custom border would outrank `.canvas-block-selected`'s
+ * border-color override via inline-style specificity, making selection
+ * invisible).
  *
- * `margin` only ever sets top/bottom — horizontal position is governed by
- * `width` + `alignment` via auto side-margins below, so an explicit left/
- * right margin is never set, avoiding a conflict between the two. Per-side
- * padding is honored in full (no such conflict there).
+ * The mapping itself is shared with the recipient's view and the PDF — see
+ * `documents/blockStyle.ts`, which is where it moved to when it turned out none
+ * of this styling had ever reached either of them.
  */
-function styleFor(style: BlockStyle): CSSProperties {
-	const css: CSSProperties = {};
-	if (style.margin) {
-		css.marginTop = style.margin.top;
-		css.marginBottom = style.margin.bottom;
-	}
-	if (style.padding) {
-		const p = style.padding;
-		css.padding = `${p.top}px ${p.right}px ${p.bottom}px ${p.left}px`;
-	}
-	if (style.backgroundColor) css.backgroundColor = style.backgroundColor;
-	if (style.border) {
-		css.border = `${style.border.width}px ${style.border.style} ${style.border.color}`;
-		if (style.border.radius) css.borderRadius = style.border.radius;
-	}
-	if (style.width !== undefined) {
-		css.width = `${style.width * 100}%`;
-		if (style.alignment === 'center') {
-			css.marginLeft = 'auto';
-			css.marginRight = 'auto';
-		} else if (style.alignment === 'right') {
-			css.marginLeft = 'auto';
-		}
-	}
-	return css;
-}
 
 export function SortableBlock({ pageId, container, block, selected, multiSelected, onMeasuredHeight }: SortableBlockProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
@@ -309,7 +283,7 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 					)}
 				</div>
 			)}
-			<div className="canvas-block-content" style={styleFor(block.style)}>
+			<div className="canvas-block-content" style={blockStyleToCss(block.style)}>
 				<BlockView pageId={pageId} block={block} selected={selected} />
 			</div>
 			{saveToLibraryOpen && (

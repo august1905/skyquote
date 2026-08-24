@@ -4,9 +4,10 @@ import { addPage, createBlankPage } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { useActiveRichTextEditor } from '../richtext/useActiveRichTextEditor';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
+import { BlockSpacingControls } from './BlockSpacingControls';
+import { FontSizeControl } from './FontSizeControl';
 import {
 	FONT_FAMILY_OPTIONS,
-	FONT_SIZE_OPTIONS,
 	LINE_HEIGHT_OPTIONS,
 	PARAGRAPH_STYLE_OPTIONS,
 	currentParagraphStyle,
@@ -194,23 +195,7 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 				))}
 			</select>
 
-			<select
-				aria-label="Font size"
-				value={fontSize}
-				disabled={disabled}
-				onChange={(e) => {
-					if (!editor) return;
-					const value = e.target.value;
-					if (value === '') editor.chain().focus().unsetFontSize().run();
-					else editor.chain().focus().setFontSize(value).run();
-				}}
-			>
-				{FONT_SIZE_OPTIONS.map((option) => (
-					<option key={option.label} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</select>
+			<FontSizeControl editor={editor} value={fontSize} disabled={disabled} />
 
 			<span className="editor-toolbar-divider" />
 
@@ -392,6 +377,13 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 			>
 				⌫
 			</button>
+
+			{/* §4.3's spacing, on the bar rather than behind the block's Settings
+			    popover — see BlockSpacingControls. Wraps to its own line on a narrow
+			    window (the toolbar is a wrapping flex row), which is why it sits last:
+			    the text controls stay together above it. */}
+			<span className="editor-toolbar-divider" />
+			<BlockSpacingControls />
 		</div>
 	);
 }

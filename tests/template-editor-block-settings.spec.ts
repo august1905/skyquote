@@ -6,7 +6,7 @@ import { openNewTemplate, saveNow } from './templateFixture';
 // them), so this lives in its own file rather than template-editor-blocks.spec.ts's
 // per-block-type describes.
 test.describe('Block settings popover', () => {
-	test('edits width, alignment, padding, margin, background, and border, and it persists through a reload', async ({ page }) => {
+	test('edits width, alignment, background, and border, and it persists through a reload', async ({ page }) => {
 		await openNewTemplate(page);
 
 		await page.locator('.canvas-block').first().click();
@@ -20,17 +20,6 @@ test.describe('Block settings popover', () => {
 		await page.getByLabel('Alignment').selectOption('center');
 		await expect(content).toHaveAttribute('style', /margin-left:\s*auto/);
 		await expect(content).toHaveAttribute('style', /margin-right:\s*auto/);
-
-		await page.getByLabel('Padding').fill('20');
-		// The browser collapses an equal-on-all-sides longhand value down to
-		// the shorthand form when serializing the style attribute.
-		await expect(content).toHaveAttribute('style', /padding:\s*20px;/);
-
-		await page.getByLabel('Margin').fill('15');
-		// Collapsed the same way — margin-top/bottom: 15px plus the
-		// margin-left/right: auto from centering above serialize together as
-		// the 2-value shorthand "15px auto" (vertical, then horizontal).
-		await expect(content).toHaveAttribute('style', /margin:\s*15px auto;/);
 
 		await page.getByLabel('Background').fill('#ff0000');
 		await expect(content).toHaveAttribute('style', /background-color:\s*(#ff0000|rgb\(255,\s*0,\s*0\))/);
@@ -61,6 +50,42 @@ test.describe('Block settings popover', () => {
 
 		await page.locator('.canvas-page').click({ position: { x: 5, y: 5 } });
 		await expect(page.locator('.block-settings-popover')).toHaveCount(0);
+	});
+});
+
+// §4.3's padding and margin, which moved out of the Settings popover above and
+// onto the toolbar — per side, and reachable without opening anything.
+test.describe('Block spacing on the toolbar', () => {
+	test('sets padding and margin per side for the selected block, and persists through a reload', async ({ page }) => {
+		await openNewTemplate(page);
+
+		const content = page.locator('.canvas-block-content').first();
+		// Nothing selected yet: the controls are present but inert, per §2's
+		// "disable rather than hide" — the bar must not reflow as selection changes.
+		await expect(page.getByLabel('Padding top')).toBeDisabled();
+
+		await page.locator('.canvas-block').first().click();
+		await expect(page.getByLabel('Padding top')).toBeEnabled();
+
+		await page.getByLabel('Padding top').fill('10');
+		await page.getByLabel('Padding right').fill('20');
+		await page.getByLabel('Padding bottom').fill('30');
+		await page.getByLabel('Padding left').fill('40');
+		// Four different values, so this can only pass with genuinely per-side
+		// padding — the old control wrote one number to all four.
+		await expect(content).toHaveCSS('padding', '10px 20px 30px 40px');
+
+		// Horizontal margin used to be dropped entirely (the editor applied
+		// top/bottom only), so "nudge this block right" was inexpressible.
+		await page.getByLabel('Margin left').fill('24');
+		await page.getByLabel('Margin top').fill('8');
+		await expect(content).toHaveCSS('margin-left', '24px');
+		await expect(content).toHaveCSS('margin-top', '8px');
+
+		await saveNow(page);
+		await page.reload();
+		await expect(page.locator('.canvas-block-content').first()).toHaveCSS('padding', '10px 20px 30px 40px');
+		await expect(page.locator('.canvas-block-content').first()).toHaveCSS('margin-left', '24px');
 	});
 });
 

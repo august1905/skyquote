@@ -224,6 +224,23 @@ export interface PageBreakBlock extends BlockBase {
 	type: 'page_break';
 }
 
+/**
+ * Deliberate empty space. Renders nothing at all — no border, no background, no
+ * label — in the recipient's view and the PDF; it exists only to push what
+ * follows further down the page.
+ *
+ * Its own field rather than a block with padding, because that's the distinction
+ * an author is actually making: padding is space *around* something, and this is
+ * space *instead of* something. It also keeps the editor honest — a spacer is the
+ * one block that must show a visible outline while authoring and none at all
+ * afterwards, which is a property of the block, not of its style.
+ */
+export interface SpacerBlock extends BlockBase {
+	type: 'spacer';
+	/** Height in px. */
+	height: number;
+}
+
 export interface ConditionRule {
 	subject: { kind: 'variable' | 'pricing_total' | 'field'; ref: string };
 	operator: 'eq' | 'neq' | 'gt' | 'lt' | 'contains' | 'is_empty' | 'is_not_empty';
@@ -260,6 +277,7 @@ export type Block =
 	| QuoteBuilderBlock
 	| TableOfContentsBlock
 	| PageBreakBlock
+	| SpacerBlock
 	| SmartContentBlock
 	| ColumnsBlock
 	| FieldBlock;

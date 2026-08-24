@@ -115,3 +115,124 @@
 .editor-toolbar-more-menu > button:hover {
 	background: #f0f0f0;
 }
+
+/* ─── Font size (§2) ───────────────────────────────────────────────────────
+   A slider with the exact number beside it, replacing a six-option dropdown.
+   See FontSizeControl for why the number box — not the slider — carries the
+   "Font size" label. */
+.toolbar-font-size {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 2px;
+}
+
+.toolbar-font-size-number {
+	width: 46px;
+	height: 26px;
+	padding: 2px 4px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #fff;
+	font-size: 0.8rem;
+	text-align: right;
+}
+
+/* Nothing set: the box shows the theme's size, so it reads as a placeholder
+   rather than as a value this selection actually pins. */
+.toolbar-font-size-inherited .toolbar-font-size-number {
+	color: #9aa1ad;
+}
+
+.toolbar-font-size-slider {
+	width: 92px;
+	height: 26px;
+	accent-color: var(--brand-primary, #4a7dfc);
+	cursor: pointer;
+}
+
+.toolbar-font-size-reset {
+	min-width: 22px;
+	height: 26px;
+	padding: 0 4px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	font-size: 0.85rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.toolbar-font-size-reset:hover:not(:disabled) {
+	background: #ececec;
+}
+
+.toolbar-font-size-number:disabled,
+.toolbar-font-size-slider:disabled,
+.toolbar-font-size-reset:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+/* ─── Block spacing (§4.3) ─────────────────────────────────────────────────
+   Padding and margin per side, on the bar instead of behind the Settings
+   popover. Grouped and boxed so eight small numbers read as two sets of four
+   rather than a row of loose inputs. */
+.toolbar-spacing-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 2px 6px;
+	border: 1px solid #e8e8e8;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.toolbar-spacing-label {
+	margin-right: 2px;
+	color: #6b7280;
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+.toolbar-spacing-input {
+	width: 38px;
+	height: 24px;
+	padding: 2px 3px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #fff;
+	font-size: 0.75rem;
+	text-align: center;
+}
+
+.toolbar-spacing-input::placeholder {
+	color: #b6bcc7;
+	font-weight: 600;
+}
+
+.toolbar-spacing-input:focus-visible {
+	border-color: var(--brand-primary, #4a7dfc);
+	outline: 2px solid color-mix(in srgb, var(--brand-primary, #4a7dfc) 25%, transparent);
+	outline-offset: 0;
+}
+
+.toolbar-spacing-input:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+/* Spinner arrows in a 38px box leave no room for two digits — the value is
+   typed or dragged, never nudged one pixel at a time. */
+.toolbar-spacing-input::-webkit-outer-spin-button,
+.toolbar-spacing-input::-webkit-inner-spin-button {
+	appearance: none;
+	margin: 0;
+}
+
+.toolbar-spacing-input[type='number'] {
+	appearance: textfield;
+	-moz-appearance: textfield;
+}

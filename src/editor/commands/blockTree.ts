@@ -1,5 +1,5 @@
 import { current, type Draft } from 'immer';
-import type { Block, BlockId, BlockType, CatalogItem, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, SmartContentBlock, TableBlock, TableCell, TableOfContentsBlock, TemplateBody, TextBlock, VideoBlock } from '../types';
+import type { Block, BlockId, BlockType, CatalogItem, ColumnsBlock, FieldBlock, FillableField, ImageBlock, Page, PageBreakBlock, PageId, PricingItem, PricingTableBlock, QuoteBuilderBlock, SmartContentBlock, SpacerBlock, TableBlock, TableCell, TableOfContentsBlock, TemplateBody, TextBlock, VideoBlock } from '../types';
 import { ZERO_MONEY } from '../types';
 
 /**
@@ -275,6 +275,11 @@ export function createBlankTextBlock(): TextBlock {
 
 export function createPageBreakBlock(): PageBreakBlock {
 	return { id: crypto.randomUUID(), type: 'page_break', locked: false, style: {} };
+}
+
+/** 24px is one comfortable blank line at the default body size — visible as a gap without being a decision the author has to undo. */
+export function createSpacerBlock(height = 24): SpacerBlock {
+	return { id: crypto.randomUUID(), type: 'spacer', locked: false, style: {}, height };
 }
 
 /** Equal-width columns, each seeded with one blank text block (§4.5: 2–4 columns). */

@@ -136,8 +136,33 @@ test.describe('Formatting toolbar (§2)', () => {
 		const editor = await newTemplateWithText(page, 'Styled run');
 
 		await selectParagraph(page);
-		await page.getByLabel('Font size').selectOption('24px');
-		await expect(editor.locator('[style*="font-size: 24px"]')).toHaveCount(1);
+		// A number box plus a slider, not a six-option dropdown — every integer from
+		// 8 to 100 is reachable, including sizes the old list simply didn't have.
+		await page.getByLabel('Font size', { exact: true }).fill('41');
+		await expect(editor.locator('[style*="font-size: 41px"]')).toHaveCount(1);
+
+		// The slider drives the same mark, and the number box follows it.
+		await selectParagraph(page);
+		await page.getByLabel('Font size slider').fill('72');
+		await expect(editor.locator('[style*="font-size: 72px"]')).toHaveCount(1);
+		await expect(page.getByLabel('Font size', { exact: true })).toHaveValue('72');
+
+		// With a caret and no selection, a size still applies to the block. Both
+		// commands otherwise only set ProseMirror *stored marks* — they'd change
+		// what gets typed next and nothing already on screen, while reporting
+		// success, so the slider would look broken (see FontSizeControl).
+		await editor.click();
+		await page.getByLabel('Font size', { exact: true }).fill('9');
+		await expect(editor.locator('[style*="font-size: 9px"]')).toHaveCount(1);
+
+		// Reset is a distinct state from any size: it unsets the mark so the text
+		// follows the Theme panel again, which no slider position can express. Run
+		// from a caret too, for the same reason.
+		await editor.click();
+		await page.getByRole('button', { name: 'Reset font size to theme' }).click();
+		await expect(editor.locator('[style*="font-size"]')).toHaveCount(0);
+		// And with nothing left to reset, it says so rather than sitting there inert.
+		await expect(page.getByRole('button', { name: 'Reset font size to theme' })).toBeDisabled();
 
 		await selectParagraph(page);
 		await page.getByLabel('Font family').selectOption('Georgia, serif');

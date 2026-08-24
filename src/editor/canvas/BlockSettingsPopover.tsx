@@ -39,11 +39,11 @@ function omitUndefined<T extends object>(obj: { [K in keyof T]?: T[K] | undefine
  * selected-only, so this popover only covers the generic `BlockStyle` fields
  * every block shares.
  *
- * Simplifications, deliberate for v1: padding/margin are a single uniform
- * number rather than independent per-side inputs (the data model still
- * stores a full `Spacing`, just with all four sides set equally); `margin`
- * only ever sets top/bottom (see `SortableBlock.styleFor` for why horizontal
- * margin and alignment would otherwise conflict).
+ * Padding and margin used to live here too, as one uniform number and a
+ * vertical-only one. They're on the toolbar now, per side — see
+ * `BlockSpacingControls`. Not duplicated in both places deliberately: two
+ * controls writing the same field at different granularities means the coarse
+ * one silently flattens whatever the fine one set.
  */
 export function BlockSettingsPopover({ pageId, block, onClose }: BlockSettingsPopoverProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
@@ -63,8 +63,6 @@ export function BlockSettingsPopover({ pageId, block, onClose }: BlockSettingsPo
 	const style = block.style;
 	const widthPercent = style.width !== undefined ? Math.round(style.width * 100) : 100;
 	const alignment = style.alignment ?? 'left';
-	const paddingValue = style.padding?.top ?? 0;
-	const marginValue = style.margin?.top ?? 0;
 
 	function update(patch: StylePatch, options?: { coalesceKey?: string }) {
 		const nextStyle = omitUndefined<BlockStyle>({ ...style, ...patch });
@@ -95,38 +93,6 @@ export function BlockSettingsPopover({ pageId, block, onClose }: BlockSettingsPo
 					<option value="center">Center</option>
 					<option value="right">Right</option>
 				</select>
-			</label>
-			<label className="block-settings-row">
-				<span>Padding (px)</span>
-				<input
-					type="number"
-					min={0}
-					value={paddingValue}
-					onChange={(e) => {
-						const px = Number(e.target.value);
-						update(
-							{ padding: Number.isFinite(px) && px > 0 ? { top: px, right: px, bottom: px, left: px } : undefined },
-							{ coalesceKey: `style-padding-${block.id}` }
-						);
-					}}
-					onBlur={endCoalescing}
-				/>
-			</label>
-			<label className="block-settings-row">
-				<span>Margin (px, vertical)</span>
-				<input
-					type="number"
-					min={0}
-					value={marginValue}
-					onChange={(e) => {
-						const px = Number(e.target.value);
-						update(
-							{ margin: Number.isFinite(px) && px > 0 ? { top: px, right: 0, bottom: px, left: 0 } : undefined },
-							{ coalesceKey: `style-margin-${block.id}` }
-						);
-					}}
-					onBlur={endCoalescing}
-				/>
 			</label>
 			<label className="block-settings-row">
 				<span>Background</span>

@@ -36,6 +36,7 @@ const PALETTE_BLOCK_ORDER: BlockType[] = [
 	'quote_builder',
 	'toc',
 	'page_break',
+	'spacer',
 	'smart_content',
 	'columns',
 ];
@@ -65,6 +66,7 @@ export const BLOCK_ICONS: Partial<Record<BlockType, string>> = {
 	columns: '▥',
 	smart_content: '◈',
 	page_break: '⤓',
+	spacer: '↕',
 	field: '✎',
 };
 

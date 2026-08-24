@@ -31,6 +31,47 @@ test.describe('Page break block', () => {
 	});
 });
 
+test.describe('Spacer block', () => {
+	test('inserts from the Content panel as empty space, resizes by number and by drag, and survives a reload', async ({ page }) => {
+		await openNewTemplate(page);
+
+		// Inserted from the right-hand palette rather than "+ Add block": that's
+		// where it was asked for, and palette membership is otherwise only covered
+		// by the unit test that asserts the two lists cover each other.
+		await page.getByRole('button', { name: 'Content', exact: true }).click();
+		await page.locator('.content-panel').getByRole('button', { name: 'Spacer', exact: true }).click();
+
+		const spacer = page.locator('.block-spacer');
+		await expect(spacer).toHaveCount(1);
+		// One comfortable blank line to begin with — a size that doesn't have to be
+		// undone before it's useful.
+		await expect(spacer).toHaveCSS('height', '24px');
+
+		// Typing an exact height, for when the gap has to match something.
+		await page.locator('.canvas-block').filter({ has: page.locator('.block-spacer') }).click();
+		await page.getByLabel('Spacer height').fill('120');
+		await expect(spacer).toHaveCSS('height', '120px');
+
+		// Dragging the bottom edge, for when it's a judgement about how the page
+		// looks. The whole gesture is one undo step, not one per pixel — which is
+		// what the single Undo below restoring 120 (rather than 179) proves.
+		const handle = page.getByRole('button', { name: 'Resize spacer' });
+		const box = (await handle.boundingBox())!;
+		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 60, { steps: 6 });
+		await page.mouse.up();
+		await expect(spacer).toHaveCSS('height', '180px');
+
+		await page.getByRole('button', { name: 'Undo' }).click();
+		await expect(spacer).toHaveCSS('height', '120px');
+
+		await saveNow(page);
+		await page.reload();
+		await expect(page.locator('.block-spacer')).toHaveCSS('height', '120px');
+	});
+});
+
 test.describe('Columns block', () => {
 	test('nested blocks are independently editable/selectable/reorderable per column, and it all persists', async ({ page }) => {
 		await openNewTemplate(page);

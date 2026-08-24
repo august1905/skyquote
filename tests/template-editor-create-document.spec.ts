@@ -19,6 +19,15 @@ test("creating a document produces a per-recipient link that opens with no login
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Text field' }).click();
 
+	// Block styling on the text block above, so the recipient assertion below can
+	// prove it survives into their view. Until this was wired, `BlockStyle` was an
+	// editor-only effect in exactly the way the page background had been: an author
+	// could pad and colour a block, see it on the canvas, and send a document with
+	// none of it.
+	await page.locator('.canvas-block').first().click();
+	await page.getByLabel('Padding left').fill('40');
+	await page.getByLabel('Margin top').fill('12');
+
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Pricing table' }).click();
 	const table = page.locator('.block-pricing-table');
@@ -87,6 +96,11 @@ test("creating a document produces a per-recipient link that opens with no login
 
 	await expect(recipientPage.locator('.doc-view-pricing-row')).toContainText('Weekly cleaning');
 	await expect(recipientPage.locator('.doc-view-pricing-footer-total')).toContainText('$120.00');
+
+	// Block padding and margin reach the recipient too, not just the page background.
+	const styledBlock = recipientPage.locator('.doc-view-block').first();
+	await expect(styledBlock).toHaveCSS('padding-left', '40px');
+	await expect(styledBlock).toHaveCSS('margin-top', '12px');
 
 	// The page background reaches the recipient, through *their* token-gated URL —
 	// the stored `/assets/:id/file` path needs a session they don't have.

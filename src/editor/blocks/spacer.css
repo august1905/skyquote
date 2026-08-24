@@ -1,0 +1,72 @@
+/* Editor-only chrome. Nothing in here reaches the recipient's view or the PDF —
+   those render a spacer as bare height (see documents/DocumentBlockView). */
+.block-spacer {
+	position: relative;
+	/* Faint enough to read as "empty", present enough to be findable and clickable.
+	   A spacer with no visible extent at all is a block an author can't select. */
+	border: 1px dashed color-mix(in srgb, var(--brand-primary, #4a7dfc) 22%, transparent);
+	border-radius: 4px;
+	background: repeating-linear-gradient(
+		45deg,
+		transparent,
+		transparent 7px,
+		color-mix(in srgb, var(--brand-primary, #4a7dfc) 5%, transparent) 7px,
+		color-mix(in srgb, var(--brand-primary, #4a7dfc) 5%, transparent) 14px
+	);
+	box-sizing: border-box;
+}
+
+.block-spacer-selected {
+	border-color: color-mix(in srgb, var(--brand-primary, #4a7dfc) 55%, transparent);
+}
+
+.block-spacer-controls {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 8px;
+	border: 1px solid #e2e6ef;
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+	font-size: 0.75rem;
+	color: #555;
+	/* A short spacer is shorter than this control — let it overflow rather than
+	   squash, so a 4px spacer is still adjustable. */
+	white-space: nowrap;
+}
+
+.block-spacer-height {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.block-spacer-height input {
+	width: 56px;
+	padding: 2px 4px;
+	border: 1px solid #d8dde8;
+	border-radius: 4px;
+	font: inherit;
+	text-align: right;
+}
+
+.block-spacer-resize-handle {
+	position: absolute;
+	bottom: -5px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 34px;
+	height: 10px;
+	padding: 0;
+	border: 2px solid #fff;
+	border-radius: 5px;
+	background: var(--brand-primary, #4a7dfc);
+	/* Vertical only — a spacer is always full width; height is the only thing to change. */
+	cursor: ns-resize;
+	touch-action: none;
+}

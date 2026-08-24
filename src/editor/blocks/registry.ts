@@ -3,6 +3,7 @@ import type { Block, BlockType } from '../types';
 import type { BlockRegistryEntry, BlockViewProps } from './types';
 import { TextBlockView } from './TextBlockView';
 import { PageBreakBlockView } from './PageBreakBlockView';
+import { SpacerBlockView } from './SpacerBlockView';
 import { ColumnsBlockView } from './ColumnsBlockView';
 import { TableBlockView } from './TableBlockView';
 import { ImageBlockView } from './ImageBlockView';
@@ -37,6 +38,7 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	quote_builder: { label: 'Quote builder', View: QuoteBuilderBlockView },
 	toc: { label: 'Table of contents', View: TableOfContentsBlockView },
 	page_break: { label: 'Page break', View: PageBreakBlockView },
+	spacer: { label: 'Spacer', View: SpacerBlockView },
 	smart_content: { label: 'Smart content', View: SmartContentBlockView },
 	columns: { label: 'Columns', View: ColumnsBlockView },
 	field: { label: 'Field', View: FieldBlockView },
