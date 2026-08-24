@@ -3,6 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { insertBlock, setSmartContentRules, unwrapSmartContent, type BlockContainer } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { AddBlockMenu } from '../canvas/AddBlockMenu';
+import { BlockContainerDropRegion } from '../canvas/BlockContainerDropRegion';
 import { SortableBlock } from '../canvas/SortableBlock';
 import { COLUMN_INSERTABLE_BLOCK_KINDS } from './insertable';
 import { collectAllFields } from '../fields/collectFields';
@@ -235,7 +236,11 @@ export function SmartContentBlockView({ pageId, block, selected }: BlockViewProp
 				/>
 			)}
 			{previewAsTrue ? (
-				<div className="smart-content-children">
+				// §4.1 path 1's drop target for this container — the only way to drag a
+				// tile into a smart-content block that's still empty. Only while
+				// previewing as true: when the preview hides the children there's
+				// nothing on screen to drop *into*.
+				<BlockContainerDropRegion container={container} appendIndex={block.children.length} className="smart-content-children">
 					<SortableContext items={block.children.map((b) => b.id)} strategy={verticalListSortingStrategy}>
 						{block.children.map((childBlock) => (
 							<SortableBlock
@@ -252,7 +257,7 @@ export function SmartContentBlockView({ pageId, block, selected }: BlockViewProp
 						kinds={COLUMN_INSERTABLE_BLOCK_KINDS}
 						onInsert={(newBlock) => runCommand(insertBlock(container, block.children.length, newBlock))}
 					/>
-				</div>
+				</BlockContainerDropRegion>
 			) : (
 				<p className="smart-content-hidden-note">Hidden under this preview — nothing rendered when the condition is false.</p>
 			)}

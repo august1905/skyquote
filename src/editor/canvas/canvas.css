@@ -1,7 +1,14 @@
 .canvas {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
+	/* `safe` centre, not plain `center`. A page frame is a fixed 816px (§10), so
+	   opening two side panels at once on a laptop makes the canvas narrower than
+	   its own content — and a plain centred flex item that overflows puts its left
+	   edge *outside* the scrollable area, where nothing can reach it. `safe` falls
+	   back to start-alignment exactly in that case, so the page stays scrollable
+	   to. Found when the Content panel made a 1280px window narrow enough to hit
+	   it: the page's left edge ended up under the app sidebar. */
+	align-items: safe center;
 	gap: 32px;
 	padding: 32px;
 }
@@ -197,6 +204,61 @@
 
 .canvas-block-dragging {
 	opacity: 0.5;
+}
+
+/* §4.1's "horizontal insertion indicator between blocks; the drop target is the
+   gap, not the block" — for a Content-panel tile hovering this block.
+
+   Absolutely positioned on the edge rather than a real gap element: the page's
+   block column is a flex container with the theme's spacing as its `gap`, so an
+   extra child would both change that spacing and add height §10's pagination
+   didn't measure — while the author is mid-drag and watching. A line costs
+   nothing and points at the same place. */
+.canvas-block-drop-before::before,
+.canvas-block-drop-after::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 3px;
+	border-radius: var(--radius-pill);
+	background: var(--sky-blue);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 22%, transparent);
+	z-index: 5;
+	pointer-events: none;
+}
+
+.canvas-block-drop-before::before {
+	top: -2px;
+}
+
+.canvas-block-drop-after::after {
+	bottom: -2px;
+}
+
+/* An empty container — a fresh page, an untouched column — has no block to show
+   an insertion line against, so the region itself has to read as a target.
+   `armed` (a compatible palette drag is in flight) is deliberately quieter than
+   `over` (this is where it would land). */
+.canvas-drop-region-armed {
+	outline: 1px dashed color-mix(in srgb, var(--sky-blue) 45%, transparent);
+	outline-offset: 3px;
+	border-radius: var(--radius-sm);
+}
+
+.canvas-drop-region-over {
+	outline: 2px dashed var(--sky-blue);
+	background: color-mix(in srgb, var(--sky-blue) 6%, transparent);
+}
+
+/* A region with no blocks in it has no height, and a zero-height rect can't be
+   hit — dnd-kit ranks collisions by intersection area. `:empty` scopes this so
+   the only layout that moves during a drag is a page/container that had nothing
+   in it to move. (Columns and smart-content containers always render their own
+   "+ Add block" row, so they're never `:empty` and never need this.) */
+.canvas-page-blocks:empty.canvas-drop-region-armed,
+.smart-content-children:empty.canvas-drop-region-armed {
+	min-height: 72px;
 }
 
 .canvas-block-toolbar {

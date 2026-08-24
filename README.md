@@ -37,6 +37,13 @@ There's no self-serve signup; accounts are admin-created only (`POST /admin/user
 admin account to already exist — that one can't be created by the test run (it would be
 circular: you need an admin to create anyone).
 
+`tests/global-teardown.ts` runs after the suite and deletes the templates and documents the run
+created, scoped to **the shared test account's user id** — never to a name, since `Untitled
+template` is also what a real person gets from "+ New template". Without it every run left ~30 rows
+behind, and the list route slowed down until the suite failed on its own accumulated history. So
+**point the suite at a Data Store whose test account is yours to empty**, and expect a run to add
+30–60s of cleanup at the end.
+
 **Credentials are not committed** — this repo is public and these are real, working logins
 against the Skyquote Data Store. Copy `tests/.env.local.example` to `tests/.env.local`
 (gitignored) and fill in `TEST_ADMIN_PASSWORD` / `TEST_SHARED_USER_PASSWORD`; the suite

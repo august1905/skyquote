@@ -3,6 +3,7 @@ import type { BlockContainer } from '../commands';
 import { insertBlock } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { AddBlockMenu } from '../canvas/AddBlockMenu';
+import { BlockContainerDropRegion } from '../canvas/BlockContainerDropRegion';
 import { SortableBlock } from '../canvas/SortableBlock';
 import { COLUMN_INSERTABLE_BLOCK_KINDS } from './insertable';
 import type { ColumnsBlock } from '../types';
@@ -28,7 +29,18 @@ export function ColumnsBlockView({ pageId, block }: BlockViewProps<ColumnsBlock>
 				const container: BlockContainer = { pageId, parent: { columnsBlockId: block.id, column: columnIndex } };
 				const width = block.widths[columnIndex] ?? 1 / block.columns.length;
 				return (
-					<div key={columnIndex} className="block-column" style={{ flexBasis: `${width * 100}%` }}>
+					// §4.1 path 1: a palette tile can be dropped straight into a column,
+					// including an empty one — which is every column a freshly inserted
+					// Columns block has. Container blocks are refused here, not by the
+					// drop handler: `BlockContainerDropRegion` disables itself for them,
+					// so §4.4's limit shows up as "no target" rather than a failed drop.
+					<BlockContainerDropRegion
+						key={columnIndex}
+						container={container}
+						appendIndex={columnBlocks.length}
+						className="block-column"
+						style={{ flexBasis: `${width * 100}%` }}
+					>
 						<SortableContext items={columnBlocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
 							{columnBlocks.map((childBlock) => (
 								<SortableBlock
@@ -45,7 +57,7 @@ export function ColumnsBlockView({ pageId, block }: BlockViewProps<ColumnsBlock>
 							kinds={COLUMN_INSERTABLE_BLOCK_KINDS}
 							onInsert={(newBlock) => runCommand(insertBlock(container, columnBlocks.length, newBlock))}
 						/>
-					</div>
+					</BlockContainerDropRegion>
 				);
 			})}
 		</div>

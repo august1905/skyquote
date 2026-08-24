@@ -1,36 +1,64 @@
 .right-rail-wrapper {
 	display: flex;
 	height: 100%;
-	border-left: 1px solid #e2e2e2;
+	border-left: 1px solid var(--border-subtle);
 	flex-shrink: 0;
 }
 
 .right-rail {
 	display: flex;
 	flex-direction: column;
-	width: 44px;
-	padding-top: 8px;
+	width: 46px;
+	padding: 10px 0;
 	gap: 4px;
-	background: #fafafa;
+	background: var(--grey-50);
 }
 
 .right-rail-icon {
 	width: 36px;
 	height: 36px;
-	margin: 0 4px;
+	margin: 0 5px;
 	border: none;
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	background: transparent;
-	font-size: 1.1rem;
+	font-size: 1.05rem;
+	line-height: 1;
+	color: var(--grey-700);
 	cursor: pointer;
+	transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .right-rail-icon:hover {
-	background: #ececec;
+	background: var(--grey-200);
+}
+
+.right-rail-icon:focus-visible {
+	outline: 2px solid var(--sky-blue);
+	outline-offset: 1px;
 }
 
 .right-rail-icon-active {
-	background: #dbe6ff;
+	background: color-mix(in srgb, var(--sky-blue) 16%, transparent);
+	color: var(--navy);
+}
+
+/* §3's Content panel toggle. Filled and circular rather than a flat glyph like
+   its neighbours: it's the palette every other panel is a detour from, and the
+   one place §4.1's drag gesture starts. */
+.right-rail-icon-primary {
+	background: var(--navy);
+	color: #fff;
+	border-radius: var(--radius-pill);
+	font-size: 1.2rem;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.right-rail-icon-primary:hover,
+.right-rail-icon-primary.right-rail-icon-active {
+	background: var(--navy-light);
+	color: #fff;
+	box-shadow: var(--shadow-resting);
 }
 
 .theme-panel {

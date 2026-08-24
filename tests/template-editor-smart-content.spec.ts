@@ -37,9 +37,11 @@ test.describe('Smart content (§4.5)', () => {
 		await perkEditor.click();
 		await page.keyboard.type('VIP-only perk');
 
-		// Wrap it via the floating toolbar's "Smart content" icon.
+		// Wrap it via the floating toolbar's "Smart content" icon. Scoped to the
+		// toolbar because §3 ④'s Content panel also has a "Smart content" tile —
+		// two legitimately identical accessible names, on different surfaces.
 		await perkEditor.click();
-		await page.getByRole('button', { name: 'Smart content' }).click();
+		await page.locator('.canvas-block-toolbar').getByRole('button', { name: 'Smart content' }).click();
 		const smartBlock = page.locator('.block-smart-content');
 		await expect(smartBlock).toBeVisible();
 		await expect(smartBlock.locator('.ProseMirror')).toHaveText('VIP-only perk');
@@ -108,7 +110,7 @@ test.describe('Smart content (§4.5)', () => {
 		await page.keyboard.type('VIP-only perk');
 
 		await perkEditor.click();
-		await page.getByRole('button', { name: 'Smart content' }).click();
+		await page.locator('.canvas-block-toolbar').getByRole('button', { name: 'Smart content' }).click();
 		const smartBlock = page.locator('.block-smart-content');
 		await smartBlock.locator('.smart-content-rule-chip').click();
 		const popover = smartBlock.locator('.smart-content-rule-popover');

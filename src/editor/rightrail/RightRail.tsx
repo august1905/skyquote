@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { useEditorStore } from '../store/editorStore';
+import { ContentPanel } from '../content/ContentPanel';
 import { ThemePanel } from './ThemePanel';
 import { RolesPanel } from './RolesPanel';
 import { VariablesPanel } from './VariablesPanel';
@@ -10,7 +11,7 @@ import { AttachmentsPanel } from './AttachmentsPanel';
 import './rightrail.css';
 
 /**
- * §3's right rail (③) toggles one of ten panels in region ④. Theme,
+ * §3's right rail (③) toggles one of ten panels in region ④. Content, Theme,
  * Recipients/Roles, Variables, Catalog/Pricing, Content Library and
  * Attachments are built.
  *
@@ -19,10 +20,13 @@ import './rightrail.css';
  * finished and the app is stable. The spec gives each of them a single line, so
  * building them now would mean inventing the product rather than implementing
  * it. Rendering placeholder icons would be worse than their absence: an icon
- * implies something is behind it. `Content` is deliberately absent too — the
- * canvas's own "+ Add block" menu already covers it.
+ * implies something is behind it.
  */
 const RAIL_ITEMS = [
+	// First and visually distinct (see `.right-rail-icon-primary`), matching §3's
+	// own ordering and the reference product: it's the panel an author reaches for
+	// most, and §4.1's drag-a-tile-onto-the-page starts here.
+	{ key: 'content', icon: '＋', label: 'Content' },
 	{ key: 'roles', icon: '👥', label: 'Recipients / Roles' },
 	{ key: 'variables', icon: '⧉', label: 'Variables' },
 	{ key: 'catalog', icon: '💲', label: 'Catalog / Pricing' },
@@ -49,6 +53,7 @@ export function RightRail() {
 
 	return (
 		<div className="right-rail-wrapper">
+			{openPanel === 'content' && <ContentPanel onClose={() => setOpenPanel(null)} />}
 			{openPanel === 'roles' && <RolesPanel onClose={() => setOpenPanel(null)} />}
 			{openPanel === 'variables' && <VariablesPanel onClose={() => setOpenPanel(null)} />}
 			{openPanel === 'catalog' && <CatalogPanel onClose={() => setOpenPanel(null)} />}
@@ -60,7 +65,7 @@ export function RightRail() {
 					<button
 						key={item.key}
 						type="button"
-						className={`right-rail-icon${openPanel === item.key ? ' right-rail-icon-active' : ''}`}
+						className={`right-rail-icon${item.key === 'content' ? ' right-rail-icon-primary' : ''}${openPanel === item.key ? ' right-rail-icon-active' : ''}`}
 						aria-label={item.label}
 						aria-pressed={openPanel === item.key}
 						onClick={() => setOpenPanel(openPanel === item.key ? null : item.key)}

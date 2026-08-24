@@ -9,27 +9,15 @@ import {
 import { ImageLibraryPicker } from '../../images/ImageLibraryPicker';
 import { useEditorStore } from '../store/editorStore';
 import { collectAllFields } from '../fields/collectFields';
-import type { Block, BlockType, Role } from '../types';
+// Shared with §3 ④'s Content panel — the same block should never be a 🖼 in one
+// place and a 🏞 in the other.
+import { BLOCK_ICONS } from '../content/palette';
+import type { Block, Role } from '../types';
 import './canvas.css';
 
 // A stable, module-level empty-array reference — see the `roles` selector
 // below for why a fresh `[]` literal on every render would be a problem.
 const EMPTY_ROLES: Role[] = [];
-
-/** One glyph per block type, so the menu is scannable by shape rather than read line by line. */
-const BLOCK_ICONS: Partial<Record<BlockType, string>> = {
-	text: '¶',
-	image: '🖼',
-	video: '▶',
-	table: '▦',
-	pricing_table: '$',
-	quote_builder: '☑',
-	toc: '≡',
-	columns: '▥',
-	smart_content: '◈',
-	page_break: '⤓',
-	field: '✎',
-};
 
 interface AddBlockMenuProps {
 	onInsert: (block: Block) => void;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { BlockId, CatalogItem, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
+import type { BlockId, BlockType, CatalogItem, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
+import type { InsertTarget } from '../content/palette';
 import type { ContentLibraryItem } from '../../api/contentLibrary';
 import type { Comment, CommentAuthor, MentionableUser } from '../../api/comments';
 import type { Command } from '../commands/types';
@@ -175,7 +176,22 @@ interface EditorState {
 	 * the rail's 👥 icon does, and duplicating the panel in a dialog so the
 	 * header could own its own copy would be two implementations of one thing.
 	 */
-	openRailPanel: 'roles' | 'variables' | 'catalog' | 'contentLibrary' | 'attachments' | 'theme' | null;
+	openRailPanel: 'content' | 'roles' | 'variables' | 'catalog' | 'contentLibrary' | 'attachments' | 'theme' | null;
+	/**
+	 * §4.1's palette, mid-placement.
+	 *
+	 * Two tiles can't produce a block on the spot — Image needs a library image
+	 * picked, Video needs a URL resolved through oEmbed — so a click or a drop of
+	 * either one parks the *destination* here and the Content panel finishes the
+	 * job. In the store rather than the panel's own state because a drop is
+	 * resolved by `EditorDndProvider`, which sits above the canvas, nowhere near
+	 * the panel that owns the picker; throwing the target away and inserting at
+	 * the end instead would make dragging those two tiles pointless.
+	 *
+	 * `error` shares the field because it's the same conversation — the outcome of
+	 * one attempted placement — and only one placement can be in flight at a time.
+	 */
+	palettePlacement: { status: 'needsInput'; blockType: BlockType; target: InsertTarget } | { status: 'error'; message: string } | null;
 	/** True since the last load/save — i.e. there's something for autosave to pick up. */
 	dirty: boolean;
 
@@ -260,6 +276,7 @@ interface EditorState {
 	setPendingCommentAnchor: (anchor: EditorState['pendingCommentAnchor']) => void;
 	setCommentsSidebarOpen: (open: boolean) => void;
 	setOpenRailPanel: (panel: EditorState['openRailPanel']) => void;
+	setPalettePlacement: (placement: EditorState['palettePlacement']) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -281,7 +298,21 @@ export const useEditorStore = create<EditorState>()(
 		activeCommentId: null,
 		pendingCommentAnchor: null,
 		commentsSidebarOpen: false,
+		/**
+		 * Every panel starts closed, Content included — and it was worth trying the
+		 * other way to find out why.
+		 *
+		 * Opening it by default (for §4.1's drag gesture, which can't be discovered
+		 * behind a closed panel) had two costs the discoverability didn't cover. A
+		 * page frame is a fixed 816px, so on a 1280px window the panel made the
+		 * canvas narrower than its own content and pushed the page partly out of
+		 * reach. And a rail panel claims Escape (`useCloseOnEscape`), so a
+		 * permanently-open one permanently outranked §9.3's Escape-steps-out-of-
+		 * text-edit — the editor's own Escape stopped working entirely. The rail's
+		 * ➕ is prominent enough to find on its own.
+		 */
 		openRailPanel: null,
+		palettePlacement: null,
 		dirty: false,
 		undoStack: [],
 		redoStack: [],
@@ -307,6 +338,10 @@ export const useEditorStore = create<EditorState>()(
 				// comments e2e, which only fails after a reload.
 				state.activeCommentId = null;
 				state.pendingCommentAnchor = null;
+				// A placement targets a container id from the template that was open
+				// when it started; carrying it into a different one would insert into
+				// a page that no longer exists.
+				state.palettePlacement = null;
 				state.dirty = false;
 				state.undoStack = [];
 				state.redoStack = [];
@@ -558,6 +593,14 @@ export const useEditorStore = create<EditorState>()(
 		setOpenRailPanel: (panel) =>
 			set((state) => {
 				state.openRailPanel = panel;
+				// Closing the Content panel abandons whatever it was mid-way through
+				// placing — the picker that would finish it lives in there.
+				if (panel !== 'content') state.palettePlacement = null;
+			}),
+
+		setPalettePlacement: (placement) =>
+			set((state) => {
+				state.palettePlacement = placement;
 			}),
 	}))
 );

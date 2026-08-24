@@ -5,6 +5,7 @@ import type { Block, BlockStyle, PageId } from '../types';
 import { deleteBlock, duplicateBlock, toggleBlockLock, wrapInSmartContent, type BlockContainer } from '../commands';
 import { findBlockById, isContainerBlockType } from '../commands/blockTree';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
+import { usePaletteDropHint } from '../dnd/dragContext';
 import { useEditorStore } from '../store/editorStore';
 import { BlockView } from '../blocks/BlockView';
 import { blockTypeLabel } from '../blocks/registry';
@@ -132,6 +133,14 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 	// cursor, would be a candidate drag start. `disabled` keeps a locked
 	// block from being picked up at all — see blockCommands.ts's moveBlock
 	// for the matching command-layer guard.
+	// §4.1's "horizontal insertion indicator between blocks", for a palette tile
+	// hovering this block. Drawn as an absolutely-positioned line on the relevant
+	// edge (see canvas.css) rather than by opening a real gap: a gap would be a
+	// flex child of the page's block column, which would change the theme's block
+	// spacing and the heights §10's pagination measures — mid-drag.
+	const dropHint = usePaletteDropHint();
+	const hintSide = dropHint?.blockId === block.id ? (dropHint.insertBefore ? 'before' : 'after') : null;
+
 	const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({
 		id: block.id,
 		// `kind: 'block'` lets EditorDndProvider's combined onDragEnd tell a
@@ -185,7 +194,7 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 			// §12's sidebar scrolls a commented block into view by querying this.
 			data-block-id={block.id}
 			style={{ transform: CSS.Transform.toString(transform), transition: transition ?? undefined }}
-			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${multiSelected ? ' canvas-block-multi-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}${hasComments ? ' canvas-block-commented' : ''}${hasActiveComment ? ' canvas-block-comment-active' : ''}`}
+			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${multiSelected ? ' canvas-block-multi-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}${hasComments ? ' canvas-block-commented' : ''}${hasActiveComment ? ' canvas-block-comment-active' : ''}${hintSide ? ` canvas-block-drop-${hintSide}` : ''}`}
 			onClick={(e) => {
 				e.stopPropagation();
 				// A locked block can never be deleted/moved (see blockCommands.ts's

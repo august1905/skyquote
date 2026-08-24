@@ -279,7 +279,9 @@ test.describe('Video block', () => {
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://www.youtube.com/watch?v=jNQXAC9IVRw');
-		await page.getByRole('button', { name: 'Video', exact: true }).click();
+		// Scoped to the add-block menu: §3 ④'s Content panel has a "Video" tile of
+		// its own, so the bare name is ambiguous now.
+		await page.locator('.canvas-add-block-options').getByRole('button', { name: 'Video', exact: true }).click();
 
 		const thumbnail = page.locator('.block-video-thumbnail img');
 		await expect(thumbnail).toHaveAttribute('src', 'https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg');
@@ -312,7 +314,7 @@ test.describe('Video block', () => {
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://vimeo.com/1084537');
-		await page.getByRole('button', { name: 'Video', exact: true }).click();
+		await page.locator('.canvas-add-block-options').getByRole('button', { name: 'Video', exact: true }).click();
 
 		await expect(page.locator('.block-video-thumbnail img')).toHaveAttribute('src', /vimeocdn\.com/);
 
@@ -327,7 +329,7 @@ test.describe('Video block', () => {
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://example.com/some-video');
-		await page.getByRole('button', { name: 'Video', exact: true }).click();
+		await page.locator('.canvas-add-block-options').getByRole('button', { name: 'Video', exact: true }).click();
 
 		await expect(page.getByRole('alert')).toContainText(/Only YouTube and Vimeo/);
 		await expect(page.locator('.block-video-wrapper')).toHaveCount(0);

@@ -1,0 +1,283 @@
+/* §3 ④'s Content panel — the editor's block/field palette. */
+
+.content-panel {
+	width: 272px;
+	flex-shrink: 0;
+	padding: 14px 12px 18px;
+	border-right: 1px solid var(--border-subtle);
+	background: #fff;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	/* Its own scroll region: ten block tiles plus ten field tiles is taller than
+	   a laptop rail, and the canvas beside it must not scroll to reach a tile. */
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.content-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.content-panel-header h2 {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--navy);
+}
+
+.content-panel-header button {
+	border: none;
+	background: transparent;
+	border-radius: var(--radius-sm);
+	width: 26px;
+	height: 26px;
+	font-size: 1.15rem;
+	line-height: 1;
+	color: var(--grey-500);
+	cursor: pointer;
+	transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.content-panel-header button:hover {
+	background: var(--grey-100);
+	color: var(--grey-900);
+}
+
+.content-panel-section-label {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 6px 0 0;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--grey-500);
+}
+
+/* §3 ④'s "role selector dropdown showing the active role and its color dot". */
+.content-panel-role-select {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 4px 2px 6px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-pill);
+	background: var(--grey-50);
+	text-transform: none;
+	letter-spacing: normal;
+}
+
+.content-panel-role-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.content-panel-role-select select {
+	border: none;
+	background: transparent;
+	font: inherit;
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: normal;
+	text-transform: none;
+	color: var(--grey-900);
+	max-width: 108px;
+	cursor: pointer;
+}
+
+.content-panel-role-select select:focus-visible {
+	outline: 2px solid var(--sky-blue);
+	outline-offset: 1px;
+	border-radius: var(--radius-sm);
+}
+
+/* §3 ④'s "2-column grid of drag sources". */
+.content-panel-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.palette-tile {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+	min-height: 56px;
+	padding: 9px 10px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-md);
+	background: var(--grey-50);
+	text-align: left;
+	font: inherit;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--grey-900);
+	cursor: grab;
+	/* Without this a touch-drag scrolls the panel instead of picking the tile up. */
+	touch-action: none;
+	transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.palette-tile:hover {
+	border-color: var(--sky-blue);
+	background: #fff;
+	box-shadow: var(--shadow-resting);
+	transform: translateY(-1px);
+}
+
+.palette-tile:focus-visible {
+	outline: 2px solid var(--sky-blue);
+	outline-offset: 2px;
+}
+
+.palette-tile:active {
+	cursor: grabbing;
+}
+
+/* The tile stays in place, dimmed, while the DragOverlay copy follows the
+   cursor — so the grid doesn't reflow mid-drag and the author can see where the
+   tile came from. */
+.palette-tile-dragging {
+	opacity: 0.4;
+	box-shadow: none;
+	transform: none;
+}
+
+.palette-tile-label {
+	min-width: 0;
+	line-height: 1.25;
+}
+
+.palette-tile-icon {
+	width: 26px;
+	height: 26px;
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
+	border-radius: var(--radius-sm);
+	background: var(--grey-100);
+	font-size: 0.8rem;
+	color: var(--grey-700);
+}
+
+/* The tile following the cursor. Deliberately smaller and denser than the
+   real tile: it's a label for the gesture, not a preview of the block. */
+.palette-tile-drag-overlay {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-radius: var(--radius-md);
+	background: var(--navy);
+	color: #fff;
+	font-size: 0.8rem;
+	font-weight: 600;
+	box-shadow: var(--shadow-hover);
+	cursor: grabbing;
+}
+
+.palette-tile-drag-overlay .palette-tile-icon {
+	background: rgba(255, 255, 255, 0.18);
+	color: #fff;
+}
+
+.content-panel-hint {
+	margin: 0;
+	font-size: 0.75rem;
+	line-height: 1.45;
+	color: var(--grey-500);
+}
+
+.content-panel-hint-footer {
+	margin-top: auto;
+	padding-top: 10px;
+	border-top: 1px solid var(--border-subtle);
+}
+
+.content-panel-error {
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid color-mix(in srgb, #b3261e 30%, transparent);
+	border-radius: var(--radius-sm);
+	background: color-mix(in srgb, #b3261e 7%, #fff);
+	font-size: 0.76rem;
+	color: #8c1d18;
+}
+
+.content-panel-url-form {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-md);
+	background: var(--grey-50);
+}
+
+.content-panel-url-form label {
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--grey-500);
+}
+
+.content-panel-url-form input {
+	padding: 7px 9px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	font: inherit;
+	font-size: 0.8rem;
+	background: #fff;
+}
+
+.content-panel-url-form input:focus {
+	outline: none;
+	border-color: var(--sky-blue);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 16%, transparent);
+}
+
+.content-panel-url-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.content-panel-url-actions button {
+	padding: 6px 11px;
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--border-subtle);
+	background: #fff;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--grey-700);
+	cursor: pointer;
+	transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.content-panel-url-actions button[type='submit'] {
+	background: var(--navy);
+	border-color: var(--navy);
+	color: #fff;
+}
+
+.content-panel-url-actions button[type='submit']:disabled {
+	background: var(--grey-200);
+	border-color: var(--grey-200);
+	color: var(--grey-500);
+	cursor: default;
+}
+
+.content-panel-url-actions button:not([type='submit']):hover {
+	background: var(--grey-100);
+	color: var(--grey-900);
+}

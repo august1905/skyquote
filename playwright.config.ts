@@ -35,6 +35,11 @@ export default defineConfig({
 	// (or a second, distinct identity) opt out per-file/per-test with
 	// `test.use({ storageState: {...} })`.
 	globalSetup: './tests/global-setup.ts',
+	// Sweeps the templates/documents the run created (see the file — scoped by
+	// owner id, not by name). Without it the suite degrades itself: every run
+	// leaves ~30 rows behind, and at ~750 the list route got slow enough to
+	// blow templates-list's own cleanup budget.
+	globalTeardown: './tests/global-teardown.ts',
 	use: {
 		baseURL: 'http://localhost:5173',
 		channel: 'chrome',

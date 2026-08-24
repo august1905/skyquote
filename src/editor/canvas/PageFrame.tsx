@@ -5,6 +5,7 @@ import { useEditorStore } from '../store/editorStore';
 import type { BlockId, Page } from '../types';
 import { usePagePagination } from '../pagination/usePagePagination';
 import { AddBlockMenu } from './AddBlockMenu';
+import { BlockContainerDropRegion } from './BlockContainerDropRegion';
 import { PageMenu } from './PageMenu';
 import { SortableBlock } from './SortableBlock';
 import './canvas.css';
@@ -39,6 +40,18 @@ function pageBackgroundStyle(page: Page): CSSProperties {
 		style.backgroundPosition = 'center';
 	}
 	return style;
+}
+
+/**
+ * Where a block dropped on this physical page's whitespace goes: after the last
+ * block *on this sheet*, indexed within the logical page's own block list. An
+ * empty page has no blocks on any sheet, so it appends at 0.
+ */
+function appendIndexAfter(page: Page, physicalPageBlockIds: BlockId[]): number {
+	const lastId = physicalPageBlockIds[physicalPageBlockIds.length - 1];
+	if (!lastId) return 0;
+	const index = page.blocks.findIndex((block) => block.id === lastId);
+	return index === -1 ? page.blocks.length : index + 1;
 }
 
 interface PageFrameProps {
@@ -150,7 +163,14 @@ export function PageFrame({
 						// as one array every time, not a stable list of independently
 						// identified items being reordered.
 						<div className="canvas-page" key={physicalPageIndex} style={pageBackgroundStyle(page)}>
-							<div className="canvas-page-blocks">
+							{/* §4.1 path 1's drop target for this page. Per *physical* page, so
+							    dropping onto the whitespace of the second sheet appends after the
+							    blocks on that sheet rather than at the end of the logical page. */}
+							<BlockContainerDropRegion
+								container={container}
+								appendIndex={appendIndexAfter(page, physicalPageBlockIds)}
+								className="canvas-page-blocks"
+							>
 								{physicalPageBlockIds.map((blockId) => {
 									const block = blocksById.get(blockId);
 									if (!block) return null;
@@ -166,7 +186,7 @@ export function PageFrame({
 										/>
 									);
 								})}
-							</div>
+							</BlockContainerDropRegion>
 							{isLast && <AddBlockMenu onInsert={(block) => runCommand(insertBlock(container, page.blocks.length, block))} />}
 							{showPageNumbers && <div className="canvas-page-number">Page {startPageNumber + physicalPageIndex}</div>}
 						</div>
