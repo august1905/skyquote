@@ -109,7 +109,7 @@ export function TemplateCanvas() {
 					pageContentHeightPx={contentHeightPx}
 					blockGapPx={theme.baseSpacing}
 					showPageNumbers={pageSettings.showPageNumbers}
-					themePageImageUrl={theme.pageBackgroundImageUrl}
+					themeBackground={theme}
 					startPageNumber={startPageNumberByLogicalPage[page.id] ?? 1}
 					onPhysicalPagesChange={handlePhysicalPagesChange}
 				/>

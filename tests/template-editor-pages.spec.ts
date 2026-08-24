@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { expectBackgroundImageLoads, openNewTemplate, saveNow } from './templateFixture';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // §3 ⑤'s per-page chrome (name, insert-after, `…` menu) and §3 ②'s page
@@ -235,12 +235,14 @@ test.describe('Adding pages and page backgrounds', () => {
 			await picker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
 
 			const canvasPage = page.locator('.canvas-page').first();
-			await expect(canvasPage).toHaveAttribute('style', /background-image: url/);
 			await expect(canvasPage).toHaveAttribute('style', /background-size: cover/);
+			// Loads, not merely present — see the helper. Asserting presence alone is
+			// what let this feature ship painting a URL the frontend origin 404s.
+			await expectBackgroundImageLoads(page, canvasPage);
 
 			await saveNow(page);
 			await page.reload();
-			await expect(page.locator('.canvas-page').first()).toHaveAttribute('style', /background-image: url/);
+			await expectBackgroundImageLoads(page, page.locator('.canvas-page').first());
 
 			// Removing the image leaves the colour behind.
 			const menuAfter = await openPageMenu(page, 0);
@@ -248,7 +250,7 @@ test.describe('Adding pages and page backgrounds', () => {
 			await expect(page.locator('.canvas-page').first()).not.toHaveAttribute('style', /background-image/);
 			await expect(page.locator('.canvas-page').first()).toHaveAttribute('style', /--page-background: ?#123456/);
 		} finally {
-			await cleanupFixtureImages(request);
+			await cleanupFixtureImages(request, [upload]);
 		}
 	});
 
@@ -266,10 +268,10 @@ test.describe('Adding pages and page backgrounds', () => {
 
 			await expect(pageGroups(page)).toHaveCount(2);
 			// The new page carries the background; the original is untouched.
-			await expect(page.locator('.canvas-page').nth(1)).toHaveAttribute('style', /background-image: url/);
+			await expectBackgroundImageLoads(page, page.locator('.canvas-page').nth(1));
 			await expect(page.locator('.canvas-page').nth(0)).not.toHaveAttribute('style', /background-image/);
 		} finally {
-			await cleanupFixtureImages(request);
+			await cleanupFixtureImages(request, [upload]);
 		}
 	});
 });

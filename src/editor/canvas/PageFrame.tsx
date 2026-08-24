@@ -1,8 +1,9 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { insertBlock, renamePage, type BlockContainer } from '../commands';
+import { editorPageBackgroundStyle } from '../../documents/pageBackground';
 import { useEditorStore } from '../store/editorStore';
-import type { BlockId, Page } from '../types';
+import type { BlockId, Page, Theme } from '../types';
 import { usePagePagination } from '../pagination/usePagePagination';
 import { AddBlockMenu } from './AddBlockMenu';
 import { AddPageMenu } from './AddPageMenu';
@@ -10,45 +11,6 @@ import { BlockContainerDropRegion } from './BlockContainerDropRegion';
 import { PageMenu } from './PageMenu';
 import { SortableBlock } from './SortableBlock';
 import './canvas.css';
-
-/**
- * §2.1's `Page.background` — in the domain model since phase 1 with nothing
- * ever reading it, the same dead-data category `locked`/`style`/`theme` were
- * in before each got wired up.
- *
- * Emitted as a CSS custom property rather than a direct `background` so
- * canvas.css keeps one declaration with a two-level fallback chain
- * (`--page-background` → `--theme-page-background` → white). That's what makes
- * "no background set" mean *inherit the theme*, distinct from an explicit
- * white — a distinction the Clear background control depends on.
- *
- * `imageUrl` is set from the page `…` menu's "Set background image" and from the
- * `+` menu's "Image background", both of which pick from the shared image
- * library. The stored `/assets/:id/file` path is used directly here because the
- * editor always has a session; the read-only renderers rebuild it from
- * `assetId` instead — see documents/pageBackground.ts.
- */
-function pageBackgroundStyle(page: Page, themeImageUrl: string | undefined): CSSProperties {
-	// Built as a plain string record and returned as-is. `CSSProperties` can't
-	// be *indexed* with a `--*` key (so assigning onto a CSSProperties-typed
-	// object is a type error), but a `Record<string, string>` is assignable to
-	// it — which is why this needs neither an index-signature workaround nor
-	// the cast TemplateCanvas's own var helpers use.
-	const style: Record<string, string> = {};
-	if (page.background?.color) style['--page-background'] = page.background.color;
-	// The page's own image wins; the theme's is the default underneath it. Same
-	// precedence the colour already had, expressed here rather than in CSS
-	// because a `background-image` can't express a fallback chain the way a
-	// custom property can.
-	const imageUrl = page.background?.imageUrl ?? themeImageUrl;
-	if (imageUrl) {
-		style.backgroundImage = `url(${imageUrl})`;
-		style.backgroundSize = 'cover';
-		style.backgroundPosition = 'center';
-		style.backgroundRepeat = 'no-repeat';
-	}
-	return style;
-}
 
 /**
  * Where a block dropped on this physical page's whitespace goes: after the last
@@ -72,8 +34,8 @@ interface PageFrameProps {
 	pageContentHeightPx: number;
 	blockGapPx: number;
 	showPageNumbers: boolean;
-	/** The theme's default background image, used by any page that doesn't set its own. */
-	themePageImageUrl: string | undefined;
+	/** The theme's default background image, used by any page that doesn't set its own. Needs `assetId` too, not just the URL — see `editorPageBackgroundStyle`. */
+	themeBackground: Pick<Theme, 'pageBackgroundImageUrl' | 'pageBackgroundAssetId'>;
 	/** This logical page's first physical page number — the running total of every prior logical page's own physical page count. */
 	startPageNumber: number;
 	/**
@@ -104,7 +66,7 @@ export function PageFrame({
 	pageContentHeightPx,
 	blockGapPx,
 	showPageNumbers,
-	themePageImageUrl,
+	themeBackground,
 	startPageNumber,
 	onPhysicalPagesChange,
 }: PageFrameProps) {
@@ -168,7 +130,7 @@ export function PageFrame({
 						// Index as key is fine here — physicalPages is fully recomputed
 						// as one array every time, not a stable list of independently
 						// identified items being reordered.
-						<div className="canvas-page" key={physicalPageIndex} style={pageBackgroundStyle(page, themePageImageUrl)}>
+						<div className="canvas-page" key={physicalPageIndex} style={editorPageBackgroundStyle(page, themeBackground)}>
 							{/* §4.1 path 1's drop target for this page. Per *physical* page, so
 							    dropping onto the whitespace of the second sheet appends after the
 							    blocks on that sheet rather than at the end of the logical page. */}

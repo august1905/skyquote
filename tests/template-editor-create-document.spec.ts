@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { expectBackgroundImageLoads, openNewTemplate, saveNow } from './templateFixture';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // §11's Create Document wizard + the recipient's own public web-link view.
@@ -36,7 +36,7 @@ test("creating a document produces a per-recipient link that opens with no login
 	const bgPicker = page.getByRole('dialog', { name: 'Choose an image' });
 	await bgPicker.getByLabel('Upload images').setInputFiles(upload);
 	await bgPicker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
-	await expect(page.locator('.canvas-page').first()).toHaveAttribute('style', /background-image: url/);
+	await expectBackgroundImageLoads(page, page.locator('.canvas-page').first());
 
 	await saveNow(page);
 
@@ -91,8 +91,10 @@ test("creating a document produces a per-recipient link that opens with no login
 	// The page background reaches the recipient, through *their* token-gated URL —
 	// the stored `/assets/:id/file` path needs a session they don't have.
 	const recipientPageStyle = await recipientPage.locator('.doc-view-page').first().getAttribute('style');
-	expect(recipientPageStyle).toMatch(/background-image: url/);
 	expect(recipientPageStyle).toMatch(/\/public\/documents\//);
+	// Fetched from the recipient's own session-less context, so this proves the
+	// token-gated URL genuinely serves them the image rather than just appearing.
+	await expectBackgroundImageLoads(recipientPage, recipientPage.locator('.doc-view-page').first());
 
 	// A wrong token on the same document id is rejected, not silently shown.
 	const documentId = link.match(/\/d\/(\d+)\//)![1];
@@ -100,5 +102,5 @@ test("creating a document produces a per-recipient link that opens with no login
 	await expect(recipientPage.getByRole('alert')).toHaveText('This link is invalid or has expired.');
 
 	await recipientContext.close();
-	await cleanupFixtureImages(request);
+	await cleanupFixtureImages(request, [upload]);
 });

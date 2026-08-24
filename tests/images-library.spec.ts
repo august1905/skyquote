@@ -10,11 +10,27 @@ import { openNewTemplate, saveNow } from './templateFixture';
 // `test-image.png` on every image test, so "the first tile" means nothing here —
 // see `uniqueImageUpload`.
 
+/**
+ * Every fixture image the current test uploaded, so `afterEach` can delete
+ * exactly those.
+ *
+ * Deleting by name rather than sweeping the whole `zz-img-` prefix is what keeps
+ * this spec from reaching into the other worker: with `workers: 2` another spec's
+ * test is usually mid-flight here, and a blanket sweep took its images out from
+ * under it — see `cleanupFixtureImages`.
+ */
+const uploadedThisTest: string[] = [];
+
 /** Uploads through the page's drop zone and returns the name it was given. */
 async function uploadOnPage(page: Page, label: string): Promise<string> {
-	const file = uniqueImageUpload(label);
+	const file = trackUpload(uniqueImageUpload(label));
 	await page.getByLabel('Upload images').setInputFiles(file);
 	return file.name;
+}
+
+function trackUpload<T extends { name: string }>(file: T): T {
+	uploadedThisTest.push(file.name);
+	return file;
 }
 
 function tile(page: Page, filename: string) {
@@ -22,12 +38,16 @@ function tile(page: Page, filename: string) {
 }
 
 test.describe('Images library', () => {
+	// Untargeted on the way in — that sweep only removes fixture images old enough
+	// that no running test could still hold one, which is what makes a run
+	// independent of how the last one ended. On the way out it deletes exactly what
+	// this test uploaded.
 	test.beforeEach(async ({ request }) => {
 		await cleanupFixtureImages(request);
 	});
 
 	test.afterEach(async ({ request }) => {
-		await cleanupFixtureImages(request);
+		await cleanupFixtureImages(request, uploadedThisTest.splice(0));
 	});
 
 	test('is reachable from the sidebar, and an uploaded image appears with its real dimensions @core', async ({ page }) => {
@@ -130,12 +150,16 @@ test.describe('Images library', () => {
 });
 
 test.describe('Image block picker (§4.1)', () => {
+	// Untargeted on the way in — that sweep only removes fixture images old enough
+	// that no running test could still hold one, which is what makes a run
+	// independent of how the last one ended. On the way out it deletes exactly what
+	// this test uploaded.
 	test.beforeEach(async ({ request }) => {
 		await cleanupFixtureImages(request);
 	});
 
 	test.afterEach(async ({ request }) => {
-		await cleanupFixtureImages(request);
+		await cleanupFixtureImages(request, uploadedThisTest.splice(0));
 	});
 
 	test('"Image" opens the library instead of a file prompt, and a library image can be reused across templates', async ({ page }) => {
@@ -194,7 +218,7 @@ test.describe('Image block picker (§4.1)', () => {
 		await page.getByRole('menuitem', { name: 'Image' }).click();
 		const picker = page.getByRole('dialog', { name: 'Choose an image' });
 
-		const file = uniqueImageUpload('from-picker');
+		const file = trackUpload(uniqueImageUpload('from-picker'));
 		await picker.getByLabel('Upload images').setInputFiles(file);
 
 		// Highlighted so it's findable in a library of a hundred — but *not*

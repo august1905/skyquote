@@ -252,7 +252,7 @@ test.describe('Content panel', () => {
 			// template's own blank text block.
 			await expect(page.locator('.canvas-page-blocks > .canvas-block').nth(1).locator('.block-image')).toHaveCount(1);
 		} finally {
-			await cleanupFixtureImages(request);
+			await cleanupFixtureImages(request, [upload]);
 		}
 	});
 
@@ -277,7 +277,7 @@ test.describe('Content panel', () => {
 			await expect(blocks).toHaveCount(2);
 			await expect(blocks.nth(0).locator('.block-image')).toHaveCount(1);
 		} finally {
-			await cleanupFixtureImages(request);
+			await cleanupFixtureImages(request, [upload]);
 		}
 	});
 

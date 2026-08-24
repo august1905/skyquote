@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export const BACKEND = `http://localhost:${process.env.CATALYST_SERVE_PORT || '3000'}/server/skyquote_function`;
 
@@ -58,4 +58,31 @@ export async function openNewTemplate(page: Page, name = 'zz-fixture'): Promise<
 export async function saveNow(page: Page) {
 	await page.keyboard.press('ControlOrMeta+s');
 	await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 15000 });
+}
+
+/**
+ * Asserts an element's `background-image` points at something the server
+ * actually serves as an image — not merely that a `url(...)` is present.
+ *
+ * That distinction is the entire reason this exists. Page backgrounds shipped
+ * broken: the canvas painted the stored `/assets/:id/file` path unresolved, so
+ * the browser fetched it from the frontend origin instead of the backend and got
+ * the dev server's SPA fallback — an HTML document, 200 OK, drawn as nothing.
+ * Every assertion of the form `toHaveAttribute('style', /background-image: url/)`
+ * stayed green while the feature did nothing at all, which is why the status code
+ * alone isn't enough here either: the content type is what tells the two apart.
+ *
+ * `contextPage.request` shares that page's cookies, so passing the recipient's
+ * page checks *their* token-gated URL rather than the author's session-gated one.
+ */
+export async function expectBackgroundImageLoads(contextPage: Page, locator: Locator) {
+	// Computed, not the style attribute: the browser has already resolved the URL
+	// against the document base, which is exactly the resolution being tested.
+	const backgroundImage = await locator.evaluate((el) => getComputedStyle(el).backgroundImage);
+	const url = /url\(["']?(.+?)["']?\)/.exec(backgroundImage)?.[1];
+	expect(url, `expected a background-image url, got: ${backgroundImage}`).toBeTruthy();
+
+	const response = await contextPage.request.get(url!);
+	expect(response.status(), `background image did not load: ${url}`).toBe(200);
+	expect(response.headers()['content-type'], `background image is not an image: ${url}`).toMatch(/^image\//);
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { defaultTheme, setTheme } from '../commands';
 import { ImageLibraryPicker } from '../../images/ImageLibraryPicker';
-import { assetFileRelativePath } from '../../api/assets';
+import { assetFileRelativePath, resolveAssetUrl } from '../../api/assets';
 import { useEditorStore } from '../store/editorStore';
 import type { Theme } from '../types';
 import './rightrail.css';
@@ -96,7 +96,10 @@ export function ThemePanel({ onClose }: ThemePanelProps) {
 			{theme.pageBackgroundImageUrl && (
 				<div
 					className="theme-panel-image-preview"
-					style={{ backgroundImage: `url(${theme.pageBackgroundImageUrl})` }}
+					// Resolved, not the stored path: `/assets/:id/file` is relative to the
+					// backend, and dropped into `url(...)` it would be fetched from the
+					// frontend origin instead — see `editorPageBackgroundStyle`.
+					style={{ backgroundImage: `url(${resolveAssetUrl(theme.pageBackgroundImageUrl)})` }}
 					role="img"
 					aria-label="Current default page background"
 				/>

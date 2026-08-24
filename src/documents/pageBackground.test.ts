@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { BACKEND_BASE_URL } from '../config';
 import type { Page } from '../editor/types';
-import { readOnlyPageBackgroundStyle } from './pageBackground';
+import { editorPageBackgroundStyle, readOnlyPageBackgroundStyle } from './pageBackground';
 
 function page(background?: Page['background']): Page {
 	return { id: 'page-1', name: 'Cover', order: 0, blocks: [], ...(background ? { background } : {}) };
@@ -8,6 +9,53 @@ function page(background?: Page['background']): Page {
 
 /** Stands in for a recipient's token-gated URL builder — deliberately unlike the stored path. */
 const resolve = (assetId: string) => `/public/documents/9/tok/assets/${assetId}/file`;
+
+describe('editorPageBackgroundStyle', () => {
+	// The bug this suite exists to prevent: the canvas painted the *stored* path
+	// straight into `url(...)`. `/assets/:id/file` is relative to the backend, so
+	// the browser fetched it from the frontend origin, got the dev server's SPA
+	// fallback, and drew nothing — reported as "background image setting does not
+	// work". Asserting the prefix rather than a literal is the point: the URL has
+	// to be built from whatever `BACKEND_BASE_URL` is at render time.
+	it('resolves the image against the backend base rather than the frontend origin', () => {
+		const style = editorPageBackgroundStyle(page({ imageUrl: '/assets/77/file', assetId: '77' }));
+		expect(style.backgroundImage).toBe(`url(${BACKEND_BASE_URL.replace(/\/+$/, '')}/assets/77/file)`);
+	});
+
+	it('resolves a background stored before assetId existed, from its URL alone', () => {
+		const style = editorPageBackgroundStyle(page({ imageUrl: '/assets/77/file' }));
+		expect(style.backgroundImage).toContain(BACKEND_BASE_URL.replace(/\/+$/, ''));
+		expect(style.backgroundImage).toContain('/assets/77/file');
+	});
+
+	it('emits the colour as a custom property, so an unset page still inherits the theme', () => {
+		// Not `backgroundColor`: canvas.css resolves `--page-background` →
+		// `--theme-page-background` → white, which is what makes "cleared" different
+		// from "explicitly white".
+		const style = editorPageBackgroundStyle(page({ color: '#064d81' })) as Record<string, string>;
+		expect(style['--page-background']).toBe('#064d81');
+		expect(style.backgroundColor).toBeUndefined();
+	});
+
+	it('paints nothing for a page with no background and no theme default', () => {
+		expect(editorPageBackgroundStyle(page())).toEqual({});
+	});
+
+	it("uses the theme's default image for a page that sets none, and lets a page override it", () => {
+		const theme = { pageBackgroundImageUrl: '/assets/5/file', pageBackgroundAssetId: '5' };
+		expect(editorPageBackgroundStyle(page(), theme).backgroundImage).toContain('/assets/5/file');
+		expect(editorPageBackgroundStyle(page({ assetId: '77' }), theme).backgroundImage).toContain('/assets/77/file');
+	});
+
+	it('matches the read-only renderers: cover, centred, no repeat', () => {
+		// A background that reframed itself between authoring and sending would be
+		// worse than none.
+		const style = editorPageBackgroundStyle(page({ assetId: '77' }));
+		expect(style.backgroundSize).toBe('cover');
+		expect(style.backgroundPosition).toBe('center');
+		expect(style.backgroundRepeat).toBe('no-repeat');
+	});
+});
 
 describe('readOnlyPageBackgroundStyle', () => {
 	it('is empty when the page has no background, so nothing is painted over the theme', () => {

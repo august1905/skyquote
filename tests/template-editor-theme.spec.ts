@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { expectBackgroundImageLoads, openNewTemplate, saveNow } from './templateFixture';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // Real backend, no mocking, same convention as the rest of this suite. §3's
@@ -58,8 +58,9 @@ test.describe('Theme panel', () => {
 			await picker.getByLabel('Upload images').setInputFiles(themeImage);
 			await picker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
 
-			// Both pages pick it up — it's the template's default, not one page's.
-			await expect(page.locator('.canvas-page').nth(0)).toHaveAttribute('style', /background-image: url/);
+			// Both pages pick it up — it's the template's default, not one page's — and
+			// it genuinely loads rather than merely being declared (see the helper).
+			await expectBackgroundImageLoads(page, page.locator('.canvas-page').nth(0));
 			await expect(page.locator('.canvas-page').nth(1)).toHaveAttribute('style', /background-image: url/);
 			const themeUrl = await page.locator('.canvas-page').nth(0).getAttribute('style');
 
@@ -81,9 +82,9 @@ test.describe('Theme panel', () => {
 			await saveNow(page);
 			await page.reload();
 			await expect(page.locator('.canvas-page').nth(0)).toHaveAttribute('style', /background-image: url/);
-			await expect(page.locator('.canvas-page').nth(1)).toHaveAttribute('style', /background-image: url/);
+			await expectBackgroundImageLoads(page, page.locator('.canvas-page').nth(1));
 		} finally {
-			await cleanupFixtureImages(request);
+			await cleanupFixtureImages(request, [themeImage, pageImage]);
 		}
 	});
 });
