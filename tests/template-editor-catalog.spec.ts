@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §7.7: browse the catalog, drag an item into a pricing table, and see a
 // "price changed since insert" indicator once the catalog's price diverges
@@ -92,7 +92,7 @@ test.describe('Catalog integration', () => {
 			// Price still matches the catalog — no indicator yet.
 			await expect(rows.nth(0).locator('.pricing-item-price-changed')).toHaveCount(0);
 
-			await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+			await saveNow(page);
 
 			// The catalog's price changes after the row was already inserted.
 			const patched = await request.patch(`${BACKEND}/catalog-items/${catalogItem.id}`, { data: { price: 17500 } });

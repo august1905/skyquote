@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §7's pricing/quote blocks, real backend, no mocking — same convention as
 // the rest of this suite.
@@ -51,7 +51,7 @@ test.describe('Pricing table block', () => {
 		await block.locator('.pricing-section-name').first().fill('Janitorial');
 		await expect(block.locator('.pricing-section-name').first()).toHaveValue('Janitorial');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		const reloadedBlock = page.locator('.block-pricing-table');
@@ -94,7 +94,7 @@ test.describe('Quote builder block', () => {
 		await secondOption.getByLabel('Included by default').uncheck();
 		await expect(block.locator('.pricing-table-footer-total')).toContainText('$80.00');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		const reloadedBlock = page.locator('.block-quote-builder');
@@ -134,7 +134,7 @@ test.describe('Header total (§7.4)', () => {
 
 		await expect(page.locator('.template-editor-header-total')).toHaveText('$150.00');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.template-editor-header-total')).toHaveText('$150.00');
 	});

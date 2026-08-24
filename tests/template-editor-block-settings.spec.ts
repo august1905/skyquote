@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §4.3's
 // Settings and Lock toolbar controls — cross-cutting (every block type gets
@@ -38,7 +38,7 @@ test.describe('Block settings popover', () => {
 		await page.getByLabel('Border', { exact: true }).check();
 		await expect(content).toHaveAttribute('style', /border:\s*1px solid/);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		const contentAfterReload = page.locator('.canvas-block-content').first();

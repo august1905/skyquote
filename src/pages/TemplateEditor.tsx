@@ -39,6 +39,11 @@ import './TemplateEditor.css';
 // is a compile error, not a silently blank status line.
 const AUTOSAVE_STATUS_LABEL: Record<Exclude<AutosaveStatus, 'conflict'>, string> = {
 	idle: '',
+	// The editor saves on a 30s interval rather than after every edit, so there's
+	// a real window where work is only on this device. Saying so is the honest
+	// counterpart to that change — "All changes saved" must never be on screen
+	// while changes aren't.
+	pending: 'Unsaved changes',
 	saving: 'Saving…',
 	saved: 'All changes saved',
 	error: 'Save failed — will retry on your next edit',

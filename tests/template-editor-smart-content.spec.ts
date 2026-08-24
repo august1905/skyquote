@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §4.5's SmartContentBlock: a container shown/hidden by rules built against
 // variables, pricing totals, and field values. Real backend, no mocking.
@@ -72,7 +72,7 @@ test.describe('Smart content (§4.5)', () => {
 		await smartBlock.getByLabel('Preview as if').selectOption('true');
 		await expect(smartBlock.locator('.ProseMirror')).toBeVisible();
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		const reloadedSmartBlock = page.locator('.block-smart-content');
@@ -119,7 +119,7 @@ test.describe('Smart content (§4.5)', () => {
 		await ruleRow.locator('input').fill('VIP');
 		await popover.getByRole('button', { name: 'Save' }).click();
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 
 		async function createDocumentWithDealType(dealType: string, recipientEmail: string) {
 			await page.getByRole('button', { name: 'Create document' }).click();

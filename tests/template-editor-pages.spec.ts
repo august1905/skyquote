@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §3 ⑤'s per-page chrome (name, insert-after, `…` menu) and §3 ②'s page
 // navigator drawer. Real backend, no mocking — same convention as the rest of
@@ -49,7 +49,7 @@ test.describe('Page management (§3 ⑤)', () => {
 		await expect(pageGroups(page).nth(0).getByLabel('Page name')).toHaveValue('Cover');
 		await expect(pageGroups(page).nth(2).getByLabel('Page name')).toHaveValue('Terms');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(pageGroups(page)).toHaveCount(3);
 		await expect(pageGroups(page).nth(0).getByLabel('Page name')).toHaveValue('Cover');
@@ -130,7 +130,7 @@ test.describe('Page management (§3 ⑤)', () => {
 		// Per-page, not template-wide: the untouched page still inherits.
 		await expect(secondFrame).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(pageGroups(page).nth(0).locator('.canvas-page')).toHaveCSS('background-color', 'rgb(255, 0, 0)');
 

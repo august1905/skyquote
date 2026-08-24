@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §11's Create Document wizard + the recipient's own public web-link view.
 // Real backend, no mocking. The wizard runs as the logged-in admin; the
@@ -26,7 +26,7 @@ test("creating a document produces a per-recipient link that opens with no login
 	await table.locator('.pricing-item-row').first().locator('.pricing-item-name').fill('Weekly cleaning');
 	await table.locator('.pricing-item-row').first().locator('.pricing-item-price').fill('120');
 
-	await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+	await saveNow(page);
 
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');

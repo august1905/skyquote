@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { BACKEND, cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // The Images library (sidebar → Images) and the picker the editor's Image block
 // opens. Real backend, real uploads to Stratus, no mocking.
@@ -168,7 +168,7 @@ test.describe('Image block picker (§4.1)', () => {
 
 		// Persisted, and the library still holds exactly one copy — inserting reuses
 		// the asset rather than uploading a duplicate.
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		await saveNow(page);
 		await page.goto('/images');
 		await page.getByLabel('Search images').fill(filename);
 		await expect(page.locator('.image-tile')).toHaveCount(1);

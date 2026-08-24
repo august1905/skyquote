@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §13's data-integrity requirement: "Never lose user content — offline queue
 // for pending saves, restore-from-local-draft on reconnect."
@@ -38,21 +38,24 @@ test.describe('Offline safety and local drafts (§13)', () => {
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
 		await page.keyboard.type('Saved while online');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 
 		await context.setOffline(true);
 		await editor.click();
 		await page.keyboard.press('End');
 		await page.keyboard.type(' — and this while offline');
 
+		// Cmd+S provokes the save attempt rather than waiting out the 30s interval;
+		// it's the same flush, so the offline branch under test is the real one.
 		// Reported as offline, not as a failure: the work is safe on the device
 		// and the situation resolves itself.
+		await page.keyboard.press('ControlOrMeta+s');
 		await expect(page.locator('.template-editor-autosave-status')).toHaveText('Offline — your changes are saved on this device', { timeout: 8000 });
 
 		// Reconnecting alone should push it — no further typing, no reload.
 		await context.setOffline(false);
 		await page.evaluate(() => window.dispatchEvent(new Event('online')));
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		await saveNow(page);
 
 		// And it really reached the server: a fresh load shows it.
 		await page.goto(url);
@@ -68,7 +71,7 @@ test.describe('Offline safety and local drafts (§13)', () => {
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
 		await page.keyboard.type('Committed to the server');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 
 		// Make saving impossible — including the unload-time flush, which is why
 		// this aborts the request rather than going offline (see the file header).
@@ -76,6 +79,7 @@ test.describe('Offline safety and local drafts (§13)', () => {
 		await editor.click();
 		await page.keyboard.press('End');
 		await page.keyboard.type(' plus rescued text');
+		await page.keyboard.press('ControlOrMeta+s');
 		await expect(page.locator('.template-editor-autosave-status')).toHaveText('Save failed — will retry on your next edit', { timeout: 8000 });
 
 		// The tab goes away with that work still unsent. `about:blank` needs no
@@ -97,9 +101,9 @@ test.describe('Offline safety and local drafts (§13)', () => {
 		await expect(page.locator('.canvas-block .ProseMirror').first()).toContainText('plus rescued text');
 		await expect(banner).toHaveCount(0);
 
-		// Restoring marks it dirty, so autosave sends it — the recovered work
-		// ends up on the server rather than only back on screen.
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		// Restoring marks it dirty, so a save sends it — the recovered work ends up
+		// on the server rather than only back on screen.
+		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.canvas-block .ProseMirror').first()).toContainText('plus rescued text');
 		await expect(page.locator('.template-editor-draft-banner')).toHaveCount(0);
@@ -112,12 +116,13 @@ test.describe('Offline safety and local drafts (§13)', () => {
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
 		await page.keyboard.type('Keep only this');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 
 		await blockSaves(page);
 		await editor.click();
 		await page.keyboard.press('End');
 		await page.keyboard.type(' UNWANTED');
+		await page.keyboard.press('ControlOrMeta+s');
 		await expect(page.locator('.template-editor-autosave-status')).toHaveText('Save failed — will retry on your next edit', { timeout: 8000 });
 
 		await page.goto('about:blank');

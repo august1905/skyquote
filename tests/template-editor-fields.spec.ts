@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §6's
 // fillable fields — all ten types, both placement modes, role scoping,
@@ -65,7 +65,7 @@ test.describe('Fillable fields', () => {
 		await expect(fieldBlocks.nth(0).locator('.field-block-name')).toContainText('Company name');
 		await expect(fieldBlocks.nth(0).locator('.field-block-required')).toBeVisible();
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.field-block-name').first()).toContainText('Company name');
 	});

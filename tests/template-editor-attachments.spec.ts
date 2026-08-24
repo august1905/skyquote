@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §3's Attachments panel: "files appended to generated documents." Real
 // backend, real uploads — the file goes through POST /assets/files into Stratus
@@ -48,7 +48,7 @@ test.describe('Attachments (§3)', () => {
 		await item.getByLabel('Name for test-attachment.pdf').fill('Certificate of insurance');
 		await expect(item.locator('.attachments-item-meta')).toContainText('test-attachment.pdf');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		await saveNow(page);
 		await page.reload();
 		await openAttachments(page);
 		await expect(page.locator('.attachments-item input')).toHaveValue('Certificate of insurance');
@@ -84,7 +84,7 @@ test.describe('Attachments (§3)', () => {
 		await page.getByLabel('Add attachment').setInputFiles(PDF_FIXTURE);
 		await page.locator('.attachments-item').first().getByLabel('Name for test-attachment.pdf').fill('Scope of work');
 		await page.getByRole('button', { name: 'Close attachments panel' }).click();
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		await saveNow(page);
 
 		await page.getByRole('button', { name: 'Create document' }).click();
 		const wizard = page.locator('.wizard-card');

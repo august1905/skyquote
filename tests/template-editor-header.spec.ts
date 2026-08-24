@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §3 ①'s header bar: the object-type badge, the folder metadata chip and its
 // move-to-folder dialog, the role avatar stack + Manage, the ⋮ overflow's seven
@@ -119,7 +119,7 @@ test.describe('Header bar (§3 ①)', () => {
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
 		await page.keyboard.type('Content worth duplicating');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		await saveNow(page);
 
 		await fromTemplateMenu(page, 'Duplicate');
 
@@ -163,7 +163,7 @@ test.describe('Header bar (§3 ①)', () => {
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
 		await page.keyboard.type('The original wording');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		await saveNow(page);
 
 		await fromTemplateMenu(page, 'Version history');
 		const dialog = page.getByRole('dialog', { name: 'Version history' });
@@ -181,8 +181,12 @@ test.describe('Header bar (§3 ①)', () => {
 		await page.keyboard.press('End');
 		for (let i = 0; i < 'The original wording'.length; i += 1) await page.keyboard.press('Backspace');
 		await page.keyboard.type('Completely different wording');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('Saving…');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+		// "Saving…" used to appear here on its own, back when a 1.5s debounce fired
+		// after every pause in typing. On a 30s interval the honest intermediate
+		// state is "Unsaved changes" — which is still worth asserting, because it
+		// proves the edit registered as dirty before the flush below sends it.
+		await expect(page.locator('.template-editor-autosave-status')).toHaveText('Unsaved changes');
+		await saveNow(page);
 
 		await fromTemplateMenu(page, 'Version history');
 		await page.getByRole('dialog', { name: 'Version history' }).getByRole('button', { name: 'Restore' }).first().click();

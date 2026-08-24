@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // The recipient document view's submit/decline flow, on top of the Create
 // Document wizard already covered in template-editor-create-document.spec.ts.
@@ -34,7 +34,7 @@ test('a recipient must fill required fields before submitting, and the document 
 	await page.getByLabel('Fields for').selectOption({ label: 'Sales Rep' });
 	await page.getByRole('menuitem', { name: 'Checkbox' }).click();
 
-	await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+	await saveNow(page);
 
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');

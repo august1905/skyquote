@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
+import { saveNow } from './templateFixture';
 
 // §3 ④'s Content panel — the block/field palette in the right rail — and §4.1's
 // two insertion paths through it: click a tile (path 2) and drag a tile onto the
@@ -152,7 +153,7 @@ test.describe('Content panel', () => {
 		await expect(blocks).toHaveCount(3);
 		await expect(blocks.nth(1).locator('.block-toc')).toHaveCount(1);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.canvas-page-blocks > .canvas-block').nth(1).locator('.block-toc')).toHaveCount(1);
 	});
@@ -174,7 +175,7 @@ test.describe('Content panel', () => {
 		// confirmation that the drop landed on the block it says it did.
 		await expect(blocks.nth(0)).toHaveClass(/canvas-block-selected/);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.canvas-page-blocks > .canvas-block').nth(0).locator('.block-page-break')).toHaveCount(1);
 	});

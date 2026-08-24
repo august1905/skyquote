@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §4.5/§10: a non-editable list derived from headings, with page numbers
 // resolved from real pagination. Real backend, no mocking, same convention
@@ -62,7 +62,7 @@ test.describe('Table of contents (§4.5/§10)', () => {
 		await expect(entries.nth(2).locator('.toc-entry-text')).toHaveText('Fine print');
 		await expect(entries.nth(2).locator('.toc-entry-page')).toHaveText('4');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 		await page.reload();
 
 		const reloadedToc = page.locator('.block-toc');

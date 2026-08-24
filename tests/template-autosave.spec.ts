@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // Real backend, no mocking. Each test creates its own real Template row +
 // Stratus object via "+ New template".
@@ -11,12 +11,40 @@ test.describe('Template autosave', () => {
 		await editor.click();
 		await page.keyboard.type('Persisted by autosave');
 
-		// Waiting for the status label, not a fixed timeout, is the actual
-		// claim under test: that the debounced save really completed.
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		// Flushed rather than waiting out the 30s interval — the claim under test
+		// here is that a completed save survives a reload. That the interval fires
+		// on its own is a separate test below, kept out of @core because it costs
+		// half a minute of waiting by definition.
+		await saveNow(page);
 
 		await page.reload();
 		await expect(page.locator('.canvas-block .ProseMirror').first()).toContainText('Persisted by autosave');
+	});
+
+	test('saves on its own after the 30s interval, and says so meanwhile', async ({ page }) => {
+		// Longer than Playwright's 30s default, because this test waits out a 30s
+		// interval by design — the one place in the suite that does.
+		test.setTimeout(70_000);
+		// The interval itself — the one test that deliberately waits it out, and
+		// the reason it isn't in @core. Also guards the other direction: that an
+		// edit does NOT go straight to the server, which is the whole point of the
+		// change from a 1.5s debounce.
+		await openNewTemplate(page);
+
+		const status = page.locator('.template-editor-autosave-status');
+		await page.locator('.canvas-block .ProseMirror').first().click();
+		await page.keyboard.type('Left alone to autosave');
+
+		// Well past the old debounce, nowhere near the new interval: the work is
+		// on the device, and the status line says so rather than claiming it's saved.
+		await page.waitForTimeout(4000);
+		await expect(status).toHaveText('Unsaved changes');
+
+		// And then it saves itself, with nothing prompting it.
+		await expect(status).toHaveText('All changes saved', { timeout: 35000 });
+
+		await page.reload();
+		await expect(page.locator('.canvas-block .ProseMirror').first()).toContainText('Left alone to autosave');
 	});
 
 	test('a stale save shows the conflict banner, and "Reload latest" recovers the server copy', async ({ page, context }) => {
@@ -32,7 +60,7 @@ test.describe('Template autosave', () => {
 		// last saved.
 		await page.locator('.canvas-block .ProseMirror').first().click();
 		await page.keyboard.type('From tab A');
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 
 		// Same logged-in user, a second tab open on the same template,
 		// loading it fresh at version 2 — a real scenario (as real as this
@@ -48,13 +76,16 @@ test.describe('Template autosave', () => {
 		await page2.locator('.canvas-block .ProseMirror').first().click();
 		await page2.keyboard.press('ControlOrMeta+a');
 		await page2.keyboard.type('From tab B');
-		await expect(page2.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page2);
 
 		// Tab A edits again, unaware its in-memory version (2) is now stale
 		// (server is at 3, from tab B's save) — this save should 409.
 		await page.locator('.canvas-block .ProseMirror').first().click();
 		await page.keyboard.type(' — more');
-		await expect(page.locator('.template-editor-conflict-banner')).toBeVisible({ timeout: 5000 });
+		// Provoked with Cmd+S rather than waiting out the interval — the same flush,
+		// and it's the 409 response that's under test, not the timer.
+		await page.keyboard.press('ControlOrMeta+s');
+		await expect(page.locator('.template-editor-conflict-banner')).toBeVisible({ timeout: 10000 });
 
 		await page.getByRole('button', { name: 'Reload latest' }).click();
 		await expect(page.locator('.template-editor-conflict-banner')).toBeHidden();

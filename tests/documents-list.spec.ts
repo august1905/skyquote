@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // The Documents list and the internal document view — real backend, no mocking.
 //
@@ -17,7 +17,7 @@ async function createDocument(page: Page): Promise<{ title: string; link: string
 	// Real content, so the internal view has something to prove it rendered.
 	await page.locator('.canvas-block .ProseMirror').first().click();
 	await page.keyboard.type(CONTENT);
-	await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 10000 });
+	await saveNow(page);
 
 	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
 	await page.getByRole('button', { name: '+ Add role' }).click();

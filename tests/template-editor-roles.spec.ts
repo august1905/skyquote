@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §3's
 // Recipients/Roles panel — phase 3's first piece.
@@ -32,7 +32,7 @@ test.describe('Recipients / Roles panel', () => {
 		await expect(rows.nth(0).getByLabel('Role name')).toHaveValue('Sales Rep');
 		await expect(rows.nth(1).getByLabel('Role name')).toHaveValue('Client');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		await page.getByRole('button', { name: 'Recipients / Roles' }).click();

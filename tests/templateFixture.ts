@@ -43,3 +43,19 @@ export async function openNewTemplate(page: Page, name = 'zz-fixture'): Promise<
 	await expect(page.locator('.canvas-block .ProseMirror').first()).toBeVisible();
 	return meta.id;
 }
+
+/**
+ * Forces a save and waits for it to land.
+ *
+ * The editor autosaves on a **30-second interval** (see `useAutosave.ts`), not
+ * after every edit — so a test that merely waited for "All changes saved" would
+ * sit there for half a minute, forty-odd times a run. `Cmd+S` is the same flush
+ * every exit path uses, so this asserts the real save path rather than a
+ * test-only shortcut; it just doesn't wait out the clock.
+ *
+ * Use this before a `page.reload()` that checks persistence.
+ */
+export async function saveNow(page: Page) {
+	await page.keyboard.press('ControlOrMeta+s');
+	await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 15000 });
+}

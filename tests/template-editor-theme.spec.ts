@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §3's
 // Theme panel — the last phase-2 item.
@@ -32,7 +32,7 @@ test.describe('Theme panel', () => {
 		await expect(heading).toHaveCSS('font-family', /Impact/);
 		await expect(heading).toHaveCSS('color', 'rgb(255, 0, 0)');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		await expect(page.locator('.canvas-page').first()).toHaveCSS('background-color', 'rgb(238, 238, 238)');

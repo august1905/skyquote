@@ -4,8 +4,27 @@ import { getTemplate, saveTemplate } from '../../api/templates';
 import { useEditorStore } from '../store/editorStore';
 import { clearLocalDraft, writeLocalDraft } from './localDraft';
 
-// Spec §9.2.
-const AUTOSAVE_DEBOUNCE_MS = 1500;
+/**
+ * How often the editor sends the body to the server while you're working.
+ *
+ * This is an **interval, not a debounce** — the distinction is the whole point.
+ * A debounce restarts on every keystroke, so it saved after every pause in
+ * typing: a single paragraph could be a dozen PUTs, and each one rewrites the
+ * entire template body as a fresh Stratus object and bumps the row's version.
+ * An interval arms once when the document first becomes dirty and then fires,
+ * however much editing happens in the meantime — so a solid half hour of work is
+ * 60 saves rather than several hundred.
+ *
+ * Raised from 1.5s to 30s on 2026-08-24 (Grayson: "should not save after every
+ * single edit… save every 30 seconds to save space").
+ *
+ * **Nothing is risked by the longer gap**, because the local draft below is
+ * still written 400ms after you stop typing, and it's the copy that survives a
+ * closed tab (§13). The 30s window only governs how stale the *server's* copy
+ * gets, and every way of leaving the editor — blur, tab switch, navigation,
+ * Cmd+S — flushes immediately.
+ */
+const AUTOSAVE_INTERVAL_MS = 30_000;
 /**
  * §13's local-draft write, on a much shorter debounce than the server save.
  * It costs nothing but a `localStorage` write, and the whole point is for the
@@ -14,18 +33,19 @@ const AUTOSAVE_DEBOUNCE_MS = 1500;
  */
 const LOCAL_DRAFT_DEBOUNCE_MS = 400;
 
-export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'conflict' | 'error' | 'offline';
+/** `pending` = edited but not yet sent; the 30s interval is counting down and the local draft already holds the work. */
+export type AutosaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'conflict' | 'error' | 'offline';
 
 export interface UseAutosaveResult {
 	status: AutosaveStatus;
 	/** Discards local edits and reloads the template fresh from the server — the only conflict resolution phase 1 offers (see BUILD_STATUS.md's §9.2 notes). */
 	reloadFromServer: () => Promise<void>;
-	/** Saves now instead of waiting out the debounce — §9.3's `Cmd+S`. A no-op when there's nothing dirty, so pressing it repeatedly is harmless. */
+	/** Saves now instead of waiting out the 30s interval — §9.3's `Cmd+S`, and every exit path. A no-op when there's nothing dirty, so pressing it repeatedly is harmless. */
 	flush: () => Promise<void>;
 }
 
 /**
- * Debounced autosave for the template editor. Owns none of the document
+ * Interval autosave for the template editor. Owns none of the document
  * state itself — reads/writes only through the editor store's live
  * `getState()`, never a closed-over snapshot, since flush() is called from
  * timers and window event listeners outside React's normal render cycle.
@@ -112,18 +132,43 @@ export function useAutosave(userId: string | undefined): UseAutosaveResult {
 		}
 	}, []);
 
-	// The debounce: (re)armed on every edit. `editSeq` (not `lastCommandAt`)
-	// is the dependency because undo/redo both reset `lastCommandAt` to
-	// `null` — two undos in a row wouldn't register as a dependency *change*,
-	// silently failing to re-arm the timer.
+	/**
+	 * Arms the save timer the first time the document becomes dirty, and then
+	 * **leaves it alone**.
+	 *
+	 * The early return on an already-armed timer is what makes this an interval
+	 * rather than a debounce, and it's why this effect has no cleanup: React runs
+	 * cleanup on every dependency change, so clearing the timer there would cancel
+	 * and re-arm on every single edit — exactly the behaviour being removed.
+	 * Unmount cleanup lives in its own effect below.
+	 *
+	 * `editSeq` (not `lastCommandAt`) is a dependency because undo/redo both reset
+	 * `lastCommandAt` to `null` — two undos in a row wouldn't register as a
+	 * dependency *change*, so the timer would never be armed for them at all.
+	 */
 	useEffect(() => {
 		if (!dirty || status === 'conflict') return;
-		if (timerRef.current) clearTimeout(timerRef.current);
-		timerRef.current = setTimeout(() => void flush(), AUTOSAVE_DEBOUNCE_MS);
-		return () => {
-			if (timerRef.current) clearTimeout(timerRef.current);
-		};
+		// The status line must stop claiming everything is saved the moment it
+		// isn't. Over a 1.5s debounce that was invisible; over 30s it would be a
+		// lie sitting on screen while someone typed.
+		if (statusRef.current === 'saved' || statusRef.current === 'idle') setStatus('pending');
+		if (timerRef.current) return;
+		timerRef.current = setTimeout(() => {
+			timerRef.current = null;
+			void flush();
+		}, AUTOSAVE_INTERVAL_MS);
 	}, [dirty, editSeq, status, flush]);
+
+	// Unmount only — see above for why this can't live in the effect that arms it.
+	useEffect(
+		() => () => {
+			if (timerRef.current) {
+				clearTimeout(timerRef.current);
+				timerRef.current = null;
+			}
+		},
+		[]
+	);
 
 	/**
 	 * §13's local draft. Written on its own short debounce, independent of the

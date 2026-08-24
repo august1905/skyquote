@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { insertImageFromLibrary } from './imageLibrary';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // Real backend, no mocking. Home for phase 2's per-block-type coverage as
 // the block catalog (§15 phase 2) grows — one describe per block type.
@@ -25,7 +25,7 @@ test.describe('Page break block', () => {
 		await page.getByRole('button', { name: 'Delete' }).click();
 		await expect(pageBreaks).toHaveCount(1);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.block-page-break')).toHaveCount(1);
 	});
@@ -68,7 +68,7 @@ test.describe('Columns block', () => {
 		await page.getByRole('button', { name: 'Delete' }).click();
 		await expect(columns.nth(0).locator('.block-page-break')).toHaveCount(1);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		const columnsAfterReload = page.locator('.block-column');
@@ -161,7 +161,7 @@ test.describe('Table block', () => {
 		await page.getByLabel('Header row').uncheck();
 		await expect(page.locator('.block-table-header-row')).toHaveCount(0);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		await expect(page.locator('.block-table-cell')).toHaveCount(4);
@@ -204,7 +204,7 @@ test.describe('Image block', () => {
 		if (!after) throw new Error('expected the image to have a bounding box after resizing');
 		expect(after.width).toBeGreaterThan(before.width);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		const imageAfterReload = page.locator('.block-image');
@@ -269,7 +269,7 @@ test.describe('Video block', () => {
 		await page.getByLabel('Autoplay').check();
 		await expect(page.locator('.block-video-embed')).toHaveAttribute('src', 'https://www.youtube.com/embed/jNQXAC9IVRw?autoplay=1');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		// Reloading resets the click-to-play state (never persisted) back to

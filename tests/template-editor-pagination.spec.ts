@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §10's real pagination, v1-scoped to whole-block granularity (see
 // distributePages.ts's own comment) — real backend, no mocking, same
@@ -50,7 +50,7 @@ test.describe('Real pagination (§10)', () => {
 		await expect(page.locator('.canvas-block .ProseMirror').nth(0)).toContainText(LONG_PARAGRAPH);
 		await expect(page.locator('.canvas-block .ProseMirror').nth(7)).toContainText('(block 8)');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 		await page.reload();
 
 		await expect(page.locator('.canvas-page')).toHaveCount(2, { timeout: 10000 });
@@ -73,7 +73,7 @@ test.describe('Real pagination (§10)', () => {
 		await expect(firstPage.locator('.block-page-break')).toBeVisible();
 		await expect(secondPage.locator('.ProseMirror')).toHaveText('After the break');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		await expect(page.locator('.canvas-page')).toHaveCount(2);
@@ -110,7 +110,7 @@ test.describe('Real pagination (§10)', () => {
 		await page.getByRole('button', { name: 'Close page settings' }).click();
 		await expect(page.locator('.page-settings-panel')).toHaveCount(0);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		const reloadedBox = await page.locator('.canvas-page').first().boundingBox();

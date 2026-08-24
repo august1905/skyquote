@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §6.1 rule 3's "Preview as {role}" mode, real backend, no mocking.
 
@@ -89,7 +89,7 @@ test.describe('Preview as role', () => {
 		// The preview toggle itself is ephemeral editor-UI state, not part of
 		// the saved template — a reload always comes back to "Not previewing",
 		// and nothing entered while previewing was ever sent to the backend.
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(page.getByLabel('Preview as')).toHaveValue('');
 		await expect(page.locator('.rt-field-chip-button')).toBeVisible();

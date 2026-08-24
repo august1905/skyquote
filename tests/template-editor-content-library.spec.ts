@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §8's Content Library. Real backend, real Data Store, real Stratus objects —
 // no mocking, same convention as the rest of this suite.
@@ -138,7 +138,7 @@ test.describe('Content Library (§8)', () => {
 			await expect(panelB.locator('.content-library-tile-meta').filter({ hasText: 'used 1×' })).toBeVisible();
 
 			// Persists as real template content, not just a transient render.
-			await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+			await saveNow(page);
 			await page.reload();
 			await expect(page.locator('.canvas-block .ProseMirror').filter({ hasText: 'Reusable boilerplate' })).toBeVisible();
 		});

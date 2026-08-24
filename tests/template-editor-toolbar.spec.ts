@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // §2's contextual formatting toolbar and §9.3's keyboard shortcuts. Real
 // backend, no mocking. These two features share a spec because they share
@@ -87,7 +87,7 @@ test.describe('Formatting toolbar (§2)', () => {
 		await expect(editor.locator('em')).toHaveCount(1);
 		await expect(editor.locator('u')).toHaveCount(1);
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 8000 });
+		await saveNow(page);
 		await page.reload();
 
 		const reloaded = page.locator('.canvas-block .ProseMirror').first();
@@ -264,7 +264,7 @@ test.describe('Keyboard shortcuts (§9.3)', () => {
 		await expect(page.locator('.canvas-block-selected')).toHaveCount(0);
 	});
 
-	test('Cmd+S saves immediately instead of waiting out the 1.5s autosave debounce', async ({ page }) => {
+	test('Cmd+S saves immediately instead of waiting out the 30s autosave interval', async ({ page }) => {
 		await newTemplateWithText(page, 'Force saved');
 
 		// Asserting on the network rather than the status label: a PUT landing

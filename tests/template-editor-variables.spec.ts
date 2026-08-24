@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, saveNow } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §5/§6's
 // variable model — system variables, custom variables, the inline `variable`
@@ -20,7 +20,7 @@ test.describe('Variables', () => {
 		const chip = editor.locator('.rt-variable-chip-button');
 		await expect(chip).toHaveText('[Client.Name]');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 
 		await expect(page.locator('.canvas-block .ProseMirror').first().locator('.rt-variable-chip-button')).toHaveText('[Client.Name]');
@@ -116,7 +116,7 @@ test.describe('Variables', () => {
 		await expect(page.locator('.template-name-chip')).toHaveText('[Client.Company]');
 		await expect(page.locator('.template-name-display')).toContainText('Proposal');
 
-		await expect(page.locator('.template-editor-autosave-status')).toHaveText('All changes saved', { timeout: 5000 });
+		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.template-name-chip')).toHaveText('[Client.Company]');
 	});
