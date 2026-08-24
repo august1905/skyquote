@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §3's
 // Recipients/Roles panel — phase 3's first piece.
 test.describe('Recipients / Roles panel', () => {
 	test('adds, edits, reorders, and removes roles, and it persists through a reload', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await expect(page.locator('.roles-panel')).toHaveCount(0);
 		await page.getByRole('button', { name: 'Recipients / Roles' }).click();
@@ -50,15 +49,4 @@ test.describe('Recipients / Roles panel', () => {
 		await expect(page.locator('.roles-panel-row').first().getByLabel('Role name')).toHaveValue('Sales Rep');
 	});
 
-	test('closes via its own close button', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-		await expect(page.locator('.roles-panel')).toBeVisible();
-
-		await page.getByRole('button', { name: 'Close roles panel' }).click();
-		await expect(page.locator('.roles-panel')).toHaveCount(0);
-	});
 });

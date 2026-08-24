@@ -22,7 +22,7 @@ test.describe('Login page', () => {
 		await expect(page.getByRole('alert')).toHaveText('Invalid email or password');
 	});
 
-	test('a valid login lands on /home', async ({ page }) => {
+	test('a valid login lands on /home @core', async ({ page }) => {
 		await page.goto('/login');
 		await page.getByLabel('Email').fill(SHARED_USER.email);
 		await page.getByLabel('Password').fill(SHARED_USER.password);

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §11's Create Document wizard + the recipient's own public web-link view.
 // Real backend, no mocking. The wizard runs as the logged-in admin; the
@@ -6,10 +7,8 @@ import { test, expect } from '@playwright/test';
 // browser context to genuinely exercise "no login required" rather than
 // relying on the admin's own cookie happening to be harmless there.
 
-test('creating a document produces a per-recipient link that opens with no login, with that role\'s own field live and the pricing table\'s frozen total shown', async ({ page, context }) => {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+test("creating a document produces a per-recipient link that opens with no login, with that role's own field live and the pricing table's frozen total shown @core", async ({ page, context }) => {
+	await openNewTemplate(page);
 
 	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
 	await page.getByRole('button', { name: '+ Add role' }).click();

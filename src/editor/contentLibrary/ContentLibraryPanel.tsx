@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { deleteContentLibraryItem, type ContentLibraryItem } from '../../api/contentLibrary';
 import { useEditorStore } from '../store/editorStore';
+import { ensureContentLibraryItems } from '../workspaceData';
 import { useContentLibrary } from './useContentLibrary';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { filterByQuery, sortForTab, type ContentLibraryTab } from './contentLibraryFilters';
@@ -93,6 +94,11 @@ function ContentLibraryTile({
  * and closed repeatedly without re-requesting the list.
  */
 export function ContentLibraryPanel({ onClose }: ContentLibraryPanelProps) {
+	// Loaded on demand rather than on every editor open — see workspaceData.ts.
+	useEffect(() => {
+		void ensureContentLibraryItems();
+	}, []);
+
 	const items = useEditorStore((s) => s.contentLibraryItems);
 	const status = useEditorStore((s) => s.contentLibraryStatus);
 	const removeItem = useEditorStore((s) => s.removeContentLibraryItem);

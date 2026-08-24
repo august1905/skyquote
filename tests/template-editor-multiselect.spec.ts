@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §4.2's
 // multi-select. Drag-marquee and dragging the whole selection as one group
@@ -6,9 +7,7 @@ import { test, expect } from '@playwright/test';
 // input path exercised here.
 test.describe('Multi-select', () => {
 	test('shift-click adds/removes blocks from the selection, and a plain click resets it to one', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		// Get to three blocks: the template's own default text block, plus two more.
 		await page.getByRole('button', { name: '+ Add block' }).click();
@@ -40,9 +39,7 @@ test.describe('Multi-select', () => {
 	});
 
 	test('bulk Delete removes every selected block, and bulk Duplicate clones every selected block', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		const editors = page.locator('.canvas-block .ProseMirror');
 		await editors.nth(0).click();
@@ -78,9 +75,7 @@ test.describe('Multi-select', () => {
 	});
 
 	test('a locked block cannot be shift-clicked into a multi-selection', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Text' }).click();

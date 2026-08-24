@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { SHARED_USER, TEST_ADMIN, type TestAccount } from './auth-storage-state';
+import { openNewTemplate } from './templateFixture';
 
 // §12's exclusive edit lock, per Grayson's decision (2026-08-21): one editor
 // at a time, everyone else refused entry — not real-time co-editing, and not
@@ -24,9 +25,7 @@ async function logIn(page: Page, { email, password }: TestAccount): Promise<void
 
 /** Opens a fresh template as the already-signed-in shared user and returns its editor URL. */
 async function newTemplate(page: Page): Promise<string> {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 	// The canvas being present is what proves the lock was actually acquired —
 	// a blocked open renders the locked screen instead.
 	await expect(page.locator('.canvas-page').first()).toBeVisible();
@@ -34,7 +33,7 @@ async function newTemplate(page: Page): Promise<string> {
 }
 
 test.describe('Exclusive edit lock (§12)', () => {
-	test('a second person opening the same template is locked out and told who has it, then gets in once the first leaves', async ({ page, context }) => {
+	test('a second person opening the same template is locked out and told who has it, then gets in once the first leaves @core', async ({ page, context }) => {
 		// Person A: the suite's default signed-in user (see global-setup).
 		const url = await newTemplate(page);
 

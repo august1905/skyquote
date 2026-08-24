@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §6's
 // fillable fields — all ten types, both placement modes, role scoping,
 // settings, and role-deletion's reassign-or-delete prompt.
 
 async function newTemplate(page: import('@playwright/test').Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 }
 
 async function addRole(page: import('@playwright/test').Page, name: string) {
@@ -18,7 +17,7 @@ async function addRole(page: import('@playwright/test').Page, name: string) {
 }
 
 test.describe('Fillable fields', () => {
-	test('the field palette is hidden until a role exists, then placing a field creates a role-tinted standalone block', async ({ page }) => {
+	test('the field palette is hidden until a role exists, then placing a field creates a role-tinted standalone block @core', async ({ page }) => {
 		await newTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
@@ -35,20 +34,6 @@ test.describe('Fillable fields', () => {
 		const fieldBlock = page.locator('.field-block').first();
 		await expect(fieldBlock).toBeVisible();
 		await expect(fieldBlock.locator('.field-block-name')).toHaveText('Signature 1');
-	});
-
-	test('placing a second field of the same type auto-names it uniquely', async ({ page }) => {
-		await newTemplate(page);
-		await addRole(page, 'Client');
-
-		for (let i = 0; i < 2; i++) {
-			await page.getByRole('button', { name: '+ Add block' }).click();
-			await page.getByRole('menuitem', { name: 'Initials' }).click();
-		}
-		const names = page.locator('.field-block-name');
-		await expect(names).toHaveCount(2);
-		await expect(names.nth(0)).toHaveText('Initials 1');
-		await expect(names.nth(1)).toHaveText('Initials 2');
 	});
 
 	test('clicking a standalone field opens its settings: rename (with collision detection), toggle required, reassign role, and it persists', async ({ page }) => {

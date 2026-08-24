@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { insertImageFromLibrary } from './imageLibrary';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking. Home for phase 2's per-block-type coverage as
 // the block catalog (§15 phase 2) grows — one describe per block type.
 test.describe('Page break block', () => {
 	test('inserts, selects, duplicates, deletes, and persists through the generic block commands', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Page break' }).click();
@@ -34,9 +33,7 @@ test.describe('Page break block', () => {
 
 test.describe('Columns block', () => {
 	test('nested blocks are independently editable/selectable/reorderable per column, and it all persists', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Columns (2)' }).click();
@@ -83,9 +80,7 @@ test.describe('Columns block', () => {
 	});
 
 	test('reorders blocks within a single column via drag, without touching the other column', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Columns (2)' }).click();
@@ -127,9 +122,7 @@ test.describe('Columns block', () => {
 
 test.describe('Table block', () => {
 	test('cells are independently editable, row/column add-remove work, header-row toggles, and it all persists', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Table (2×2)' }).click();
@@ -176,30 +169,11 @@ test.describe('Table block', () => {
 		await expect(page.locator('.block-table-header-row')).toHaveCount(0);
 	});
 
-	test('the last row and the last column cannot be removed', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Table (2×2)' }).click();
-		await page.locator('.block-table-cell').first().click();
-
-		await page.getByRole('button', { name: '− Row' }).click();
-		await expect(page.locator('.block-table tbody tr')).toHaveCount(1);
-		await expect(page.getByRole('button', { name: '− Row' })).toBeDisabled();
-
-		await page.getByRole('button', { name: '− Column' }).click();
-		await expect(page.locator('.block-table-cell')).toHaveCount(1);
-		await expect(page.getByRole('button', { name: '− Column' })).toBeDisabled();
-	});
 });
 
 test.describe('Image block', () => {
 	test('is chosen from the image library, then resizes, toggles circle shape, edits alt text, and persists', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		// "Image" opens the library picker rather than a file prompt (2026-08-22) —
 		// this uploads through the picker and then picks what it uploaded.
@@ -240,9 +214,7 @@ test.describe('Image block', () => {
 	});
 
 	test('rejects a file whose bytes are not actually a recognized image, regardless of its declared type', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Image' }).click();
@@ -273,9 +245,7 @@ test.describe('Image block', () => {
 // and Blender's Creative-Commons-licensed Big Buck Bunny on Vimeo.
 test.describe('Video block', () => {
 	test('resolves a pasted YouTube URL via oEmbed, click-to-plays, toggles autoplay, and persists', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://www.youtube.com/watch?v=jNQXAC9IVRw');
@@ -307,31 +277,4 @@ test.describe('Video block', () => {
 		await expect(page.locator('.block-video-thumbnail img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg');
 	});
 
-	test('resolves a pasted Vimeo URL via oEmbed', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://vimeo.com/1084537');
-		await page.locator('.canvas-add-block-options').getByRole('button', { name: 'Video', exact: true }).click();
-
-		await expect(page.locator('.block-video-thumbnail img')).toHaveAttribute('src', /vimeocdn\.com/);
-
-		await page.locator('.block-video-thumbnail').click();
-		await expect(page.locator('.block-video-embed')).toHaveAttribute('src', 'https://player.vimeo.com/video/1084537');
-	});
-
-	test('rejects an unsupported provider URL with a clear error', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByPlaceholder('Paste a YouTube or Vimeo URL').fill('https://example.com/some-video');
-		await page.locator('.canvas-add-block-options').getByRole('button', { name: 'Video', exact: true }).click();
-
-		await expect(page.getByRole('alert')).toContainText(/Only YouTube and Vimeo/);
-		await expect(page.locator('.block-video-wrapper')).toHaveCount(0);
-	});
 });

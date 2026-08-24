@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
 	addPricingItem,
 	addPricingSection,
@@ -11,6 +11,7 @@ import {
 	updatePricingItem,
 } from '../commands';
 import { useEditorStore } from '../store/editorStore';
+import { ensureCatalogItems } from '../workspaceData';
 import type { PricingItem, PricingTableBlock } from '../types';
 import { computePricingTableTotals } from '../../pricing/computeTotals';
 import { formatMoney } from '../../pricing/formatMoney';
@@ -36,6 +37,13 @@ interface Group {
  * something to default a UI toggle for.
  */
 export function PricingTableBlockView({ pageId, block, selected }: BlockViewProps<PricingTableBlock>) {
+	// §7.6's "price changed since it was added" check compares against the
+	// catalog, so a template containing a pricing table is one of the two things
+	// that genuinely needs it — the Catalog panel being the other.
+	useEffect(() => {
+		void ensureCatalogItems();
+	}, []);
+
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
 	const catalogItems = useEditorStore((s) => s.catalogItems);

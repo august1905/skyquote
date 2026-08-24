@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §4.5/§10: a non-editable list derived from headings, with page numbers
 // resolved from real pagination. Real backend, no mocking, same convention
@@ -22,9 +23,7 @@ async function insertToc(page: import('@playwright/test').Page) {
 
 test.describe('Table of contents (§4.5/§10)', () => {
 	test('lists headings in order with correct page numbers, live-updates as headings are added, and respects the heading-depth filter', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		// TOC first, before any heading exists — "Live-updates as headings change" (§4.5).
 		await insertToc(page);

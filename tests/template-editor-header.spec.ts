@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §3 ①'s header bar: the object-type badge, the folder metadata chip and its
 // move-to-folder dialog, the role avatar stack + Manage, the ⋮ overflow's seven
@@ -9,9 +10,7 @@ import { test, expect, type Page } from '@playwright/test';
 // a route exists to do so.
 
 async function newTemplate(page: Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 	return /templates\/([^/]+)\/edit/.exec(page.url())?.[1] ?? '';
 }
 
@@ -137,7 +136,7 @@ test.describe('Header bar (§3 ①)', () => {
 		await expect(page.locator('.canvas-block .ProseMirror').first()).toContainText('Content worth duplicating');
 	});
 
-	test('Delete confirms first, then the template is gone', async ({ page }) => {
+	test('Delete confirms first, then the template is gone @core', async ({ page }) => {
 		const id = await newTemplate(page);
 
 		await openTemplateMenu(page);

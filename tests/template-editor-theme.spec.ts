@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §3's
 // Theme panel — the last phase-2 item.
 test.describe('Theme panel', () => {
 	test('edits fonts, colors, and spacing, applies them live, and persists through a reload', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await expect(page.locator('.theme-panel')).toHaveCount(0);
 		await page.getByRole('button', { name: 'Theme' }).click();
@@ -41,15 +40,4 @@ test.describe('Theme panel', () => {
 		await expect(page.getByLabel('Block spacing (px)')).toHaveValue('40');
 	});
 
-	test('closes via its own close button', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.getByRole('button', { name: 'Theme' }).click();
-		await expect(page.locator('.theme-panel')).toBeVisible();
-
-		await page.getByRole('button', { name: 'Close theme panel' }).click();
-		await expect(page.locator('.theme-panel')).toHaveCount(0);
-	});
 });

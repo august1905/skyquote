@@ -157,7 +157,7 @@ test.describe('Content panel', () => {
 		await expect(page.locator('.canvas-page-blocks > .canvas-block').nth(1).locator('.block-toc')).toHaveCount(1);
 	});
 
-	test('dragging a tile above an existing block inserts it there, not at the end', async ({ page, request }) => {
+	test('dragging a tile above an existing block inserts it there, not at the end @core', async ({ page, request }) => {
 		await openFixtureTemplate(page, request, 'drag');
 
 		const existingBlock = page.locator('.canvas-block').first();

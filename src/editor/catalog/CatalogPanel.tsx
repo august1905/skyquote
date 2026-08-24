@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEditorStore } from '../store/editorStore';
+import { ensureCatalogItems } from '../workspaceData';
 import { CatalogItemCard } from './CatalogItemCard';
 import './catalog.css';
 
@@ -9,6 +10,11 @@ interface CatalogPanelProps {
 
 /** §3's Catalog/Pricing right-rail panel — §7.7's "product catalog browser". Search is client-side only, same "no folders/tabs/search yet" scope as the Documents/Templates lists — see routes/catalogItems.js. */
 export function CatalogPanel({ onClose }: CatalogPanelProps) {
+	// Loaded on demand rather than on every editor open — see workspaceData.ts.
+	useEffect(() => {
+		void ensureCatalogItems();
+	}, []);
+
 	const catalogItems = useEditorStore((s) => s.catalogItems);
 	const status = useEditorStore((s) => s.catalogItemsStatus);
 	const [query, setQuery] = useState('');

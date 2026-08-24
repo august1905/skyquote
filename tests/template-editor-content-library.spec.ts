@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §8's Content Library. Real backend, real Data Store, real Stratus objects —
 // no mocking, same convention as the rest of this suite.
@@ -74,9 +75,7 @@ async function withCleanLibrary(request: APIRequestContext, body: () => Promise<
 }
 
 async function newTemplate(page: Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 }
 
 /** The tile for one item, addressed by its own accessible name rather than a substring text match — two items whose names share a prefix would otherwise both match. */

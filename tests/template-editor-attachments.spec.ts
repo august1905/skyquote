@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { openNewTemplate } from './templateFixture';
 
 // §3's Attachments panel: "files appended to generated documents." Real
 // backend, real uploads — the file goes through POST /assets/files into Stratus
@@ -11,9 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PDF_FIXTURE = path.join(__dirname, 'fixtures', 'test-attachment.pdf');
 
 async function newTemplate(page: Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 }
 
 async function openAttachments(page: Page) {

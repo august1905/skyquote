@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { insertImageFromLibrary } from './imageLibrary';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §9.4's
 // persistent, dismissible issues indicator.
 test.describe('Validation surface', () => {
 	test('is absent on a clean template, then appears and lists a duplicate-field-name issue', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await expect(page.locator('.validation-indicator-badge')).toHaveCount(0);
 
@@ -42,9 +41,7 @@ test.describe('Validation surface', () => {
 	});
 
 	test('flags an unresolved variable with no default, and an image missing alt text, as warnings', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();

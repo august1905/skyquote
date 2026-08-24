@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking. Each test creates its own real Template row +
 // Stratus object via "+ New template".
 test.describe('Template autosave', () => {
-	test('edits persist across a reload once autosave completes', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+	test('edits persist across a reload once autosave completes @core', async ({ page }) => {
+		await openNewTemplate(page);
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
@@ -21,9 +20,7 @@ test.describe('Template autosave', () => {
 	});
 
 	test('a stale save shows the conflict banner, and "Reload latest" recovers the server copy', async ({ page, context }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 		const url = page.url();
 
 		// Tab A's first save (version 1 → 2) — tab B deliberately doesn't

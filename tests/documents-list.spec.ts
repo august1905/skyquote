@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // The Documents list and the internal document view — real backend, no mocking.
 //
@@ -11,9 +12,7 @@ const CONTENT = 'Scope of work: quarterly window cleaning';
 
 /** Creates a template with one line of real content, then a document from it. Returns the document title and the recipient's link. */
 async function createDocument(page: Page): Promise<{ title: string; link: string }> {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 
 	// Real content, so the internal view has something to prove it rendered.
 	await page.locator('.canvas-block .ProseMirror').first().click();

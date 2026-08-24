@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { blockTypeLabel } from '../blocks/registry';
 import { findBlockById } from '../commands/blockTree';
 import { useEditorStore } from '../store/editorStore';
+import { ensureMentionableUsers } from '../workspaceData';
 import { CommentComposer } from './CommentComposer';
 import { CommentThreadView } from './CommentThreadView';
 import {
@@ -25,6 +26,12 @@ import './comments.css';
  * reachable, not deleted.
  */
 export function CommentsSidebar({ onClose }: { onClose: () => void }) {
+	// The @-mention list is only ever read in here and in the composers this
+	// renders, so it loads with the sidebar rather than with the editor.
+	useEffect(() => {
+		void ensureMentionableUsers();
+	}, []);
+
 	const comments = useEditorStore((s) => s.comments);
 	const authors = useEditorStore((s) => s.commentAuthors);
 	const mentionableUsers = useEditorStore((s) => s.mentionableUsers);

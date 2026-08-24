@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // The recipient document view's submit/decline flow, on top of the Create
 // Document wizard already covered in template-editor-create-document.spec.ts.
@@ -6,9 +7,7 @@ import { test, expect } from '@playwright/test';
 // completely separate, session-less browser context.
 
 async function newTemplate(page: import('@playwright/test').Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 }
 
 async function addRole(page: import('@playwright/test').Page, name: string) {
@@ -18,7 +17,7 @@ async function addRole(page: import('@playwright/test').Page, name: string) {
 	await page.getByRole('button', { name: 'Close roles panel' }).click();
 }
 
-test('a recipient must fill required fields before submitting, and the document completes once every recipient has', async ({ page, context }) => {
+test('a recipient must fill required fields before submitting, and the document completes once every recipient has @core', async ({ page, context }) => {
 	await newTemplate(page);
 	await addRole(page, 'Client');
 	await addRole(page, 'Sales Rep');

@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §7.7: browse the catalog, drag an item into a pricing table, and see a
 // "price changed since insert" indicator once the catalog's price diverges
@@ -50,9 +51,7 @@ test.describe('Catalog integration', () => {
 		const { catalogItem } = (await created.json()) as CatalogItemResponse;
 
 		try {
-			await page.goto('/templates');
-			await page.getByRole('button', { name: '+ New template' }).click();
-			await page.waitForURL(/\/templates\/.+\/edit/);
+			await openNewTemplate(page);
 
 			await page.getByRole('button', { name: '+ Add block' }).click();
 			await page.getByRole('menuitem', { name: 'Pricing table' }).click();

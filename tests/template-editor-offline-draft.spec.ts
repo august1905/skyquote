@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §13's data-integrity requirement: "Never lose user content — offline queue
 // for pending saves, restore-from-local-draft on reconnect."
@@ -29,9 +30,7 @@ async function blockSaves(page: Page): Promise<void> {
 
 test.describe('Offline safety and local drafts (§13)', () => {
 	test('an edit made offline is kept on the device and sent automatically on reconnect', async ({ page, context }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 		const url = page.url();
 
 		// Settle first, so the text typed below is unambiguously the only thing
@@ -63,9 +62,7 @@ test.describe('Offline safety and local drafts (§13)', () => {
 	});
 
 	test('work lost to a closed tab is offered back on next open, and restoring it saves it', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 		const url = page.url();
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
@@ -109,9 +106,7 @@ test.describe('Offline safety and local drafts (§13)', () => {
 	});
 
 	test('discarding a recovered draft leaves the server copy alone and does not offer it again', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 		const url = page.url();
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();

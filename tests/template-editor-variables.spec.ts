@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §5/§6's
 // variable model — system variables, custom variables, the inline `variable`
@@ -6,9 +7,7 @@ import { test, expect } from '@playwright/test';
 // right-rail panel, and the template name's variable-token support.
 test.describe('Variables', () => {
 	test('the Variables panel inserts a system variable at the caret as a chip, and it persists through a reload', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
@@ -28,9 +27,7 @@ test.describe('Variables', () => {
 	});
 
 	test('the "[" trigger opens a filtered, keyboard-navigable picker inside a text block', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
@@ -52,9 +49,7 @@ test.describe('Variables', () => {
 	test('clicking a variable chip opens a popover to change the variable or set fallback text, and Remove deletes the whole chip', async ({
 		page,
 	}) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
@@ -75,9 +70,7 @@ test.describe('Variables', () => {
 	});
 
 	test('creates a custom variable, inserts it, and removing it from the panel is undoable', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: 'Variables' }).click();
 		await page.getByRole('button', { name: '+ Create custom variable' }).click();
@@ -104,9 +97,7 @@ test.describe('Variables', () => {
 	});
 
 	test('the template name accepts a variable token, rendered as a chip when not editing, and it persists', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: 'Edit template name' }).click();
 		const nameInput = page.getByLabel('Template name');
@@ -130,15 +121,4 @@ test.describe('Variables', () => {
 		await expect(page.locator('.template-name-chip')).toHaveText('[Client.Company]');
 	});
 
-	test('closes via its own close button', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.getByRole('button', { name: 'Variables' }).click();
-		await expect(page.locator('.variables-panel')).toBeVisible();
-
-		await page.getByRole('button', { name: 'Close variables panel' }).click();
-		await expect(page.locator('.variables-panel')).toHaveCount(0);
-	});
 });

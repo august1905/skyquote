@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTemplate } from '../api/templates';
-import { listCatalogItems } from '../api/catalogItems';
-import { listContentLibraryItems } from '../api/contentLibrary';
-import { listComments, listMentionableUsers } from '../api/comments';
+import { listComments } from '../api/comments';
 import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
 import { PageNavigator } from '../editor/canvas/PageNavigator';
 import { EditorDndProvider } from '../editor/dnd/EditorDndProvider';
@@ -81,17 +79,12 @@ function TemplateEditor() {
 	// Closed by default — it's a navigation aid, and a template usually has one
 	// page, so opening it unprompted would just narrow the canvas.
 	const [pagesOpen, setPagesOpen] = useState(false);
-	const setCatalogItems = useEditorStore((s) => s.setCatalogItems);
-	const setCatalogItemsStatus = useEditorStore((s) => s.setCatalogItemsStatus);
-	const setContentLibraryItems = useEditorStore((s) => s.setContentLibraryItems);
-	const setContentLibraryStatus = useEditorStore((s) => s.setContentLibraryStatus);
 	// §12's comment sidebar (the header's comment icon). Its open state lives in
 	// the store, not here, because the canvas opens it too — see editorStore.ts.
 	const commentsOpen = useEditorStore((s) => s.commentsSidebarOpen);
 	const setCommentsOpen = useEditorStore((s) => s.setCommentsSidebarOpen);
 	const setComments = useEditorStore((s) => s.setComments);
 	const setCommentsStatus = useEditorStore((s) => s.setCommentsStatus);
-	const setMentionableUsers = useEditorStore((s) => s.setMentionableUsers);
 	const comments = useEditorStore((s) => s.comments);
 	// §10's PDF export renders the body itself, and reuses the canvas's own
 	// physical-page map so the PDF's page breaks are the ones on screen.
@@ -144,44 +137,13 @@ function TemplateEditor() {
 	// since a blocked user never sees the body even though it was fetched.
 	const { status: lockStatus, blockedReason, retry: retryLock } = useTemplateLock(id);
 
-	// Fetched once per editor session, independent of `loadTemplate`'s own
-	// load effect below — catalog items are workspace-level, not scoped to
-	// this template (see editorStore.ts's `catalogItems` comment). A failure
-	// here degrades to an empty Catalog panel + no "price changed" checks
-	// rather than blocking the editor from loading at all.
-	useEffect(() => {
-		let cancelled = false;
-		setCatalogItemsStatus('loading');
-		listCatalogItems()
-			.then((items) => {
-				if (!cancelled) setCatalogItems(items);
-			})
-			.catch(() => {
-				if (!cancelled) setCatalogItemsStatus('error');
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [setCatalogItems, setCatalogItemsStatus]);
-
-	// §8's library, fetched once per editor session for the same reasons the
-	// catalog is (workspace-level, not template-scoped) and in its own effect
-	// so a library failure degrades to an empty panel rather than taking the
-	// catalog — or the editor — down with it.
-	useEffect(() => {
-		let cancelled = false;
-		setContentLibraryStatus('loading');
-		listContentLibraryItems()
-			.then((items) => {
-				if (!cancelled) setContentLibraryItems(items);
-			})
-			.catch(() => {
-				if (!cancelled) setContentLibraryStatus('error');
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [setContentLibraryItems, setContentLibraryStatus]);
+	// The catalog, the content library and the @-mention list used to be fetched
+	// here, unconditionally, on every editor open — three requests per open for
+	// data most sessions never look at. They're workspace-level, not
+	// template-scoped, and each one now loads the first time something actually
+	// needs it: see `editor/workspaceData.ts` and its callers (CatalogPanel,
+	// PricingTableBlockView, ContentLibraryPanel, SaveToLibraryDialog,
+	// CommentsSidebar).
 
 	// §12's comments, template-scoped — refetched whenever the open template
 	// changes, unlike the catalog/library which are workspace-level. Degrades
@@ -205,24 +167,6 @@ function TemplateEditor() {
 			cancelled = true;
 		};
 	}, [id, setComments, setCommentsStatus]);
-
-	// The @-mention list, fetched once per editor session — it's the workspace's
-	// user list, not this template's. A failure here means mentions silently
-	// stop resolving, which is why it's separate from the comments fetch above
-	// rather than sharing its failure state.
-	useEffect(() => {
-		let cancelled = false;
-		listMentionableUsers()
-			.then((users) => {
-				if (!cancelled) setMentionableUsers(users);
-			})
-			.catch(() => {
-				// Intentionally ignored — see above.
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [setMentionableUsers]);
 
 	useEffect(() => {
 		if (!id) return;

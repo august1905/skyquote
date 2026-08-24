@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { BACKEND, cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
+import { openNewTemplate } from './templateFixture';
 
 // The Images library (sidebar → Images) and the picker the editor's Image block
 // opens. Real backend, real uploads to Stratus, no mocking.
@@ -29,7 +30,7 @@ test.describe('Images library', () => {
 		await cleanupFixtureImages(request);
 	});
 
-	test('is reachable from the sidebar, and an uploaded image appears with its real dimensions', async ({ page }) => {
+	test('is reachable from the sidebar, and an uploaded image appears with its real dimensions @core', async ({ page }) => {
 		await page.goto('/home');
 		await page.getByRole('link', { name: 'Images' }).click();
 		await page.waitForURL(/\/images$/);
@@ -143,9 +144,7 @@ test.describe('Image block picker (§4.1)', () => {
 		const filename = await uploadOnPage(page, 'reused');
 		await expect(tile(page, filename)).toBeVisible();
 
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Image' }).click();
@@ -176,9 +175,7 @@ test.describe('Image block picker (§4.1)', () => {
 	});
 
 	test('Escape closes the picker without inserting anything', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Image' }).click();
@@ -191,9 +188,7 @@ test.describe('Image block picker (§4.1)', () => {
 	});
 
 	test('an image uploaded from inside the picker is highlighted, and inserting it is still a deliberate click', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Image' }).click();

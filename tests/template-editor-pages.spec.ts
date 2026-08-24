@@ -1,13 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §3 ⑤'s per-page chrome (name, insert-after, `…` menu) and §3 ②'s page
 // navigator drawer. Real backend, no mocking — same convention as the rest of
 // this suite; each run creates a real Template row + Stratus object.
 
 async function newTemplate(page: Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 }
 
 /** Every authored page's wrapper — one per `Page`, regardless of how many physical pages it spills onto. */

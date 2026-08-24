@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §13's accessibility line: "Full keyboard operation of toolbar/panels, ARIA
 // on all controls, visible focus rings, alt text enforcement."
@@ -15,9 +16,7 @@ async function fromTemplateMenu(page: Page, item: string) {
 }
 
 async function newTemplate(page: Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 }
 
 test.describe('Keyboard operation and focus (§13)', () => {

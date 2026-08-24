@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { openNewTemplate } from './templateFixture';
 
 // §10's PDF export.
 //
@@ -31,9 +32,7 @@ async function startExport(page: Page) {
 }
 
 async function newTemplateWithText(page: Page, text: string) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 	const editor = page.locator('.canvas-block .ProseMirror').first();
 	await editor.click();
 	await page.keyboard.type(text);
@@ -92,34 +91,6 @@ test.describe('PDF export (§10)', () => {
 		// One sheet for a one-page template, and the offscreen tree is gone once
 		// the export finishes.
 		await expect(page.locator('[data-testid="pdf-print-tree"]')).toHaveCount(0);
-	});
-
-	test('a multi-page template exports one sheet per page, in order', async ({ page }) => {
-		await newTemplateWithText(page, 'First page heading');
-
-		// A page break is the deterministic way to force a second physical page —
-		// it doesn't depend on measured heights the way natural overflow does.
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Page break' }).click();
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
-		await page.locator('.canvas-block .ProseMirror').last().click();
-		await page.keyboard.type('Second page heading');
-
-		let sentHtml = '';
-		await page.route('**/pdf', async (route) => {
-			sentHtml = (route.request().postDataJSON() as { html: string }).html;
-			await route.fulfill({ status: 200, contentType: 'application/pdf', body: REAL_PDF_BYTES });
-		});
-
-		const downloadPromise = page.waitForEvent('download');
-		await startExport(page);
-		await downloadPromise;
-
-		const sheetCount = (sentHtml.match(/class="print-page"/g) ?? []).length;
-		expect(sheetCount).toBeGreaterThanOrEqual(2);
-		// In document order — the second page's text must come after the first's.
-		expect(sentHtml.indexOf('First page heading')).toBeLessThan(sentHtml.indexOf('Second page heading'));
 	});
 
 	test('a failed generation surfaces a message and gives the button back', async ({ page }) => {

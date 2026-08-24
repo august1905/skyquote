@@ -26,6 +26,27 @@ VITE_BACKEND_BASE_URL=/api/ npm run dev
 Without the proxy the dev-server browser is blocked by CORS — Catalyst's Authorized Domains
 gateway, which adds the CORS headers in production, doesn't run under local serve.
 
+## Which tests to run
+
+Every e2e request is a real Data Store call against a billed account, so the suite is split:
+
+```sh
+npm run test:unit        # 412 tests, no backend at all — free. Run these constantly.
+npm run test:e2e         # 12 @core tests, ~1 minute, ~190 requests. The default.
+npm run test:e2e:all     # 141 tests, ~9 minutes, ~1,700 requests. Before a commit, or when
+                         # you've touched something broad (auth, the shell, the editor store).
+npx playwright test template-editor-pricing   # just the specs related to what you changed
+```
+
+**Run what relates to your change, not everything.** `test:e2e` covers the app's spine — login,
+create a template, edit and autosave, drag a block in, place a field, create and submit a document,
+upload an image, comment, lock, delete. If that passes and the specs for the area you touched pass,
+that is the bar. The full suite is a pre-commit gate, not an inner-loop tool.
+
+Logic belongs in a unit test, not an e2e one. `formatMoney`, pagination maths, video-URL parsing,
+comment anchoring and field naming are all unit-tested precisely so no browser has to prove them —
+if you find yourself adding an e2e test for a pure function, put it in `src/` instead.
+
 ## Test setup
 
 Playwright specs run against the **real backend** (`catalyst serve` in `../spqbackend`) and a

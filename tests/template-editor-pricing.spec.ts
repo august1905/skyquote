@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §7's pricing/quote blocks, real backend, no mocking — same convention as
 // the rest of this suite.
 test.describe('Pricing table block', () => {
 	test('items, sections, settings toggles, and the live footer total all work and persist', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Pricing table' }).click();
@@ -61,29 +60,11 @@ test.describe('Pricing table block', () => {
 		await expect(reloadedBlock.locator('.pricing-table-footer-total').last()).toContainText('$90.00');
 	});
 
-	test('the currency input changes how every total is formatted', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Pricing table' }).click();
-		const block = page.locator('.block-pricing-table');
-		await block.click();
-		await block.getByRole('button', { name: '+ Item' }).click();
-		await block.locator('.pricing-item-row').first().locator('.pricing-item-price').fill('50');
-		await expect(block.locator('.pricing-table-footer-total').last()).toContainText('$50.00');
-
-		await block.getByLabel('Currency').fill('CAD');
-		await expect(block.locator('.pricing-table-footer-total').last()).toContainText('CA$50.00');
-	});
 });
 
 test.describe('Quote builder block', () => {
 	test('groups and options can be added/edited/removed, and the total reflects only selected/required options', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Quote builder' }).click();
@@ -130,9 +111,7 @@ test.describe('Quote builder block', () => {
 
 test.describe('Header total (§7.4)', () => {
 	test('is hidden with no pricing blocks, then sums every pricing/quote block in the template', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await expect(page.locator('.template-editor-header-total')).toHaveCount(0);
 

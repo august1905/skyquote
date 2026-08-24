@@ -322,4 +322,32 @@ test.describe('Templates list', () => {
 		await expect(page.getByText(`Nothing matches “${FIXTURE_PREFIX}definitely-not-here”.`)).toBeVisible();
 		await expect(page.locator('.templates-table')).toHaveCount(0);
 	});
+
+	/**
+	 * The **only** test that clicks "+ New template", and deliberately so.
+	 *
+	 * Every editor spec used to open by clicking it, which meant ~65 loads of this
+	 * whole list page per run to reach a screen none of them were testing — they
+	 * create through the API now (`tests/templateFixture.ts`). That left the real
+	 * button uncovered, which is why this exists: the create path is a primary user
+	 * action, and it belongs to the screen that owns the button rather than being
+	 * an incidental side effect of unrelated specs.
+	 */
+	test('+ New template creates one and opens it in the editor @core', async ({ page, request }) => {
+		await page.goto('/templates');
+		await page.getByRole('button', { name: '+ New template' }).click();
+		await page.waitForURL(/\/templates\/.+\/edit/);
+
+		// A real, editable blank template — not just a URL change.
+		await expect(page.locator('.canvas-page')).toBeVisible();
+		await expect(page.locator('.canvas-block')).toHaveCount(1);
+		await expect(page.locator('.template-editor-header')).toContainText('TEMPLATES');
+
+		const createdId = /\/templates\/([^/]+)\/edit/.exec(page.url())?.[1];
+		expect(createdId).toBeTruthy();
+		// Deleted here rather than left to the global teardown: this one is named
+		// "Untitled template" like everything else, so cleaning it up immediately
+		// keeps the row count honest for the searches above.
+		if (createdId) await request.delete(`${BACKEND}/templates/${createdId}`);
+	});
 });

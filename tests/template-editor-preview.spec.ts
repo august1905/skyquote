@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §6.1 rule 3's "Preview as {role}" mode, real backend, no mocking.
 
 async function newTemplate(page: import('@playwright/test').Page) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 }
 
 async function addRole(page: import('@playwright/test').Page, name: string) {

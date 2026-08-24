@@ -9,6 +9,32 @@ import { acquireTemplateLock, releaseTemplateLock } from '../../api/templates';
  */
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
+/**
+ * In-flight acquires, keyed by template id, so StrictMode's setup → cleanup →
+ * setup doesn't fire two `POST /templates/:id/lock` calls microseconds apart on
+ * every editor mount in development.
+ *
+ * `apiFetch` deduplicates concurrent GETs but deliberately never touches
+ * writes — a duplicate POST is normally a second intentional action. This one is
+ * the exception worth making by hand: acquiring is idempotent (it's the same
+ * call the heartbeat makes to *refresh* a lock the caller already holds), and
+ * both invocations are the same mount asking the same question.
+ *
+ * Cleared when the request settles, so genuinely re-entering the editor later
+ * still acquires for real.
+ */
+const inFlightAcquires = new Map<string, Promise<unknown>>();
+
+function acquireOnce(templateId: string): Promise<unknown> {
+	const existing = inFlightAcquires.get(templateId);
+	if (existing) return existing;
+	const pending = acquireTemplateLock(templateId).finally(() => {
+		inFlightAcquires.delete(templateId);
+	});
+	inFlightAcquires.set(templateId, pending);
+	return pending;
+}
+
 export type TemplateLockStatus = 'acquiring' | 'held' | 'blocked' | 'error';
 
 export interface UseTemplateLockResult {
@@ -68,7 +94,7 @@ export function useTemplateLock(templateId: string | undefined): UseTemplateLock
 
 		async function acquire() {
 			try {
-				await acquireTemplateLock(templateId!);
+				await acquireOnce(templateId!);
 				if (cancelled) {
 					// Superseded — this effect run was torn down while its
 					// acquire was in flight.

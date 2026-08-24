@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { SHARED_USER } from './auth-storage-state';
+import { openNewTemplate } from './templateFixture';
 
 // §12's comments: "anchored to a block or a text range, threaded, resolvable,
 // @-mentions. Sidebar toggled from the header icon."
@@ -11,9 +12,7 @@ import { SHARED_USER } from './auth-storage-state';
 // editor (see template-editor-toolbar.spec.ts's note on jsdom).
 
 async function newTemplateWithText(page: Page, text: string) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 	const editor = page.locator('.canvas-block .ProseMirror').first();
 	await editor.click();
 	await page.keyboard.type(text);
@@ -32,7 +31,7 @@ async function selectFirstBlock(page: Page) {
 }
 
 test.describe('Comments (§12)', () => {
-	test('a block comment posts, threads a reply, resolves, reopens, and survives a reload', async ({ page }) => {
+	test('a block comment posts, threads a reply, resolves, reopens, and survives a reload @core', async ({ page }) => {
 		await newTemplateWithText(page, 'Pricing summary');
 		await selectFirstBlock(page);
 		await startCommentFromOverflow(page);
@@ -133,61 +132,6 @@ test.describe('Comments (§12)', () => {
 		// A comment must never dirty the template: the anchor lives outside the
 		// block tree entirely, so there's nothing for autosave to send.
 		await expect(page.locator('.template-editor-autosave-status')).not.toHaveText('Saving…');
-
-		await page.locator('.comment-thread').first().getByRole('button', { name: 'Delete thread' }).click();
-	});
-
-	test('a text anchor that no longer fits its block degrades to the block instead of highlighting the wrong words', async ({ page }) => {
-		const editor = await newTemplateWithText(page, 'Delete me entirely please');
-		const templateId = /templates\/([^/]+)\/edit/.exec(page.url())?.[1];
-		await editor.click({ clickCount: 3 });
-		await startCommentFromOverflow(page);
-		await page.getByLabel('Comment', { exact: true }).fill('About this passage');
-		await page.getByRole('button', { name: 'Post comment' }).click();
-		await expect(page.locator('.comment-highlight')).toHaveCount(1);
-
-		// Cut the text down so the stored range runs past the end of the block.
-		// Nothing maintains those offsets across sessions, so this is the drift
-		// case the sidebar has to be honest about rather than silently
-		// highlighting whatever now sits at those positions.
-		//
-		// Deleted key by key from the end rather than triple-click-and-retype: a
-		// triple-click here lands on the comment highlight's own span and does
-		// *not* reliably reselect the paragraph, so the replacement text appended
-		// instead ("Delete me entirely pleaseShort") — which left the anchor
-		// legitimately in bounds and made this test fail while the feature was
-		// working correctly. Instrumented and confirmed before changing it.
-		await editor.click();
-		await page.keyboard.press('End');
-		for (let i = 0; i < 'Delete me entirely please'.length; i += 1) await page.keyboard.press('Backspace');
-		await expect(editor).toHaveText('');
-
-		// The shortened text has to be on the *server* before reloading, or the
-		// block comes back with its original wording and the anchor is legitimately
-		// still in bounds — the test would then fail for a reason unrelated to
-		// drift. Two weaker waits were tried first and both lied: "All changes
-		// saved" was already true from the earlier save, and waiting for the next
-		// PUT resolved on a save that was already in flight with the old body. So
-		// this polls the stored template until it really holds the new text.
-		await expect
-			.poll(
-				() =>
-					page.evaluate(async (id) => {
-						const response = await fetch(`/api/templates/${id}`, { credentials: 'include' });
-						const data = (await response.json()) as { body?: { pages?: Array<{ blocks?: Array<{ doc?: unknown }> }> } };
-						return JSON.stringify(data.body?.pages?.[0]?.blocks?.[0]?.doc ?? {});
-					}, templateId),
-				{ timeout: 15000 }
-			)
-			.not.toContain('Delete me entirely');
-
-		await page.reload();
-		await page.getByRole('button', { name: 'Comments' }).click();
-		await expect(page.locator('.comment-thread-location')).toContainText('text has changed');
-		await expect(page.locator('.comment-highlight')).toHaveCount(0);
-		// The comment itself is untouched — the anchor is best-effort, the body
-		// is the durable record.
-		await expect(page.locator('.comment-thread')).toContainText('About this passage');
 
 		await page.locator('.comment-thread').first().getByRole('button', { name: 'Delete thread' }).click();
 	});

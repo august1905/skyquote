@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §4.3's
 // Settings and Lock toolbar controls — cross-cutting (every block type gets
@@ -6,9 +7,7 @@ import { test, expect } from '@playwright/test';
 // per-block-type describes.
 test.describe('Block settings popover', () => {
 	test('edits width, alignment, padding, margin, background, and border, and it persists through a reload', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.locator('.canvas-block').first().click();
 		await page.getByRole('button', { name: 'Settings', exact: true }).click();
@@ -48,9 +47,7 @@ test.describe('Block settings popover', () => {
 	});
 
 	test('closes when clicking outside, and Clear removes the background color', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.locator('.canvas-block').first().click();
 		await page.getByRole('button', { name: 'Settings', exact: true }).click();
@@ -69,9 +66,7 @@ test.describe('Block settings popover', () => {
 
 test.describe('Block lock', () => {
 	test('a locked block cannot be dragged, deleted, or edited, and unlocking restores all three', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();

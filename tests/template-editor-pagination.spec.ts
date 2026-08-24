@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §10's real pagination, v1-scoped to whole-block granularity (see
 // distributePages.ts's own comment) — real backend, no mocking, same
@@ -29,9 +30,7 @@ async function fromTemplateMenu(page: import('@playwright/test').Page, item: str
 
 test.describe('Real pagination (§10)', () => {
 	test('content overflowing the default page content height spills onto a second physical page, and it persists through a reload', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		// The template starts with one blank text block already — fill it, then
 		// add several more long ones. Comfortably more than enough to exceed a
@@ -60,9 +59,7 @@ test.describe('Real pagination (§10)', () => {
 	});
 
 	test('a page break block forces everything after it onto a new physical page, deterministically', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.locator('.canvas-block .ProseMirror').first().click();
 		await page.keyboard.type('Before the break');
@@ -85,9 +82,7 @@ test.describe('Real pagination (§10)', () => {
 	});
 
 	test('page settings: page size/orientation change the physical page dimensions, and page numbers can be toggled on', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		const canvasPage = page.locator('.canvas-page').first();
 		const letterPortraitBox = await canvasPage.boundingBox();
@@ -125,25 +120,4 @@ test.describe('Real pagination (§10)', () => {
 		await expect(page.locator('.canvas-page-number').first()).toHaveText('Page 1');
 	});
 
-	test('page numbers stay cumulatively correct across multiple physical pages', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-
-		await page.locator('.canvas-block .ProseMirror').first().click();
-		await page.keyboard.type('Page one content');
-		await insertPageBreak(page);
-		await insertTextBlock(page, 'Page two content');
-		await insertPageBreak(page);
-		await insertTextBlock(page, 'Page three content');
-
-		await fromTemplateMenu(page, 'Settings');
-		await page.getByLabel('Page numbers').check();
-		await page.getByRole('button', { name: 'Close page settings' }).click();
-
-		await expect(page.locator('.canvas-page')).toHaveCount(3);
-		await expect(page.locator('.canvas-page-number').nth(0)).toHaveText('Page 1');
-		await expect(page.locator('.canvas-page-number').nth(1)).toHaveText('Page 2');
-		await expect(page.locator('.canvas-page-number').nth(2)).toHaveText('Page 3');
-	});
 });

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §4.5's SmartContentBlock: a container shown/hidden by rules built against
 // variables, pricing totals, and field values. Real backend, no mocking.
@@ -11,9 +12,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Smart content (§4.5)', () => {
 	test('wraps a block via the toolbar, builds a rule, previews true/false, persists, and unwraps', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		// A custom variable, referenced only by the rule below (never inserted
 		// as an inline chip) — exercises collectVariableKeys picking up a
@@ -88,9 +87,7 @@ test.describe('Smart content (§4.5)', () => {
 	});
 
 	test('a recipient sees smart content only when the resolved variable makes its rule true', async ({ page, context }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: 'Recipients / Roles' }).click();
 		await page.getByRole('button', { name: '+ Add role' }).click();

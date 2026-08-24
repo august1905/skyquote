@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // §2's contextual formatting toolbar and §9.3's keyboard shortcuts. Real
 // backend, no mocking. These two features share a spec because they share
@@ -9,10 +10,26 @@ import { test, expect, type Page } from '@playwright/test';
 // here rather than in a unit test.
 
 async function newTemplateWithText(page: Page, text: string) {
-	await page.goto('/templates');
-	await page.getByRole('button', { name: '+ New template' }).click();
-	await page.waitForURL(/\/templates\/.+\/edit/);
+	await openNewTemplate(page);
 	const editor = page.locator('.canvas-block .ProseMirror').first();
+	await editor.click();
+	await page.keyboard.type(text);
+	await expect(editor).toContainText(text);
+	return editor;
+}
+
+/**
+ * A fresh text block on the template that's already open, for the next scenario
+ * in the same test.
+ *
+ * Scenarios used to take a whole new template each — a create, an editor load
+ * and a cascade delete apiece, all to get an empty paragraph to type into. A
+ * block costs nothing until autosave, and starts just as clean.
+ */
+async function addTextBlock(page: Page, text: string) {
+	await page.getByRole('button', { name: '+ Add block' }).click();
+	await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
+	const editor = page.locator('.canvas-block .ProseMirror').last();
 	await editor.click();
 	await page.keyboard.type(text);
 	await expect(editor).toContainText(text);
@@ -30,22 +47,20 @@ async function newTemplateWithText(page: Page, text: string) {
  * property of how the key reaches ProseMirror, not of the toolbar, and these
  * tests are about the toolbar.
  */
-async function selectParagraph(page: Page) {
-	await page.locator('.canvas-block .ProseMirror').first().click({ clickCount: 3 });
+async function selectParagraph(page: Page, editor?: Locator) {
+	await (editor ?? page.locator('.canvas-block .ProseMirror').first()).click({ clickCount: 3 });
 }
 
 /** Selects the paragraph, opens §2's `…` overflow group, and chooses one item. */
-async function applyFromOverflow(page: Page, item: string) {
-	await selectParagraph(page);
+async function applyFromOverflow(page: Page, item: string, editor?: Locator) {
+	await selectParagraph(page, editor);
 	await page.getByRole('button', { name: 'More formatting' }).click();
 	await page.getByRole('button', { name: item, exact: true }).click();
 }
 
 test.describe('Formatting toolbar (§2)', () => {
 	test('is disabled until a text block is focused, then applies marks that survive a reload', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		// §2: "must disable rather than hide irrelevant controls, so the
 		// layout doesn't jump" — present but inert before anything is focused.
@@ -117,7 +132,7 @@ test.describe('Formatting toolbar (§2)', () => {
 		await expect(editor.locator('ul')).toHaveCount(0);
 	});
 
-	test('font size/colour, the overflow group, and Clear formatting', async ({ page }) => {
+	test('font size/colour, the overflow group, Clear formatting (selected and collapsed), and links', async ({ page }) => {
 		const editor = await newTemplateWithText(page, 'Styled run');
 
 		await selectParagraph(page);
@@ -152,39 +167,33 @@ test.describe('Formatting toolbar (§2)', () => {
 			await expect(editor.locator(tag)).toHaveCount(0);
 		}
 		await expect(editor).toContainText('Styled run');
-	});
 
-	test('Clear formatting with a collapsed caret clears the whole block rather than doing nothing', async ({ page }) => {
-		const editor = await newTemplateWithText(page, 'Bolded line');
-
-		await selectParagraph(page);
-		await page.getByRole('button', { name: 'Bold' }).click();
-		await expect(editor.locator('strong')).toHaveCount(1);
-
-		// Put the caret inside the bold run with nothing selected. Tiptap's
+		// Clear formatting with a *collapsed* caret, on its own block. Tiptap's
 		// unsetAllMarks only touches non-empty ranges, so without the explicit
-		// whole-block fallback in EditorToolbar this button reported success
-		// and changed nothing — found by instrumenting a real browser.
-		await editor.click();
+		// whole-block fallback in EditorToolbar this button reported success and
+		// changed nothing — found by instrumenting a real browser.
+		const boldBlock = await addTextBlock(page, 'Bolded line');
+		await selectParagraph(page, boldBlock);
+		await page.getByRole('button', { name: 'Bold' }).click();
+		await expect(boldBlock.locator('strong')).toHaveCount(1);
+		await boldBlock.click();
 		await page.getByRole('button', { name: 'Clear formatting' }).click();
-		await expect(editor.locator('strong')).toHaveCount(0);
-		await expect(editor).toContainText('Bolded line');
-	});
+		await expect(boldBlock.locator('strong')).toHaveCount(0);
+		await expect(boldBlock).toContainText('Bolded line');
 
-	test('Insert link sets an href on the selection, and clearing the URL removes it', async ({ page }) => {
-		const editor = await newTemplateWithText(page, 'Our website');
-
-		// The link control collects its URL through window.prompt (see
-		// EditorToolbar's note on why), so the dialog has to be answered.
+		// Links, again on their own block. The control collects its URL through
+		// window.prompt (see EditorToolbar's note on why), so the dialog has to be
+		// answered.
+		const linkBlock = await addTextBlock(page, 'Our website');
 		page.once('dialog', (dialog) => void dialog.accept('https://skylineclean.com'));
-		await selectParagraph(page);
+		await selectParagraph(page, linkBlock);
 		await page.getByRole('button', { name: 'Insert link' }).click();
-		await expect(editor.locator('a')).toHaveAttribute('href', 'https://skylineclean.com');
+		await expect(linkBlock.locator('a')).toHaveAttribute('href', 'https://skylineclean.com');
 
 		page.once('dialog', (dialog) => void dialog.accept(''));
-		await selectParagraph(page);
+		await selectParagraph(page, linkBlock);
 		await page.getByRole('button', { name: 'Insert link' }).click();
-		await expect(editor.locator('a')).toHaveCount(0);
+		await expect(linkBlock.locator('a')).toHaveCount(0);
 	});
 });
 
@@ -273,9 +282,7 @@ test.describe('Keyboard shortcuts (§9.3)', () => {
 	});
 
 	test('Cmd+P toggles previewing as a role on and off', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
+		await openNewTemplate(page);
 
 		// The toggle only exists once there's a role to preview as.
 		await page.getByRole('button', { name: 'Recipients / Roles' }).click();

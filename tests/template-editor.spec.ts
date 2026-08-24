@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { openNewTemplate } from './templateFixture';
 
 // Real backend, no mocking — same convention as the rest of this suite.
 // Each run creates a real Template row + Stratus object via "+ New template".
 test.describe('Template editor canvas', () => {
-	test('type across blocks, add/drag/undo/redo/duplicate/delete all work end to end', async ({ page }) => {
-		await page.goto('/templates');
-		await page.getByRole('button', { name: '+ New template' }).click();
-		await page.waitForURL(/\/templates\/.+\/edit/);
-		await expect(page.getByRole('heading', { name: 'Untitled template' })).toBeVisible();
+	test('type across blocks, add/drag/undo/redo/duplicate/delete all work end to end @core', async ({ page }) => {
+		await openNewTemplate(page);
+		// The header shows the template's own name. That it *defaults* to "Untitled
+		// template" is a property of creating one, and is asserted where creation
+		// is tested — templates-list.spec.ts's "+ New template" test.
+		await expect(page.getByRole('heading', { name: 'zz-fixture' })).toBeVisible();
 
 		const editors = page.locator('.canvas-block .ProseMirror');
 		await expect(editors).toHaveCount(1);
