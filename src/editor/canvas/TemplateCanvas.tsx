@@ -74,6 +74,8 @@ export function TemplateCanvas() {
 	}
 
 	const contentHeightPx = pageContentHeight(pageSettings.pageSize, pageSettings.orientation, pageSettings.margins);
+	// The paper's own size, which is the coordinate space a pinned block's x/y live in.
+	const { width: pageWidthPx, height: pageHeightPx } = pageDimensions(pageSettings.pageSize, pageSettings.orientation);
 
 	let runningPageNumber = 1;
 	const startPageNumberByLogicalPage: Record<string, number> = {};
@@ -110,6 +112,8 @@ export function TemplateCanvas() {
 					blockGapPx={theme.baseSpacing}
 					showPageNumbers={pageSettings.showPageNumbers}
 					themeBackground={theme}
+					pageWidthPx={pageWidthPx}
+					pageHeightPx={pageHeightPx}
 					startPageNumber={startPageNumberByLogicalPage[page.id] ?? 1}
 					onPhysicalPagesChange={handlePhysicalPagesChange}
 				/>

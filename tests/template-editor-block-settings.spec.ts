@@ -77,15 +77,103 @@ test.describe('Block spacing on the toolbar', () => {
 
 		// Horizontal margin used to be dropped entirely (the editor applied
 		// top/bottom only), so "nudge this block right" was inexpressible.
+		//
+		// Asserted on the block *frame*, not the content: margin is the gap between
+		// this block and its neighbours, and putting it on the inner element left
+		// the frame exactly where it was while its contents shuffled inside it.
+		const frame = page.locator('.canvas-block').first();
 		await page.getByLabel('Margin left').fill('24');
 		await page.getByLabel('Margin top').fill('8');
-		await expect(content).toHaveCSS('margin-left', '24px');
-		await expect(content).toHaveCSS('margin-top', '8px');
+		await expect(frame).toHaveCSS('margin-left', '24px');
+		await expect(frame).toHaveCSS('margin-top', '8px');
+		await expect(content).toHaveCSS('margin-left', '0px');
 
 		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.canvas-block-content').first()).toHaveCSS('padding', '10px 20px 30px 40px');
-		await expect(page.locator('.canvas-block-content').first()).toHaveCSS('margin-left', '24px');
+		await expect(page.locator('.canvas-block').first()).toHaveCSS('margin-left', '24px');
+	});
+});
+
+// §4.3's placement — pinning a block to an exact spot on the page, which is what
+// a cover page needs and what spacing controls can't express: padding and margin
+// only push a block away from its neighbours, they never take it out of the column.
+test.describe('Pinning a block to the page', () => {
+	test('pins where the block already is, moves by drag and by typed coordinates, and persists', async ({ page }) => {
+		await openNewTemplate(page);
+
+		const block = page.locator('.canvas-block').first();
+		await block.click();
+		// Inert until something is pinned: an X that moves nothing would be a
+		// control that lies about what it does.
+		await expect(page.getByLabel('Position X')).toBeDisabled();
+
+		await page.getByRole('button', { name: 'Pin block to the page' }).click();
+		const placed = page.locator('.canvas-placed');
+		await expect(placed).toHaveCount(1);
+		await expect(page.getByLabel('Position X')).toBeEnabled();
+
+		// Pinning captures the block's current rect rather than dropping it at 0,0 —
+		// a pin that teleports the block is one you have to undo before using.
+		const pinnedX = Number(await page.getByLabel('Position X').inputValue());
+		const pinnedY = Number(await page.getByLabel('Position Y').inputValue());
+		expect(pinnedX).toBeGreaterThan(0);
+		expect(pinnedY).toBeGreaterThan(0);
+
+		// Typed coordinates, which is the precision half of the feature.
+		await page.getByLabel('Position X').fill('120');
+		await page.getByLabel('Position Y').fill('320');
+		await page.getByLabel('Position W').fill('400');
+		// Horizontal is emitted as a percentage of the page width so the block holds
+		// its spot on a page that shrinks; 120/816 and 400/816.
+		await expect(placed).toHaveCSS('left', /^(120px|14\.70)/);
+		await expect(placed).toHaveCSS('top', '320px');
+
+		// Dragging the move handle, which is the fast half. Snapped to an 8px grid,
+		// so 80px of pointer movement is 80px of block movement.
+		const handle = page.getByRole('button', { name: 'Move block on the page' });
+		const box = (await handle.boundingBox())!;
+		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 80, { steps: 8 });
+		await page.mouse.up();
+		await expect(page.getByLabel('Position Y')).toHaveValue('400');
+
+		// One undo step for the whole gesture, not one per pointer move.
+		await page.getByRole('button', { name: 'Undo' }).click();
+		await expect(page.getByLabel('Position Y')).toHaveValue('320');
+
+		await saveNow(page);
+		await page.reload();
+		await expect(page.locator('.canvas-placed')).toHaveCSS('top', '320px');
+
+		// Unpinning puts it back in the flow, at its original place in the page.
+		await page.locator('.canvas-block').first().click();
+		await page.getByRole('button', { name: 'Pin block to the page' }).click();
+		await expect(page.locator('.canvas-placed')).toHaveCount(0);
+		await expect(page.locator('.canvas-page-blocks .canvas-block')).toHaveCount(1);
+	});
+
+	test('a pinned block leaves the flow, so the blocks after it move up', async ({ page }) => {
+		await openNewTemplate(page);
+
+		// Two blocks: pinning the first must not leave a gap where it used to be.
+		const first = page.locator('.canvas-block').first();
+		await first.click();
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByRole('menuitem', { name: 'Page break' }).click();
+
+		const pageBreak = page.locator('.block-page-break');
+		const before = (await pageBreak.boundingBox())!.y;
+
+		await page.locator('.canvas-page-blocks .canvas-block').first().click();
+		await page.getByRole('button', { name: 'Pin block to the page' }).click();
+		await page.getByLabel('Position Y').fill('600');
+
+		// The page break rose to the top of the column — the pinned block occupies
+		// no space there any more. Without this, pagination would still be measuring
+		// a block that isn't in the flow.
+		expect((await pageBreak.boundingBox())!.y).toBeLessThan(before);
 	});
 });
 

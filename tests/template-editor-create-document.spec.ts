@@ -28,6 +28,16 @@ test("creating a document produces a per-recipient link that opens with no login
 	await page.getByLabel('Padding left').fill('40');
 	await page.getByLabel('Margin top').fill('12');
 
+	// And a pinned block, whose whole reason for existing is landing on a specific
+	// part of the page background — so it has to arrive at the same coordinates in
+	// the recipient's view, not just in the editor.
+	await page.getByRole('button', { name: '+ Add block' }).click();
+	await page.getByRole('menuitem', { name: 'Spacer' }).click();
+	await page.getByRole('button', { name: 'Pin block to the page' }).click();
+	await page.getByLabel('Position X').fill('160');
+	await page.getByLabel('Position Y').fill('480');
+	await page.getByLabel('Position W').fill('408');
+
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Pricing table' }).click();
 	const table = page.locator('.block-pricing-table');
@@ -101,6 +111,21 @@ test("creating a document produces a per-recipient link that opens with no login
 	const styledBlock = recipientPage.locator('.doc-view-block').first();
 	await expect(styledBlock).toHaveCSS('padding-left', '40px');
 	await expect(styledBlock).toHaveCSS('margin-top', '12px');
+
+	// The pinned block arrives pinned, at the coordinates it was placed at.
+	// Horizontal is a percentage of the page width (160/816, 408/816) so it holds
+	// its spot if the recipient's page shrinks; vertical is exact.
+	const pinned = recipientPage.locator('.doc-view-placed');
+	await expect(pinned).toHaveCount(1);
+	await expect(pinned).toHaveCSS('position', 'absolute');
+	await expect(pinned).toHaveCSS('top', '480px');
+	// Compared numerically: the browser rounds an inline percentage to 4 decimal
+	// places when it serializes it back, so a string comparison here is a test that
+	// fails on CSS serialization rather than on placement.
+	const leftPercent = Number.parseFloat(await pinned.evaluate((el) => (el as HTMLElement).style.left));
+	const widthPercent = Number.parseFloat(await pinned.evaluate((el) => (el as HTMLElement).style.width));
+	expect(leftPercent).toBeCloseTo((160 / 816) * 100, 3);
+	expect(widthPercent).toBeCloseTo((408 / 816) * 100, 3);
 
 	// The page background reaches the recipient, through *their* token-gated URL —
 	// the stored `/assets/:id/file` path needs a session they don't have.

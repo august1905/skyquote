@@ -7,7 +7,7 @@ import { findBlockById, isContainerBlockType } from '../commands/blockTree';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { usePaletteDropHint } from '../dnd/dragContext';
 import { useEditorStore } from '../store/editorStore';
-import { blockStyleToCss } from '../../documents/blockStyle';
+import { editorBlockContentCss, editorBlockFrameCss } from '../../documents/blockStyle';
 import { BlockView } from '../blocks/BlockView';
 import { blockTypeLabel } from '../blocks/registry';
 import { SaveToLibraryDialog } from '../contentLibrary/SaveToLibraryDialog';
@@ -121,7 +121,12 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 		// block-reorder apart from a catalog-item drop (see
 		// editor/dnd/EditorDndProvider.tsx) — both now share one DndContext.
 		data: { kind: 'block', container },
-		disabled: block.locked,
+		// A pinned block sits at a coordinate, so "drag it above the one before it"
+		// has nothing to mean — its position is moved by PlacedBlock's own handle
+		// instead. Left in the SortableContext rather than removed from it: it's
+		// still a member of `page.blocks`, and the flow blocks' indices depend on
+		// that list staying whole.
+		disabled: block.locked || Boolean(block.placement),
 	});
 
 	// Same DOM node dnd-kit's `setNodeRef` tracks — a plain ref alongside it
@@ -167,7 +172,11 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 			ref={setRefs}
 			// §12's sidebar scrolls a commented block into view by querying this.
 			data-block-id={block.id}
-			style={{ transform: CSS.Transform.toString(transform), transition: transition ?? undefined }}
+			// Margins land on the frame, everything else on the content — see
+			// `editorBlockFrameCss`. The frame is the thing an author is moving when
+			// they set a margin; the inner div moving inside a stationary outline is
+			// what made margin look broken.
+			style={{ ...editorBlockFrameCss(block.style), transform: CSS.Transform.toString(transform), transition: transition ?? undefined }}
 			className={`canvas-block${selected ? ' canvas-block-selected' : ''}${multiSelected ? ' canvas-block-multi-selected' : ''}${isDragging ? ' canvas-block-dragging' : ''}${hasComments ? ' canvas-block-commented' : ''}${hasActiveComment ? ' canvas-block-comment-active' : ''}${hintSide ? ` canvas-block-drop-${hintSide}` : ''}`}
 			onClick={(e) => {
 				e.stopPropagation();
@@ -182,7 +191,7 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 		>
 			{selected && (
 				<div className="canvas-block-toolbar">
-					{!block.locked && (
+					{!block.locked && !block.placement && (
 						<button type="button" className="canvas-block-drag-handle" aria-label="Drag to reorder" {...attributes} {...listeners}>
 							⠿
 						</button>
@@ -283,7 +292,7 @@ export function SortableBlock({ pageId, container, block, selected, multiSelecte
 					)}
 				</div>
 			)}
-			<div className="canvas-block-content" style={blockStyleToCss(block.style)}>
+			<div className="canvas-block-content" style={editorBlockContentCss(block.style)}>
 				<BlockView pageId={pageId} block={block} selected={selected} />
 			</div>
 			{saveToLibraryOpen && (

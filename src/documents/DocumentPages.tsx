@@ -4,6 +4,8 @@ import type { SmartContentContext } from '../smartContent/evaluateRules';
 import { DocumentBlockView } from './DocumentBlockView';
 import type { FieldInteraction } from './RichTextView';
 import { readOnlyPageBackgroundStyle } from './pageBackground';
+import { placementToCss, splitPlacedBlocks } from './blockPlacement';
+import { pageDimensions } from '../editor/pagination/pageDimensions';
 
 interface DocumentPagesProps {
 	body: DocumentBody;
@@ -28,28 +30,50 @@ interface DocumentPagesProps {
  */
 export function DocumentPages({ body, resolveImageSrc, viewerRoleId, fieldInteraction, smartContentContext }: DocumentPagesProps) {
 	const attachments = body.attachments ?? [];
+	// The page size the author placed against — pinned coordinates are in those
+	// units, so this is what turns them back into CSS here.
+	const { width: pageWidthPx } = pageDimensions(body.settings.pageSize, body.settings.orientation);
 
 	return (
 		<>
 			<div className="doc-view-pages">
-				{body.pages.map((page) => (
-					// §3 ⑤'s per-page background, which the recipient sees for the first
-					// time here — the editor could set one long before anything else
-					// rendered it. See documents/pageBackground.ts for why the URL is
-					// rebuilt rather than used as stored.
-					<div key={page.id} className="doc-view-page" style={readOnlyPageBackgroundStyle(page, resolveImageSrc, body.settings.theme)}>
-						{page.blocks.map((block) => (
-							<DocumentBlockView
-								key={block.id}
-								block={block}
-								resolveImageSrc={resolveImageSrc}
-								viewerRoleId={viewerRoleId}
-								fieldInteraction={fieldInteraction}
-								smartContentContext={smartContentContext}
-							/>
-						))}
-					</div>
-				))}
+				{body.pages.map((page) => {
+					const { flow, placed } = splitPlacedBlocks(page.blocks);
+					return (
+						// §3 ⑤'s per-page background, which the recipient sees for the first
+						// time here — the editor could set one long before anything else
+						// rendered it. See documents/pageBackground.ts for why the URL is
+						// rebuilt rather than used as stored.
+						<div key={page.id} className="doc-view-page" style={readOnlyPageBackgroundStyle(page, resolveImageSrc, body.settings.theme)}>
+							{flow.map((block) => (
+								<DocumentBlockView
+									key={block.id}
+									block={block}
+									resolveImageSrc={resolveImageSrc}
+									viewerRoleId={viewerRoleId}
+									fieldInteraction={fieldInteraction}
+									smartContentContext={smartContentContext}
+								/>
+							))}
+							{/* §4.3's pinned blocks, over the flow and the page background —
+							    the whole point of pinning being that a headline lands on a
+							    specific band of that image. Same coordinates the editor used. */}
+							{placed.map((block) =>
+								block.placement ? (
+									<div key={block.id} className="doc-view-placed" style={placementToCss(block.placement, pageWidthPx)}>
+										<DocumentBlockView
+											block={block}
+											resolveImageSrc={resolveImageSrc}
+											viewerRoleId={viewerRoleId}
+											fieldInteraction={fieldInteraction}
+											smartContentContext={smartContentContext}
+										/>
+									</div>
+								) : null
+							)}
+						</div>
+					);
+				})}
 			</div>
 			{/* §3's attachments — "files appended to generated documents". They ride
 			    along in the document's snapshotted body, so nothing had to be plumbed

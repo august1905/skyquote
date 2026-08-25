@@ -236,3 +236,33 @@
 	appearance: textfield;
 	-moz-appearance: textfield;
 }
+
+/* The Pin toggle sits in a spacing-style group with the X/Y/W/H boxes, so
+   "where is this block" reads as one control rather than five. */
+.toolbar-pin-toggle {
+	height: 24px;
+	padding: 0 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #fff;
+	font-size: 0.72rem;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.toolbar-pin-toggle:hover:not(:disabled) {
+	background: #f2f4f8;
+}
+
+.toolbar-pin-toggle[aria-pressed='true'] {
+	border-color: var(--brand-primary, #4a7dfc);
+	background: color-mix(in srgb, var(--brand-primary, #4a7dfc) 12%, #fff);
+	color: color-mix(in srgb, var(--brand-primary, #4a7dfc) 80%, #000);
+}
+
+.toolbar-pin-toggle:disabled {
+	opacity: 0.4;
+	cursor: default;
+}

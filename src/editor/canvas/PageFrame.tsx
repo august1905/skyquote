@@ -2,6 +2,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useEffect, useRef, useState } from 'react';
 import { insertBlock, renamePage, type BlockContainer } from '../commands';
 import { editorPageBackgroundStyle } from '../../documents/pageBackground';
+import { splitPlacedBlocks } from '../../documents/blockPlacement';
 import { useEditorStore } from '../store/editorStore';
 import type { BlockId, Page, Theme } from '../types';
 import { usePagePagination } from '../pagination/usePagePagination';
@@ -9,6 +10,7 @@ import { AddBlockMenu } from './AddBlockMenu';
 import { AddPageMenu } from './AddPageMenu';
 import { BlockContainerDropRegion } from './BlockContainerDropRegion';
 import { PageMenu } from './PageMenu';
+import { PlacedBlock } from './PlacedBlock';
 import { SortableBlock } from './SortableBlock';
 import './canvas.css';
 
@@ -36,6 +38,9 @@ interface PageFrameProps {
 	showPageNumbers: boolean;
 	/** The theme's default background image, used by any page that doesn't set its own. Needs `assetId` too, not just the URL — see `editorPageBackgroundStyle`. */
 	themeBackground: Pick<Theme, 'pageBackgroundImageUrl' | 'pageBackgroundAssetId'>;
+	/** The paper's own size in px — the coordinate space a pinned block's x/y live in, so every renderer agrees on what `x: 80` means. */
+	pageWidthPx: number;
+	pageHeightPx: number;
 	/** This logical page's first physical page number — the running total of every prior logical page's own physical page count. */
 	startPageNumber: number;
 	/**
@@ -67,6 +72,8 @@ export function PageFrame({
 	blockGapPx,
 	showPageNumbers,
 	themeBackground,
+	pageWidthPx,
+	pageHeightPx,
 	startPageNumber,
 	onPhysicalPagesChange,
 }: PageFrameProps) {
@@ -77,7 +84,11 @@ export function PageFrame({
 	const container: BlockContainer = { pageId: page.id };
 	const blocksById = new Map(page.blocks.map((b) => [b.id, b]));
 
-	const { physicalPages, reportHeight } = usePagePagination(page.blocks, pageContentHeightPx, blockGapPx);
+	// Pinned blocks occupy no space in the column, so pagination must not measure
+	// them — a headline pinned over the background image would otherwise push the
+	// flow content down by the height of something that isn't in the flow.
+	const { flow: flowBlocks, placed: placedBlocks } = splitPlacedBlocks(page.blocks);
+	const { physicalPages, reportHeight } = usePagePagination(flowBlocks, pageContentHeightPx, blockGapPx);
 
 	useEffect(() => {
 		onPhysicalPagesChange(page.id, physicalPages);
@@ -155,6 +166,24 @@ export function PageFrame({
 									);
 								})}
 							</BlockContainerDropRegion>
+							{/* Pinned blocks belong to the *paper*, so they render on this
+							    logical page's first sheet and sit above the flow column. A
+							    page that spills onto a second sheet keeps them on the first:
+							    they were positioned against a specific page, and following
+							    the overflow would move them somewhere nobody asked for. */}
+							{physicalPageIndex === 0 &&
+								placedBlocks.map((placedBlock) => (
+									<PlacedBlock
+										key={placedBlock.id}
+										pageId={page.id}
+										container={container}
+										block={placedBlock}
+										selected={placedBlock.id === selectedBlockId}
+										multiSelected={multiSelectedBlockIds.includes(placedBlock.id)}
+										pageWidthPx={pageWidthPx}
+										pageHeightPx={pageHeightPx}
+									/>
+								))}
 							{isLast && <AddBlockMenu onInsert={(block) => runCommand(insertBlock(container, page.blocks.length, block))} />}
 							{showPageNumbers && <div className="canvas-page-number">Page {startPageNumber + physicalPageIndex}</div>}
 						</div>

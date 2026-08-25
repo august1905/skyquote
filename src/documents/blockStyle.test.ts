@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BlockStyle } from '../editor/types';
-import { blockStyleToCss, hasBlockStyle } from './blockStyle';
+import { blockStyleToCss, editorBlockContentCss, editorBlockFrameCss, hasBlockStyle } from './blockStyle';
 
 const spacing = (top: number, right: number, bottom: number, left: number) => ({ top, right, bottom, left });
 
@@ -61,5 +61,47 @@ describe('blockStyleToCss', () => {
 		expect(css.borderRadius).toBe(6);
 		expect(css.width).toBe('75%');
 		expect(hasBlockStyle(style)).toBe(true);
+	});
+});
+
+describe('the canvas split', () => {
+	const style = {
+		margin: spacing(8, 0, 8, 24),
+		padding: spacing(10, 10, 10, 10),
+		backgroundColor: '#eeeeee',
+	};
+
+	it('puts margin on the block frame, which is the thing that has to move', () => {
+		// Margin on the inner content left the selection outline exactly where it
+		// was while its contents shuffled around inside — reported as margin not
+		// moving the container of the text element.
+		const frame = editorBlockFrameCss(style);
+		expect(frame.marginLeft).toBe(24);
+		expect(frame.marginTop).toBe(8);
+		expect(frame.padding).toBeUndefined();
+		expect(frame.backgroundColor).toBeUndefined();
+	});
+
+	it('keeps everything else inside, so a user border cannot outrank the selection outline', () => {
+		const content = editorBlockContentCss(style);
+		expect(content.padding).toBe('10px 10px 10px 10px');
+		expect(content.backgroundColor).toBe('#eeeeee');
+		expect(content.marginLeft).toBeUndefined();
+		expect(content.marginTop).toBeUndefined();
+	});
+
+	it('leaves alignment on the content, where `width` is', () => {
+		// An `auto` margin on the full-width frame computes to zero. Hoisting it out
+		// of the content — where `width` lives — silently stops a centred block from
+		// centring, which is exactly what the first version of this split did.
+		const centred = { width: 0.5, alignment: 'center' as const };
+		expect(editorBlockContentCss(centred).marginLeft).toBe('auto');
+		expect(editorBlockFrameCss(centred).marginLeft).toBeUndefined();
+	});
+
+	it('together covers exactly what the read-only renderers apply as one', () => {
+		// The split is a canvas detail. If the two halves ever stopped adding up to
+		// `blockStyleToCss`, the editor and the sent document would disagree.
+		expect({ ...editorBlockFrameCss(style), ...editorBlockContentCss(style) }).toEqual(blockStyleToCss(style));
 	});
 });

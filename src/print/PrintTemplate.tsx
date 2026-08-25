@@ -6,6 +6,7 @@ import type { SmartContentContext } from '../smartContent/evaluateRules';
 import './print.css';
 import { readOnlyPageBackgroundStyle } from '../documents/pageBackground';
 import { blockStyleToCss } from '../documents/blockStyle';
+import { placementToCss, splitPlacedBlocks } from '../documents/blockPlacement';
 
 interface PrintTemplateProps {
 	body: TemplateBody;
@@ -115,7 +116,7 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 					}}
 				>
 					<div className="print-page-blocks" style={{ gap: `${theme.baseSpacing}px` }}>
-						{expandSmartContent(sheet.blocks, smartContent).map((block) =>
+						{expandSmartContent(splitPlacedBlocks(sheet.blocks).flow, smartContent).map((block) =>
 							block.type === 'toc' ? (
 								// The one block that bypasses `DocumentBlockView` (page numbers are
 								// a pagination concept the web view has no answer for), so it applies
@@ -138,6 +139,22 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 							)
 						)}
 					</div>
+					{/* §4.3's pinned blocks. They never reached pagination (the canvas
+					    excludes them), so they have no page number and land on their
+					    logical page's first sheet via the fallback above — which is
+					    exactly where they were placed. */}
+					{splitPlacedBlocks(sheet.blocks).placed.map((block) =>
+						block.placement ? (
+							<div key={block.id} style={placementToCss(block.placement, pageWidthPx)}>
+								<DocumentBlockView
+									block={block}
+									resolveImageSrc={resolveImageSrc}
+									viewerRoleId={null}
+									smartContentContext={smartContentContext}
+								/>
+							</div>
+						) : null
+					)}
 					{body.settings.showPageNumbers && <div className="print-page-number">{sheet.pageNumber}</div>}
 				</div>
 			))}

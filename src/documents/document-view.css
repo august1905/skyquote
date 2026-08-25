@@ -1,4 +1,7 @@
 .doc-view-page {
+	/* Pinned blocks (§4.3) position against this box. No border, so its padding
+	   box is the paper — `x: 0` is the paper's edge, matching the canvas. */
+	position: relative;
 	background: #fff;
 	width: 816px;
 	min-height: 1056px;
@@ -146,4 +149,10 @@
 .rt-view-field-chip {
 	display: inline-block;
 	vertical-align: middle;
+}
+
+/* A pinned block's own box. Position and size are inline, from placementToCss —
+   this only stacks it above the flow content it overlaps. */
+.doc-view-placed {
+	z-index: 2;
 }

@@ -88,12 +88,41 @@ export interface CellStyle {
 
 // ─── Blocks ──────────────────────────────────────────────────────────────────
 
+/**
+ * A block pinned to an exact spot on the page instead of flowing after the one
+ * above it.
+ *
+ * This is what a cover page needs and what spacing controls can never give: a
+ * background image with a headline over a specific band of it, a caption beside
+ * a photo, a logo in a corner. Padding and margin can only push a block away
+ * from its neighbours — the block stays in the column, and "80px from the left
+ * edge of the page" isn't something they can say at all.
+ *
+ * **px in the template's own page size** (816×1056 for Letter portrait), measured
+ * from the page's top-left corner — the corner of the paper, not of the margin
+ * box, so a full-bleed banner is expressible. Every renderer draws the page at
+ * that size, so the numbers mean the same thing in the editor, the recipient's
+ * view and the PDF.
+ *
+ * `height` is optional because most placed blocks should still size to their
+ * content — a headline that grows when you type another word. Setting it pins
+ * the box instead.
+ */
+export interface BlockPlacement {
+	x: number;
+	y: number;
+	width: number;
+	height?: number;
+}
+
 export interface BlockBase {
 	id: BlockId;
 	type: string;
 	/** Locked blocks cannot be edited, moved, or deleted. Protects boilerplate. */
 	locked: boolean;
 	style: BlockStyle;
+	/** Set to take this block out of the page's flow and pin it at an exact position — see {@link BlockPlacement}. */
+	placement?: BlockPlacement;
 	/** Set when inserted from the Content Library; enables "update from source". */
 	contentLibraryRef?: string;
 	/** FK to a SmartContent rule, if this block is conditionally rendered. */

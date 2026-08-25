@@ -4,6 +4,7 @@ import { addPage, createBlankPage } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { useActiveRichTextEditor } from '../richtext/useActiveRichTextEditor';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
+import { BlockPlacementControls } from './BlockPlacementControls';
 import { BlockSpacingControls } from './BlockSpacingControls';
 import { FontSizeControl } from './FontSizeControl';
 import {
@@ -384,6 +385,7 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 			    the text controls stay together above it. */}
 			<span className="editor-toolbar-divider" />
 			<BlockSpacingControls />
+			<BlockPlacementControls />
 		</div>
 	);
 }

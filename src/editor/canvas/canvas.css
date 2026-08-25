@@ -220,6 +220,10 @@
 }
 
 .canvas-page {
+	/* Pinned blocks are positioned against this box (§4.3's placement), and the
+	   page has no border, so its padding box is the paper itself — `x: 0` is the
+	   paper's edge, which is what makes a full-bleed band expressible. */
+	position: relative;
 	/* Two-level fallback: an explicit per-page background (§3 ⑤'s page menu)
 	   wins, otherwise the Theme panel's template-wide page colour, otherwise
 	   white. "Unset" therefore means "follow the theme", which is what makes
@@ -696,4 +700,65 @@
 
 .canvas-block-overflow-menu > button:hover {
 	background: #f0f0f0;
+}
+
+/* ─── Pinned blocks (§4.3 placement) ───────────────────────────────────────
+   A block taken out of the flow and given an exact spot on the paper — see
+   documents/blockPlacement.ts for the coordinate space, and PlacedBlock for
+   why moving and resizing are handles rather than a draggable body. */
+.canvas-placed {
+	/* `position`/`left`/`top`/`width` come from placementToCss, inline. */
+	z-index: 2;
+}
+
+/* Findable when it isn't selected: a pinned block sitting on a busy background
+   image with no outline at all is one an author can lose track of. Faint enough
+   not to read as a border on the design. */
+.canvas-placed > .canvas-block {
+	outline: 1px dashed color-mix(in srgb, var(--brand-primary, #4a7dfc) 20%, transparent);
+	outline-offset: 1px;
+}
+
+.canvas-placed-selected {
+	z-index: 3;
+}
+
+.canvas-placed-selected > .canvas-block {
+	outline-color: color-mix(in srgb, var(--brand-primary, #4a7dfc) 55%, transparent);
+}
+
+.canvas-placed-move,
+.canvas-placed-resize {
+	position: absolute;
+	padding: 0;
+	border: 2px solid #fff;
+	background: var(--brand-primary, #4a7dfc);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+	touch-action: none;
+	z-index: 4;
+}
+
+.canvas-placed-move {
+	top: -11px;
+	left: -11px;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	color: #fff;
+	font-size: 0.7rem;
+	line-height: 1;
+	cursor: grab;
+}
+
+.canvas-placed-move:active {
+	cursor: grabbing;
+}
+
+.canvas-placed-resize {
+	right: -7px;
+	bottom: -7px;
+	width: 14px;
+	height: 14px;
+	border-radius: 3px;
+	cursor: nwse-resize;
 }

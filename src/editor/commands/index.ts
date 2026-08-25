@@ -20,6 +20,7 @@ export { createFieldBlock } from './blockTree';
 export { containerBlocksOf } from './blockTree';
 export { createBlankPage, createBlankTextBlock, createBlankPricingItem, createPricingItemFromCatalog, createColumnsBlock, createImageBlock, createPageBreakBlock, createPricingTableBlock, createQuoteBuilderBlock, createSmartContentBlock, createSpacerBlock, createTableBlock, createTocBlock, createVideoBlock } from './blockTree';
 export { setSpacerHeight, clampSpacerHeight, MIN_SPACER_HEIGHT, MAX_SPACER_HEIGHT } from './spacerCommands';
+export { setBlockPlacement, clampPlacement, snapToGrid, MIN_PLACED_SIZE, PLACEMENT_GRID } from './placementCommands';
 export {
 	addPricingItem,
 	addPricingItemFromCatalog,
