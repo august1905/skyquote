@@ -108,7 +108,14 @@ export interface DocumentBody extends TemplateBody {
 
 /** What a recipient's own unauthenticated link resolves to — deliberately a much narrower shape than `GetDocumentResult`: no other recipient's name/email/token, no `sourceTemplateId`/`version`/audit fields. */
 export interface PublicDocumentView {
-	document: { id: string; title: string; currency: string; computedTotal: Money };
+	document: {
+		id: string;
+		title: string;
+		currency: string;
+		computedTotal: Money;
+		/** True once the sender has sent this for signature *and* this recipient has something to sign — both, since a recipient with no fields is never registered with Zoho Sign. */
+		awaitingSignature: boolean;
+	};
 	recipient: { roleId: RoleId; roleName: string; name: string; status: DocumentRecipient['status'] };
 	body: DocumentBody;
 }
@@ -133,6 +140,51 @@ export function submitDocumentFields(documentId: string, token: string, values: 
 export function declineDocument(documentId: string, token: string): Promise<SubmitFieldsResult> {
 	return apiFetch<SubmitFieldsResult>(`/public/documents/${documentId}/${encodeURIComponent(token)}/decline`, {
 		method: 'POST',
+	});
+}
+
+export interface EmbedTokenResult {
+	/** Zoho Sign's one-time signing URL, for an iframe. */
+	signUrl: string;
+	/** Two minutes, per Zoho Sign. Passed through so the UI can offer "try again" rather than showing a blank frame. */
+	expiresInSeconds: number;
+}
+
+/**
+ * A fresh signing URL for this recipient's Zoho Sign panel.
+ *
+ * **Call this from the click, never on page load.** The URL Zoho Sign returns is
+ * single-use and expires after two minutes, so one fetched when the document
+ * rendered would be dead by the time anyone scrolled to the bottom of it.
+ */
+export function requestSigningUrl(documentId: string, token: string): Promise<EmbedTokenResult> {
+	return apiFetch<EmbedTokenResult>(`/public/documents/${documentId}/${encodeURIComponent(token)}/embed-token`, {
+		method: 'POST',
+	});
+}
+
+export interface SendForSignatureResult {
+	signRequestId: string;
+	signers: Array<{ recipientId: string; roleName: string; email: string; fieldCount: number }>;
+	/** Recipients with no signable field. Zoho Sign never hears about them; they keep their link and can still read the document. */
+	skipped: Array<{ recipientId: string; roleName: string }>;
+}
+
+/**
+ * Hands a document to Zoho Sign.
+ *
+ * `html` is the document rendered by the browser that laid it out, and `fields`
+ * is that same render measured — see `print/fieldGeometry.ts`. Both come from
+ * one offscreen render rather than two, so the coordinates can't disagree with
+ * the page they were taken from.
+ */
+export function sendForSignature(
+	documentId: string,
+	input: { html: string; fields: unknown[]; format: 'Letter' | 'A4' }
+): Promise<SendForSignatureResult> {
+	return apiFetch<SendForSignatureResult>(`/documents/${documentId}/send-for-signature`, {
+		method: 'POST',
+		body: JSON.stringify(input),
 	});
 }
 

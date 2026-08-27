@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { resolveAssetUrl } from '../api/assets';
+import { SignatureSender } from '../documents/SignatureSender';
+import type { SendForSignatureResult } from '../api/documents';
 import {
 	deleteDocument,
 	getDocument,
@@ -61,6 +63,11 @@ function DocumentDetail() {
 	const [status, setStatus] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
 	const [data, setData] = useState<GetDocumentResult | null>(null);
 	const [regenerated, setRegenerated] = useState<Record<string, DocumentRecipientWithToken>>({});
+	// §4's signature send. `sending` mounts the offscreen renderer that measures
+	// the fields; it unmounts as soon as the send resolves either way.
+	const [sending, setSending] = useState(false);
+	const [sendResult, setSendResult] = useState<SendForSignatureResult | null>(null);
+	const [sendError, setSendError] = useState<string | null>(null);
 	const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 	const [confirmingDelete, setConfirmingDelete] = useState(false);
 	const [deleting, setDeleting] = useState(false);
@@ -199,6 +206,56 @@ function DocumentDetail() {
 						{error}
 					</p>
 				)}
+
+				<section className="document-detail-signature" aria-label="Signature">
+					<h2>Signature</h2>
+					{meta.signRequestId || sendResult ? (
+						<p className="document-detail-signature-sent">
+							Sent for signature. Recipients sign inside their own document link — Zoho Sign never emails them separately.
+						</p>
+					) : (
+						<>
+							<p className="document-detail-signature-hint">
+								Sends this document to Zoho Sign and turns on in-document signing for every recipient who has a field to fill.
+							</p>
+							<button type="button" className="document-detail-send-signature" disabled={sending} onClick={() => {
+								setSendError(null);
+								setSending(true);
+							}}>
+								{sending ? 'Sending…' : 'Send for signature'}
+							</button>
+						</>
+					)}
+					{sendError && (
+						<p className="wizard-error" role="alert">
+							{sendError}
+						</p>
+					)}
+					{sendResult && sendResult.skipped.length > 0 && (
+						// Named rather than dropped silently: a role with nothing to sign is
+						// almost always a template that forgot a field, and the author is the
+						// only person who can still fix it.
+						<p className="document-detail-signature-skipped">
+							No field to sign for: {sendResult.skipped.map((s) => s.roleName).join(', ')}. They can still read the document.
+						</p>
+					)}
+					{sending && data.body && (
+						<SignatureSender
+							documentId={meta.id}
+							body={data.body}
+							// Documents aren't paginated anywhere yet — that map is built by the
+							// editor's canvas, which isn't mounted here. Empty means each authored
+							// page renders as one sheet, and `SignatureSender` refuses to send
+							// rather than guess if any sheet actually overflows.
+							blockPageNumbers={new Map()}
+							onFinished={(error, result) => {
+								setSending(false);
+								setSendError(error);
+								setSendResult(result);
+							}}
+						/>
+					)}
+				</section>
 
 				<section className="document-detail-recipients" aria-label="Recipients">
 					<h2>Recipients</h2>

@@ -525,6 +525,8 @@ export interface DocumentMeta {
 	createdAt: string;
 	updatedAt: string;
 	sentAt: string | null;
+	/** Zoho Sign's request id, once sent for signature. `null` = not sent, a meaningful state. */
+	signRequestId?: string | null;
 	completedAt: string | null;
 }
 

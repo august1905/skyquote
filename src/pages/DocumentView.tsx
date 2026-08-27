@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { declineDocument, getPublicDocument, resolvePublicAssetUrl, submitDocumentFields, type PublicDocumentView } from '../api/documents';
+import { SigningPanel } from '../documents/SigningPanel';
 import { collectAllFields } from '../editor/fields/collectFields';
 import type { FieldValue } from '../editor/fields/FieldPreview';
 import type { FillableField } from '../editor/types';
@@ -48,6 +49,9 @@ function DocumentView() {
 	const [recipientStatus, setRecipientStatus] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [actionError, setActionError] = useState<string | null>(null);
+	// §4's embedded signing. Opened by the recipient, never automatically: the
+	// signing URL behind it is single-use and expires in two minutes.
+	const [signingOpen, setSigningOpen] = useState(false);
 
 	useEffect(() => {
 		if (!documentId || !token) {
@@ -169,6 +173,32 @@ function DocumentView() {
 				fieldInteraction={fieldInteraction}
 				smartContentContext={smartContentContext}
 			/>
+			{/* Signing happens here, in the document, not in an inbox — recipients
+			    are registered with Zoho Sign as embedded signers, which stops it
+			    emailing them a link of its own. Shown only once the sender has
+			    actually sent the document for signature. */}
+			{data.document.awaitingSignature && !isFrozen && (
+				<div className="doc-view-sign-bar">
+					<p>Ready to sign? You can do it right here — no email, no account.</p>
+					<button type="button" className="doc-view-sign-button" onClick={() => setSigningOpen(true)}>
+						Sign this document
+					</button>
+				</div>
+			)}
+			{signingOpen && (
+				<SigningPanel
+					documentId={documentId}
+					token={token}
+					onClose={() => setSigningOpen(false)}
+					onSigned={() => {
+						setSigningOpen(false);
+						// The panel's message is a hint, not proof — Zoho Sign's webhook is
+						// what actually records the signature. Re-reading the document is how
+						// this page finds out whether that landed.
+						void getPublicDocument(documentId, token).then((fresh) => setRecipientStatus(fresh.recipient.status));
+					}}
+				/>
+			)}
 			{/* Always shown, regardless of whether this role owns any fields —
 			    a recipient can still decline (or just mark "done") a document
 			    with nothing to fill in; only Submit's enabled-state depends on
