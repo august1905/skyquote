@@ -80,6 +80,26 @@
 	color: var(--grey-700, #4a5568);
 }
 
+.signing-panel-finishing {
+	margin: 0;
+	padding: 10px 20px;
+	border-top: 1px solid var(--border-subtle, #e1e6ee);
+	background: #f0fdf4;
+	color: #15803d;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-align: center;
+}
+
+/* Quiet by design — this is a way out of a problem most people won't have. */
+.signing-panel-fallback {
+	margin: 0;
+	padding: 8px 20px 12px;
+	font-size: 0.78rem;
+	color: var(--grey-700, #4a5568);
+	text-align: center;
+}
+
 .signing-panel-message button {
 	padding: 8px 18px;
 	border: 1px solid var(--sky-blue, #10a2db);

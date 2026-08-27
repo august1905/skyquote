@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FillableField } from '../types';
 import { FIELD_TYPE_LABELS } from './fieldTypes';
+import type { RecipientSigning } from '../../documents/RichTextView';
 
 /** What a filled-in field is actually worth persisting as — every type reduces to one of these two. */
 export type FieldValue = string | boolean;
@@ -33,13 +34,13 @@ interface FieldPreviewProps {
 	 * and stamp fields out of this component's hands entirely — see the
 	 * `signature` branch in `LiveFieldPreview`.
 	 */
-	onOpenSigning?: (() => void) | undefined;
+	signing?: RecipientSigning | undefined;
 }
 
 /** The shared per-type preview switch — used by both placement modes (§6.2): `FieldBlockView` (standalone) and `FieldChipView` (inline), and by the recipient document view's `DocumentBlockView`/`RichTextView`. */
-export function FieldPreview({ field, live, value, onChange, readOnly, onOpenSigning }: FieldPreviewProps) {
+export function FieldPreview({ field, live, value, onChange, readOnly, signing }: FieldPreviewProps) {
 	return live ? (
-		<LiveFieldPreview field={field} value={value} onChange={onChange} readOnly={readOnly} onOpenSigning={onOpenSigning} />
+		<LiveFieldPreview field={field} value={value} onChange={onChange} readOnly={readOnly} signing={signing} />
 	) : (
 		<InertFieldPreview field={field} />
 	);
@@ -95,7 +96,7 @@ interface LiveFieldPreviewProps {
 	value?: FieldValue | undefined;
 	onChange?: ((value: FieldValue) => void) | undefined;
 	readOnly?: boolean | undefined;
-	onOpenSigning?: (() => void) | undefined;
+	signing?: RecipientSigning | undefined;
 }
 
 /**
@@ -106,7 +107,7 @@ interface LiveFieldPreviewProps {
  * view, those two stay a preview of interactivity, not a functioning part of
  * the submit flow. See BUILD_STATUS.md.
  */
-function LiveFieldPreview({ field, value, onChange, readOnly, onOpenSigning }: LiveFieldPreviewProps) {
+function LiveFieldPreview({ field, value, onChange, readOnly, signing }: LiveFieldPreviewProps) {
 	const controlled = onChange !== undefined;
 	const [localText, setLocalText] = useState('');
 	const [localChecked, setLocalChecked] = useState(false);
@@ -120,16 +121,26 @@ function LiveFieldPreview({ field, value, onChange, readOnly, onOpenSigning }: L
 		case 'initials':
 		case 'stamp': {
 			const label = FIELD_TYPE_LABELS[field.type].toLowerCase();
-			// Once the document is with Zoho Sign, this box is a way *in* to the
-			// signing panel and nothing else. It deliberately keeps no state of its
-			// own: a real signature exists in Zoho Sign or it doesn't, and this
-			// component is in no position to know which — the webhook is. Saying
-			// "✓ Signature added" off a local boolean is how a customer ends up
-			// believing they signed something they didn't.
-			if (onOpenSigning) {
+			// Once the document is with Zoho Sign, this box reports what Zoho Sign
+			// says and offers the panel — it keeps no state of its own, because a
+			// real signature exists there or it doesn't and this component is in no
+			// position to know which. The webhook is. Saying "✓ Signature added"
+			// off a local boolean is how a recipient ends up believing they signed
+			// something they didn't.
+			if (signing) {
+				if (signing.status === 'signed') {
+					return (
+						<div className="field-block-box field-block-signed">
+							✓ Signed
+						</div>
+					);
+				}
+				if (signing.status === 'declined') {
+					return <div className="field-block-box field-block-declined">Declined</div>;
+				}
 				return (
-					<button type="button" className="field-block-box field-block-live-toggle field-block-live-sign" disabled={readOnly} onClick={onOpenSigning}>
-						{readOnly ? `${FIELD_TYPE_LABELS[field.type]} complete` : `Click to add your ${label}`}
+					<button type="button" className="field-block-box field-block-live-toggle field-block-live-sign" onClick={signing.open}>
+						{`Click to add your ${label}`}
 					</button>
 				);
 			}

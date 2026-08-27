@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
-import { requestSigningUrl } from '../api/documents';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { getPublicDocument, requestSigningUrl } from '../api/documents';
+import type { DocumentRecipient } from '../editor/types';
 import './signing-panel.css';
 
 interface SigningPanelProps {
 	documentId: string;
 	token: string;
-	/** Called once the panel reports the recipient finished, so the page can refresh its status without a reload. */
-	onSigned: () => void;
+	/** Called once the *server* confirms this recipient is finished, with the status it reported. The panel closes itself through this. */
+	onSettled: (status: DocumentRecipient['status']) => void;
 	onClose: () => void;
 }
+
+/** How often the panel asks the server whether the signature landed. Only while it's open, so a signing session costs a handful of reads. */
+const STATUS_POLL_MS = 5000;
 
 /**
  * Zoho Sign's signing surface, opened over the document the recipient is already
@@ -24,10 +28,14 @@ interface SigningPanelProps {
  * minutes**. One fetched alongside the document would be dead by the time
  * anybody scrolled to the bottom of a proposal.
  */
-export function SigningPanel({ documentId, token, onSigned, onClose }: SigningPanelProps) {
+export function SigningPanel({ documentId, token, onSettled, onClose }: SigningPanelProps) {
 	const [signUrl, setSignUrl] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [expired, setExpired] = useState(false);
+	// Set when Zoho Sign says the signer finished but the server hasn't caught up
+	// yet. Worth its own state: without it the panel sits on a "you're done"
+	// screen with no explanation for why it hasn't closed.
+	const [finishing, setFinishing] = useState(false);
 	// Bumped by Try again / Start again. A plain counter rather than a key derived
 	// from `expired` so the dependency below is something the linter can check.
 	const [attempt, setAttempt] = useState(0);
@@ -58,21 +66,59 @@ export function SigningPanel({ documentId, token, onSigned, onClose }: SigningPa
 	}, [documentId, token, attempt]);
 
 	/**
+	 * Asks the server whether this recipient is finished, and settles the panel if
+	 * so.
+	 *
+	 * **The server is the only thing that can answer this.** Zoho Sign's own
+	 * completion is delivered by webhook, to the backend; the browser never sees
+	 * it. So the panel polls rather than guessing, and closing is something it
+	 * earns rather than something it does hopefully.
+	 */
+	const checkSettled = useCallback(async () => {
+		try {
+			const fresh = await getPublicDocument(documentId, token);
+			const status = fresh.recipient.status;
+			if (status === 'completed' || status === 'declined') {
+				onSettled(status);
+				return true;
+			}
+		} catch {
+			// A failed poll is not worth surfacing — the next one is 5 seconds away,
+			// and the recipient can always close the panel by hand.
+		}
+		return false;
+	}, [documentId, token, onSettled]);
+
+	// Polls only while the panel is open, which is what closes it after signing.
+	// Before this, Zoho Sign's own "document signed" screen stayed up and the
+	// recipient had to dismiss the panel themselves — an extra step at exactly the
+	// moment they think they're done.
+	useEffect(() => {
+		const timer = window.setInterval(() => void checkSettled(), STATUS_POLL_MS);
+		return () => window.clearInterval(timer);
+	}, [checkSettled]);
+
+	/**
 	 * Zoho Sign posts a message to the parent window when the signer finishes.
 	 *
-	 * Treated as a **hint, not as truth**: anything can post a message to a
-	 * window, so this only refreshes the page's own view of its status — the
-	 * authoritative "this was signed" comes from Zoho Sign's webhook hitting the
+	 * Treated as a **prompt to check, not as proof**: anything can post a message
+	 * to a window, so all this does is bring the next poll forward. The
+	 * authoritative "this was signed" comes from Zoho Sign's webhook reaching the
 	 * backend, which nothing in the browser can forge.
+	 *
+	 * Matched loosely on purpose — the payload has been seen as both a bare string
+	 * and an object, and the cost of a false positive here is one extra read.
 	 */
 	useEffect(() => {
 		function handleMessage(event: MessageEvent) {
-			const data = typeof event.data === 'string' ? event.data : '';
-			if (/sign_success|sign_completed|signing_complete/i.test(data)) onSigned();
+			const data = typeof event.data === 'string' ? event.data : JSON.stringify(event.data ?? '');
+			if (!/sign|complet|success|finish/i.test(data)) return;
+			setFinishing(true);
+			void checkSettled();
 		}
 		window.addEventListener('message', handleMessage);
 		return () => window.removeEventListener('message', handleMessage);
-	}, [onSigned]);
+	}, [checkSettled]);
 
 	return (
 		<div className="signing-overlay" role="dialog" aria-modal="true" aria-label="Sign this document">
@@ -112,6 +158,20 @@ export function SigningPanel({ documentId, token, onSigned, onClose }: SigningPa
 						/>
 					)}
 				</div>
+				{finishing && <p className="signing-panel-finishing">Signature received — finishing up…</p>}
+				{!error && !expired && signUrl && (
+					// An escape hatch, not a feature. The panel is an iframe on
+					// sign.zoho.com, and a browser that already holds a Zoho session can
+					// treat that differently from a clean one. A full tab is the same
+					// signing session without the frame.
+					<p className="signing-panel-fallback">
+						Trouble signing here?{' '}
+						<a href={signUrl} target="_blank" rel="noopener noreferrer">
+							Open it in a new tab
+						</a>
+						.
+					</p>
+				)}
 			</div>
 		</div>
 	);

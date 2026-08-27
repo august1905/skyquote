@@ -172,11 +172,23 @@
 	background: #e7f0f8;
 }
 
-.field-block-live-sign:disabled {
+/* Signed, as reported by the server rather than by this component. Deliberately
+   not a disabled button — there is nothing to press, and a greyed-out control
+   reads as "you can't do this" rather than "this is done". */
+.field-block-signed {
+	border-style: solid;
 	border-color: #15803d;
 	color: #15803d;
 	background: #f0fdf4;
-	cursor: default;
+	font-weight: 600;
+}
+
+.field-block-declined {
+	border-style: solid;
+	border-color: #c0392b;
+	color: #c0392b;
+	background: #fef2f2;
+	font-weight: 600;
 }
 
 .field-block-live-upload {

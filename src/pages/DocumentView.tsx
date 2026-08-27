@@ -121,14 +121,26 @@ function DocumentView() {
 
 	const myFields = collectAllFields(data.body).filter((field) => field.roleId === data.recipient.roleId);
 	const isFrozen = recipientStatus === 'completed' || recipientStatus === 'declined';
+	// `awaitingSignature` is really "this recipient is registered with Zoho Sign",
+	// and it stays true after they sign — the backend never clears the ids. That's
+	// what lets this page tell a *signed* document from one whose fields were
+	// merely submitted, without needing a new field from the API.
+	const registeredWithSign = data.document.awaitingSignature;
 	const missingRequired = myFields.filter((field) => isRequiredFieldMissing(field, fieldValues[field.id]));
 	const fieldInteraction: FieldInteraction = {
 		fieldValues,
 		onFieldChange: (fieldId, value) => setFieldValues((prev) => ({ ...prev, [fieldId]: value })),
 		readOnly: isFrozen,
 		// Only when Zoho Sign actually has this document. Before that there is
-		// nothing for a signature box to open, so it stays the plain toggle.
-		onOpenSigning: data.document.awaitingSignature && !isFrozen ? () => setSigningOpen(true) : undefined,
+		// nothing for a signature box to report or open, so it stays the plain
+		// toggle. Note this stays set *after* signing — that's the whole point:
+		// the box has to be able to say "Signed", not fall back to looking empty.
+		signing: registeredWithSign
+			? {
+					status: recipientStatus === 'completed' ? 'signed' : recipientStatus === 'declined' ? 'declined' : 'awaiting',
+					open: () => setSigningOpen(true),
+				}
+			: undefined,
 	};
 
 	async function handleSubmit() {
@@ -165,7 +177,9 @@ function DocumentView() {
 				<h1>{data.document.title}</h1>
 				<span className="doc-view-recipient-badge">
 					Viewing as {data.recipient.name} ({data.recipient.roleName})
-					{recipientStatus === 'completed' && <span className="doc-view-status-pill doc-view-status-completed"> · Submitted</span>}
+					{recipientStatus === 'completed' && (
+						<span className="doc-view-status-pill doc-view-status-completed"> · {registeredWithSign ? 'Signed' : 'Submitted'}</span>
+					)}
 					{recipientStatus === 'declined' && <span className="doc-view-status-pill doc-view-status-declined"> · Declined</span>}
 				</span>
 			</header>
@@ -193,12 +207,12 @@ function DocumentView() {
 					documentId={documentId}
 					token={token}
 					onClose={() => setSigningOpen(false)}
-					onSigned={() => {
+					// Already confirmed against the server by the panel itself, so there's
+					// nothing to re-check here — see SigningPanel for why it never trusts
+					// Zoho Sign's postMessage on its own.
+					onSettled={(status) => {
+						setRecipientStatus(status);
 						setSigningOpen(false);
-						// The panel's message is a hint, not proof — Zoho Sign's webhook is
-						// what actually records the signature. Re-reading the document is how
-						// this page finds out whether that landed.
-						void getPublicDocument(documentId, token).then((fresh) => setRecipientStatus(fresh.recipient.status));
 					}}
 				/>
 			)}
@@ -209,7 +223,11 @@ function DocumentView() {
 			<div className="doc-view-actions">
 				{isFrozen ? (
 					<p className="doc-view-actions-message">
-						{recipientStatus === 'completed' ? 'Thanks — your responses have been submitted.' : 'You declined this document.'}
+						{recipientStatus !== 'completed'
+							? 'You declined this document.'
+							: registeredWithSign
+								? 'Signed. Thanks — nothing else is needed from you.'
+								: 'Thanks — your responses have been submitted.'}
 					</p>
 				) : (
 					<>
