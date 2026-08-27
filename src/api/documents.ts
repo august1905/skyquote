@@ -53,9 +53,26 @@ export function listDocuments(): Promise<{ documents: DocumentMeta[] }> {
 	return apiFetch<{ documents: DocumentMeta[] }>('/documents');
 }
 
+/**
+ * One thing that happened to a document, newest first.
+ *
+ * Separate from `status`, which is overwritten in place and can only ever say
+ * where a document is *now*. These say how it got there — when it was sent, when
+ * the recipient opened the signing panel, when they signed.
+ */
+export interface DocumentEvent {
+	id: string;
+	/** `null` for a document-level event, like being sent. */
+	recipientId: string | null;
+	eventType: string;
+	occurredAt: string | null;
+}
+
 export interface GetDocumentResult {
 	document: DocumentMeta;
 	recipients: DocumentRecipient[];
+	/** Empty when nothing has been recorded — the backend writes these best-effort, so an empty list never means an error. */
+	events: DocumentEvent[];
 	/** The stored body, so the internal view can render the document rather than describe it. */
 	body: DocumentBody;
 }
