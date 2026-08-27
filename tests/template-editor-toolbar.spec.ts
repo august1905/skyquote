@@ -101,9 +101,11 @@ test.describe('Formatting toolbar (§2)', () => {
 
 		const style = page.getByLabel('Paragraph style');
 		await expect(style).toHaveValue('paragraph');
-		await style.selectOption('heading1');
-		await expect(editor.locator('h1')).toHaveText('Section title');
-		await expect(style).toHaveValue('heading1');
+
+		// Headings are no longer offered (Grayson, 2026-08-27) — size and colour
+		// cover what they were for. Asserted rather than just dropped, so putting
+		// one back is a deliberate act.
+		await expect(style.locator('option')).toHaveText(['Normal text', 'Quote', 'Code']);
 
 		// Quote wraps whatever it's applied to, so this also covers the
 		// detection-order case the unit tests pin down: both blockquote and
@@ -114,7 +116,6 @@ test.describe('Formatting toolbar (§2)', () => {
 
 		await style.selectOption('paragraph');
 		await expect(editor.locator('blockquote')).toHaveCount(0);
-		await expect(editor.locator('h1')).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'Align center' }).click();
 		await expect(editor.locator('[style*="text-align: center"]')).toHaveCount(1);
@@ -163,10 +164,6 @@ test.describe('Formatting toolbar (§2)', () => {
 		await expect(editor.locator('[style*="font-size"]')).toHaveCount(0);
 		// And with nothing left to reset, it says so rather than sitting there inert.
 		await expect(page.getByRole('button', { name: 'Reset font size to theme' })).toBeDisabled();
-
-		await selectParagraph(page);
-		await page.getByLabel('Font family').selectOption('Georgia, serif');
-		await expect(editor.locator('[style*="Georgia"]')).toHaveCount(1);
 
 		await selectParagraph(page);
 		await page.getByLabel('Line spacing').selectOption('2');

@@ -53,51 +53,12 @@ test.describe('Block settings popover', () => {
 	});
 });
 
-// §4.3's padding and margin, which moved out of the Settings popover above and
-// onto the toolbar — per side, and reachable without opening anything.
-test.describe('Block spacing on the toolbar', () => {
-	test('sets padding and margin per side for the selected block, and persists through a reload', async ({ page }) => {
-		await openNewTemplate(page);
-
-		const content = page.locator('.canvas-block-content').first();
-		// Nothing selected yet: the controls are present but inert, per §2's
-		// "disable rather than hide" — the bar must not reflow as selection changes.
-		await expect(page.getByLabel('Padding top')).toBeDisabled();
-
-		await page.locator('.canvas-block').first().click();
-		await expect(page.getByLabel('Padding top')).toBeEnabled();
-
-		await page.getByLabel('Padding top').fill('10');
-		await page.getByLabel('Padding right').fill('20');
-		await page.getByLabel('Padding bottom').fill('30');
-		await page.getByLabel('Padding left').fill('40');
-		// Four different values, so this can only pass with genuinely per-side
-		// padding — the old control wrote one number to all four.
-		await expect(content).toHaveCSS('padding', '10px 20px 30px 40px');
-
-		// Horizontal margin used to be dropped entirely (the editor applied
-		// top/bottom only), so "nudge this block right" was inexpressible.
-		//
-		// Asserted on the block *frame*, not the content: margin is the gap between
-		// this block and its neighbours, and putting it on the inner element left
-		// the frame exactly where it was while its contents shuffled inside it.
-		const frame = page.locator('.canvas-block').first();
-		await page.getByLabel('Margin left').fill('24');
-		await page.getByLabel('Margin top').fill('8');
-		await expect(frame).toHaveCSS('margin-left', '24px');
-		await expect(frame).toHaveCSS('margin-top', '8px');
-		await expect(content).toHaveCSS('margin-left', '0px');
-
-		await saveNow(page);
-		await page.reload();
-		await expect(page.locator('.canvas-block-content').first()).toHaveCSS('padding', '10px 20px 30px 40px');
-		await expect(page.locator('.canvas-block').first()).toHaveCSS('margin-left', '24px');
-	});
-});
-
-// §4.3's placement — pinning a block to an exact spot on the page, which is what
-// a cover page needs and what spacing controls can't express: padding and margin
-// only push a block away from its neighbours, they never take it out of the column.
+// §4.3's placement — pinning a block to an exact spot on the page, and now the
+// only way to put one somewhere precise. The per-side padding/margin controls
+// that used to sit beside it on the toolbar were removed once this proved to be
+// the better answer (Grayson, 2026-08-27): four spacing numbers were always an
+// indirect way of saying "put it here". Stored spacing still renders, so
+// `blockStyle.ts` and its unit tests stay.
 test.describe('Pinning a block to the page', () => {
 	test('pins where the block already is, moves by drag and by typed coordinates, and persists', async ({ page }) => {
 		await openNewTemplate(page);

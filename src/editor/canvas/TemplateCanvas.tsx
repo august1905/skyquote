@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { DOCUMENT_FONT } from '../../documents/documentFont';
 import { defaultPageSettings, defaultTheme } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import type { BlockId, TemplateSettings, Theme } from '../types';
@@ -17,8 +18,8 @@ import './canvas.css';
  */
 function themeCssVars(theme: Theme): CSSProperties {
 	return {
-		'--theme-heading-font': theme.headingFont,
-		'--theme-body-font': theme.bodyFont,
+		'--theme-heading-font': DOCUMENT_FONT,
+		'--theme-body-font': DOCUMENT_FONT,
 		'--theme-primary-color': theme.primaryColor,
 		'--theme-text-color': theme.textColor,
 		'--theme-page-background': theme.pageBackgroundColor,

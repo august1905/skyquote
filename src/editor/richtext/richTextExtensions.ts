@@ -9,7 +9,6 @@ import { VariableNode } from './variableNode';
 import { FillableFieldNode } from './fieldNode';
 import { InsertSuggestion } from './insertSuggestion';
 import { EscapeToBlur } from './escapeToBlur';
-import { CommentHighlight } from '../comments/commentHighlight';
 
 /**
  * Shared by every rich-text surface (`TextBlockView`, `TableCellEditor`) so
@@ -40,7 +39,11 @@ export function richTextExtensions(): AnyExtension[] {
 		// TemplateBody stays the unit of undo, not just one editor's own
 		// ProseMirror history.
 		StarterKit.configure({ undoRedo: false }),
-		TextStyleKit.configure({ backgroundColor: false }),
+		// `fontFamily: false` is not a style preference — it's what makes "all text is
+		// Montserrat" true of documents written before that was decided. Left
+		// registered, a stored `fontFamily` mark would keep rendering Arial or Times
+		// with no control anywhere able to clear it. See `documentFont.ts`.
+		TextStyleKit.configure({ backgroundColor: false, fontFamily: false }),
 		TextAlign.configure({ types: ['heading', 'paragraph'] }),
 		Highlight,
 		Superscript,
@@ -54,6 +57,5 @@ export function richTextExtensions(): AnyExtension[] {
 		// §12's commented-passage highlighting. Contributes decorations only —
 		// no marks, no schema change — so it can't affect what any existing
 		// stored doc parses to.
-		CommentHighlight,
 	];
 }

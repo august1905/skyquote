@@ -174,10 +174,11 @@
 	cursor: default;
 }
 
-/* ─── Block spacing (§4.3) ─────────────────────────────────────────────────
-   Padding and margin per side, on the bar instead of behind the Settings
-   popover. Grouped and boxed so eight small numbers read as two sets of four
-   rather than a row of loose inputs. */
+/* ─── Small boxed number groups ────────────────────────────────────────────
+   Named for spacing because per-side padding and margin were the first thing
+   to use them; those controls are gone (Grayson, 2026-08-27) and the block
+   placement X/Y/W/H boxes are what's left. Grouped and boxed so four small
+   numbers read as one control rather than a row of loose inputs. */
 .toolbar-spacing-group {
 	display: inline-flex;
 	align-items: center;

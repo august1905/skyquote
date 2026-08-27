@@ -10,7 +10,7 @@ function makeSettings(): TemplateSettings {
 		orientation: 'portrait',
 		margins: { top: 0, right: 0, bottom: 0, left: 0 },
 		showPageNumbers: false,
-		theme: { headingFont: 'Georgia', bodyFont: 'Arial', primaryColor: '#000', textColor: '#000', pageBackgroundColor: '#fff', baseSpacing: 0 },
+		theme: { primaryColor: '#000', textColor: '#000', pageBackgroundColor: '#fff', baseSpacing: 0 },
 	};
 }
 

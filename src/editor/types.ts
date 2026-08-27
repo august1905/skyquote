@@ -404,8 +404,6 @@ export interface Page {
  * shared across templates.
  */
 export interface Theme {
-	headingFont: string;
-	bodyFont: string;
 	/** Accent color — headings, by default. */
 	primaryColor: string;
 	textColor: string;

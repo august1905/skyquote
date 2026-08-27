@@ -5,10 +5,8 @@ import { useEditorStore } from '../store/editorStore';
 import { useActiveRichTextEditor } from '../richtext/useActiveRichTextEditor';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { BlockPlacementControls } from './BlockPlacementControls';
-import { BlockSpacingControls } from './BlockSpacingControls';
 import { FontSizeControl } from './FontSizeControl';
 import {
-	FONT_FAMILY_OPTIONS,
 	LINE_HEIGHT_OPTIONS,
 	PARAGRAPH_STYLE_OPTIONS,
 	currentParagraphStyle,
@@ -22,21 +20,13 @@ const DEFAULT_HIGHLIGHT = '#fff3a3';
 function applyParagraphStyle(editor: Editor, style: ParagraphStyleId): void {
 	const chain = editor.chain().focus();
 	// Every branch clears the *other* wrapper/node types first, so switching
-	// Quote → Heading 1 doesn't leave the heading still wrapped in a
-	// blockquote. `clearNodes()` is Tiptap's own "back to plain paragraphs"
-	// command and handles lifting out of both.
+	// Quote → Code doesn't leave the code block still wrapped in a blockquote.
+	// `clearNodes()` is Tiptap's own "back to plain paragraphs" command and
+	// handles lifting out of both — including out of a heading left over from
+	// before headings stopped being offered, which is the one way to flatten one.
 	switch (style) {
 		case 'paragraph':
 			chain.clearNodes().setParagraph().run();
-			return;
-		case 'heading1':
-			chain.clearNodes().setHeading({ level: 1 }).run();
-			return;
-		case 'heading2':
-			chain.clearNodes().setHeading({ level: 2 }).run();
-			return;
-		case 'heading3':
-			chain.clearNodes().setHeading({ level: 3 }).run();
 			return;
 		case 'blockquote':
 			chain.clearNodes().setBlockquote().run();
@@ -119,7 +109,6 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 	// inert defaults when the toolbar is disabled.
 	const isActive = (name: string, attrs?: Record<string, unknown>) => (editor ? editor.isActive(name, attrs) : false);
 	const style = editor ? currentParagraphStyle(isActive) : 'paragraph';
-	const fontFamily = (editor?.getAttributes('textStyle').fontFamily as string | undefined) ?? '';
 	const fontSize = (editor?.getAttributes('textStyle').fontSize as string | undefined) ?? '';
 	const lineHeight = (editor?.getAttributes('textStyle').lineHeight as string | undefined) ?? '';
 	const fontColor = (editor?.getAttributes('textStyle').color as string | undefined) ?? '#000000';
@@ -173,24 +162,6 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 			>
 				{PARAGRAPH_STYLE_OPTIONS.map((option) => (
 					<option key={option.id} value={option.id}>
-						{option.label}
-					</option>
-				))}
-			</select>
-
-			<select
-				aria-label="Font family"
-				value={fontFamily}
-				disabled={disabled}
-				onChange={(e) => {
-					if (!editor) return;
-					const value = e.target.value;
-					if (value === '') editor.chain().focus().unsetFontFamily().run();
-					else editor.chain().focus().setFontFamily(value).run();
-				}}
-			>
-				{FONT_FAMILY_OPTIONS.map((option) => (
-					<option key={option.label} value={option.value}>
 						{option.label}
 					</option>
 				))}
@@ -379,12 +350,14 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 				⌫
 			</button>
 
-			{/* §4.3's spacing, on the bar rather than behind the block's Settings
-			    popover — see BlockSpacingControls. Wraps to its own line on a narrow
-			    window (the toolbar is a wrapping flex row), which is why it sits last:
-			    the text controls stay together above it. */}
+			{/* Pinning, on the bar rather than behind the block's Settings popover.
+			    Padding and margin used to sit alongside it and were removed once
+			    dragging a pinned block proved to be the better way to place things
+			    exactly (Grayson, 2026-08-27) — nudging a block with four spacing
+			    numbers was always an indirect way of saying "put it here". Existing
+			    stored padding/margin still renders; there's just no longer a control
+			    that sets it. */}
 			<span className="editor-toolbar-divider" />
-			<BlockSpacingControls />
 			<BlockPlacementControls />
 		</div>
 	);

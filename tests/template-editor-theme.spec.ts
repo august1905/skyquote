@@ -5,32 +5,34 @@ import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 // Real backend, no mocking, same convention as the rest of this suite. §3's
 // Theme panel — the last phase-2 item.
 test.describe('Theme panel', () => {
-	test('edits fonts, colors, and spacing, applies them live, and persists through a reload', async ({ page }) => {
+	test('edits colors and spacing, applies them live, and persists through a reload', async ({ page }) => {
 		await openNewTemplate(page);
 
 		await expect(page.locator('.theme-panel')).toHaveCount(0);
 		await railButton(page, 'Theme').click();
 		await expect(page.locator('.theme-panel')).toBeVisible();
 
-		await page.getByLabel('Heading font').fill('Impact, sans-serif');
-		await page.getByLabel('Body font').fill('Courier New, monospace');
 		await page.getByLabel('Heading color').fill('#ff0000');
 		await page.getByLabel('Text color').fill('#0000ff');
 		await page.getByLabel('Page background').fill('#eeeeee');
 		await page.getByLabel('Block spacing (px)').fill('40');
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
-		await expect(editor).toHaveCSS('font-family', /Courier New/);
+		// Every document is Montserrat and the theme has no font setting any more
+		// (Grayson, 2026-08-27) — asserted here so a stray font-family regression
+		// shows up as a failing test rather than as a document that quietly isn't.
+		await expect(editor).toHaveCSS('font-family', /Montserrat/);
 		await expect(editor).toHaveCSS('color', 'rgb(0, 0, 255)');
 		await expect(page.locator('.canvas-page').first()).toHaveCSS('background-color', 'rgb(238, 238, 238)');
 
-		// A heading actually needs to exist to check the heading font/color —
-		// type one via the paragraph-style shortcut Tiptap's StarterKit gives
-		// every block: markdown-style "# " at the start of a line becomes an H1.
+		// A heading still has to exist to check the heading *colour*. The dropdown
+		// no longer offers one, but StarterKit's markdown input rule still makes an
+		// H1 from "# " — which is also the check that templates written before
+		// headings were removed keep rendering as headings.
 		await editor.click();
 		await page.keyboard.type('# A heading');
 		const heading = editor.locator('h1');
-		await expect(heading).toHaveCSS('font-family', /Impact/);
+		await expect(heading).toHaveCSS('font-family', /Montserrat/);
 		await expect(heading).toHaveCSS('color', 'rgb(255, 0, 0)');
 
 		await saveNow(page);

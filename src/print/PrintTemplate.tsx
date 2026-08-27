@@ -1,4 +1,5 @@
 import { DocumentBlockView } from '../documents/DocumentBlockView';
+import { DOCUMENT_FONT } from '../documents/documentFont';
 import { collectHeadings } from '../editor/toc/collectHeadings';
 import { pageDimensions } from '../editor/pagination/pageDimensions';
 import type { Block, BlockId, Page, TemplateBody } from '../editor/types';
@@ -89,8 +90,8 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 				// The theme reaches blocks the same way it reaches the canvas — as
 				// custom properties on a wrapper (see canvas.css) — so print output
 				// picks up fonts and colours without a second theming path.
-				['--theme-heading-font' as string]: theme.headingFont,
-				['--theme-body-font' as string]: theme.bodyFont,
+				['--theme-heading-font' as string]: DOCUMENT_FONT,
+				['--theme-body-font' as string]: DOCUMENT_FONT,
 				['--theme-primary-color' as string]: theme.primaryColor,
 				['--theme-text-color' as string]: theme.textColor,
 				['--theme-page-background' as string]: theme.pageBackgroundColor,

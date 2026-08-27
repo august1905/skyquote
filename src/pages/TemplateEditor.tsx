@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTemplate } from '../api/templates';
-import { listComments } from '../api/comments';
 import { TemplateCanvas } from '../editor/canvas/TemplateCanvas';
 import { PageNavigator } from '../editor/canvas/PageNavigator';
 import { EditorDndProvider } from '../editor/dnd/EditorDndProvider';
@@ -10,9 +9,7 @@ import { useEditorStore } from '../editor/store/editorStore';
 import { useAuth } from '../auth/AuthContext';
 import { clearLocalDraft, describeDraft, readLocalDraft, type LocalDraft } from '../editor/autosave/localDraft';
 import { RightRail } from '../editor/rightrail/RightRail';
-import { CommentsSidebar } from '../editor/comments/CommentsSidebar';
 import { PdfExporter } from '../print/PdfExporter';
-import { groupIntoThreads, unresolvedThreadCount } from '../editor/comments/commentAnchors';
 import { TemplateNameEditor } from '../editor/header/TemplateNameEditor';
 import { startRenamingTemplate } from '../editor/header/renameRequest';
 import { TemplateFolderChip } from '../editor/header/TemplateFolderChip';
@@ -85,13 +82,6 @@ function TemplateEditor() {
 	// Closed by default — it's a navigation aid, and a template usually has one
 	// page, so opening it unprompted would just narrow the canvas.
 	const [pagesOpen, setPagesOpen] = useState(false);
-	// §12's comment sidebar (the header's comment icon). Its open state lives in
-	// the store, not here, because the canvas opens it too — see editorStore.ts.
-	const commentsOpen = useEditorStore((s) => s.commentsSidebarOpen);
-	const setCommentsOpen = useEditorStore((s) => s.setCommentsSidebarOpen);
-	const setComments = useEditorStore((s) => s.setComments);
-	const setCommentsStatus = useEditorStore((s) => s.setCommentsStatus);
-	const comments = useEditorStore((s) => s.comments);
 	// §10's PDF export renders the body itself, and reuses the canvas's own
 	// physical-page map so the PDF's page breaks are the ones on screen.
 	const body = useEditorStore((s) => s.body);
@@ -103,10 +93,6 @@ function TemplateEditor() {
 	// already a no-op against an empty store.
 	const handleForceSave = useCallback(() => void flush(), [flush]);
 	useEditorShortcuts({ onForceSave: handleForceSave });
-
-	// Threads, not messages: five replies to one question is one thing needing
-	// attention, not five.
-	const unresolvedCount = useMemo(() => unresolvedThreadCount(groupIntoThreads(comments)), [comments]);
 
 	// §3/§11.1's gate on "Create document". Only `error`-severity issues block;
 	// `ValidationIndicator` shows both severities either way.
@@ -148,31 +134,7 @@ function TemplateEditor() {
 	// data most sessions never look at. They're workspace-level, not
 	// template-scoped, and each one now loads the first time something actually
 	// needs it: see `editor/workspaceData.ts` and its callers (CatalogPanel,
-	// PricingTableBlockView, ContentLibraryPanel, SaveToLibraryDialog,
-	// CommentsSidebar).
-
-	// §12's comments, template-scoped — refetched whenever the open template
-	// changes, unlike the catalog/library which are workspace-level. Degrades
-	// to an empty sidebar rather than blocking the editor.
-	useEffect(() => {
-		if (!id) return;
-		let cancelled = false;
-		// Cleared here rather than in `loadTemplate`: this effect owns the list,
-		// and the template load routinely finishes *after* it — see the note in
-		// editorStore.ts's loadTemplate.
-		setComments([], []);
-		setCommentsStatus('loading');
-		listComments(id)
-			.then(({ comments: loaded, authors }) => {
-				if (!cancelled) setComments(loaded, authors);
-			})
-			.catch(() => {
-				if (!cancelled) setCommentsStatus('error');
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [id, setComments, setCommentsStatus]);
+	// PricingTableBlockView, ContentLibraryPanel, SaveToLibraryDialog).
 
 	useEffect(() => {
 		if (!id) return;
@@ -264,21 +226,6 @@ function TemplateEditor() {
 						<button type="button" className="header-icon-button" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
 							<RedoIcon size={16} />
 						</button>
-						{/* §3's header comment icon, "shows unread badge". The count is
-						    **unresolved threads**, not unread ones: per-user read state
-						    needs a table that doesn't exist yet (see BUILD_STATUS.md),
-						    and unresolved is both meaningful on its own and the same
-						    number for everyone. */}
-						<div className="comments-header-toggle">
-							<button type="button" aria-label="Comments" aria-pressed={commentsOpen} onClick={() => setCommentsOpen(!commentsOpen)}>
-								💬
-							</button>
-							{unresolvedCount > 0 && (
-								<span className="comments-header-badge" aria-label={`${unresolvedCount} unresolved comments`}>
-									{unresolvedCount}
-								</span>
-							)}
-						</div>
 						{/* §3/§11.1: "Disabled with tooltip if the template has validation
 						    errors." Warnings deliberately don't block — an image missing alt
 						    text is worth flagging, not worth refusing to send a quote over. */}
@@ -372,7 +319,6 @@ function TemplateEditor() {
 						<div className="template-editor-canvas-area">
 							<TemplateCanvas />
 						</div>
-						{commentsOpen && <CommentsSidebar onClose={() => setCommentsOpen(false)} />}
 						<RightRail />
 					</div>
 				</EditorDndProvider>

@@ -17,14 +17,14 @@ describe('currentParagraphStyle', () => {
 		expect(currentParagraphStyle(fakeIsActive([{ name: 'paragraph' }]))).toBe('paragraph');
 	});
 
-	it('reports each heading level distinctly', () => {
-		expect(currentParagraphStyle(fakeIsActive([{ name: 'heading', attrs: { level: 1 } }]))).toBe('heading1');
-		expect(currentParagraphStyle(fakeIsActive([{ name: 'heading', attrs: { level: 2 } }]))).toBe('heading2');
-		expect(currentParagraphStyle(fakeIsActive([{ name: 'heading', attrs: { level: 3 } }]))).toBe('heading3');
-	});
-
-	it('reports a heading deeper than 3 as paragraph — the dropdown only offers 1–3, so there is no honest option to show', () => {
-		expect(currentParagraphStyle(fakeIsActive([{ name: 'heading', attrs: { level: 4 } }]))).toBe('paragraph');
+	it('reports a legacy heading as normal text, which is the only thing the dropdown can now do with one', () => {
+		// Headings are no longer offered (Grayson, 2026-08-27), but heading nodes
+		// still exist in templates written before that and still render. Reporting
+		// one as `paragraph` is what makes choosing "Normal text" flatten it —
+		// otherwise a legacy heading would be permanently stuck.
+		for (const level of [1, 2, 3, 4]) {
+			expect(currentParagraphStyle(fakeIsActive([{ name: 'heading', attrs: { level } }]))).toBe('paragraph');
+		}
 	});
 
 	// The reason the check order in currentParagraphStyle is deliberate: a
@@ -33,7 +33,7 @@ describe('currentParagraphStyle', () => {
 		expect(currentParagraphStyle(fakeIsActive([{ name: 'blockquote' }, { name: 'paragraph' }]))).toBe('blockquote');
 	});
 
-	it('prefers a quoted heading’s blockquote over the heading, so the dropdown matches the outermost wrapper', () => {
+	it('still prefers the blockquote wrapping a legacy heading, so the dropdown matches the outermost wrapper', () => {
 		expect(currentParagraphStyle(fakeIsActive([{ name: 'blockquote' }, { name: 'heading', attrs: { level: 2 } }]))).toBe('blockquote');
 	});
 

@@ -3,7 +3,6 @@ import { immer } from 'zustand/middleware/immer';
 import type { BlockId, BlockType, CatalogItem, PageId, RoleId, TemplateBody, TemplateMeta } from '../types';
 import type { InsertTarget } from '../content/palette';
 import type { ContentLibraryItem } from '../../api/contentLibrary';
-import type { Comment, CommentAuthor, MentionableUser } from '../../api/comments';
 import type { Command } from '../commands/types';
 import { defaultTheme } from '../commands/themeCommands';
 import { defaultPageSettings } from '../commands/pageSettingsCommands';
@@ -123,51 +122,6 @@ interface EditorState {
 	contentLibraryItems: ContentLibraryItem[];
 	contentLibraryStatus: 'idle' | 'loading' | 'ready' | 'error';
 	/**
-	 * §12's comments — every message on this template, roots and replies
-	 * together, exactly as the backend returns them. Grouped into threads at
-	 * render time (`commentAnchors.ts`) rather than stored pre-grouped, so a
-	 * single upsert after posting a reply doesn't have to find and patch the
-	 * right thread.
-	 *
-	 * Template-scoped, so unlike `catalogItems`/`contentLibraryItems` these
-	 * ARE reset by `loadTemplate`. Deliberately outside `body` and therefore
-	 * outside undo/redo: a comment is server state that other people can add
-	 * to, and Cmd+Z should never un-post someone's question.
-	 */
-	comments: Comment[];
-	commentAuthors: CommentAuthor[];
-	commentsStatus: 'idle' | 'loading' | 'ready' | 'error';
-	/**
-	 * The @-mention picker's source list — workspace-level like the catalog, so
-	 * it survives `loadTemplate`.
-	 */
-	mentionableUsers: MentionableUser[];
-	/**
-	 * The thread currently focused in the sidebar (a *root* comment's id), or
-	 * null. Drives both the sidebar's expanded thread and the stronger
-	 * in-canvas highlight, so clicking either one selects in the other.
-	 */
-	activeCommentId: string | null;
-	/**
-	 * A comment being composed but not yet posted, and what it will anchor to.
-	 * Held in the store rather than in the sidebar's own state because the
-	 * anchor is captured in the canvas (from a block's toolbar, or a text
-	 * selection inside it) and consumed in the sidebar — neither owns it.
-	 */
-	pendingCommentAnchor: { blockId: BlockId; anchorStart?: number; anchorEnd?: number } | null;
-	/**
-	 * Whether §12's comment sidebar is showing.
-	 *
-	 * Store state rather than the editor page's own `useState`, because the two
-	 * things that must open it — starting a comment from a block's ⋯ menu, and
-	 * clicking a highlighted passage in the canvas — happen deep in the canvas,
-	 * nowhere near the page component. Deriving it from `activeCommentId`
-	 * instead was tried and is subtly wrong: re-clicking the highlight of the
-	 * already-active thread changes nothing to react to, so a closed sidebar
-	 * stayed closed. Setting it outright from those actions has no such gap.
-	 */
-	commentsSidebarOpen: boolean;
-	/**
 	 * Which of §3's right-rail panels (③) is open, or null. One at a time, as
 	 * the spec requires.
 	 *
@@ -265,16 +219,6 @@ interface EditorState {
 	upsertContentLibraryItem: (item: ContentLibraryItem) => void;
 	removeContentLibraryItem: (id: string) => void;
 	setBlockPageNumbers: (map: Map<BlockId, number>) => void;
-	setCommentsStatus: (status: EditorState['commentsStatus']) => void;
-	setComments: (comments: Comment[], authors: CommentAuthor[]) => void;
-	/** Splices one message into the cached list — for the post/edit/resolve paths, which already hold the authoritative row the backend returned. */
-	upsertComment: (comment: Comment, author?: CommentAuthor) => void;
-	/** Takes a list because deleting a root deletes its replies, and the backend reports all of them together. */
-	removeComments: (ids: string[]) => void;
-	setMentionableUsers: (users: MentionableUser[]) => void;
-	setActiveCommentId: (id: string | null) => void;
-	setPendingCommentAnchor: (anchor: EditorState['pendingCommentAnchor']) => void;
-	setCommentsSidebarOpen: (open: boolean) => void;
 	setOpenRailPanel: (panel: EditorState['openRailPanel']) => void;
 	setPalettePlacement: (placement: EditorState['palettePlacement']) => void;
 }
@@ -291,13 +235,6 @@ export const useEditorStore = create<EditorState>()(
 		catalogItemsStatus: 'idle',
 		contentLibraryItems: [],
 		contentLibraryStatus: 'idle',
-		comments: [],
-		commentAuthors: [],
-		commentsStatus: 'idle',
-		mentionableUsers: [],
-		activeCommentId: null,
-		pendingCommentAnchor: null,
-		commentsSidebarOpen: false,
 		/**
 		 * Every panel starts closed, Content included — and it was worth trying the
 		 * other way to find out why.
@@ -328,16 +265,6 @@ export const useEditorStore = create<EditorState>()(
 				state.multiSelectedBlockIds = [];
 				state.previewRoleId = null;
 				state.blockPageNumbers = new Map();
-				// `comments`/`commentsStatus` are deliberately NOT reset here, even
-				// though they're template-scoped. They're fetched by their own
-				// effect keyed on the same template id, and that fetch routinely
-				// resolves *before* this one does — clearing them here wiped a
-				// successful comment load every time a template was opened, so the
-				// sidebar came up permanently empty after any reload. The fetch owns
-				// clearing them instead (see TemplateEditor.tsx). Caught by the
-				// comments e2e, which only fails after a reload.
-				state.activeCommentId = null;
-				state.pendingCommentAnchor = null;
 				// A placement targets a container id from the template that was open
 				// when it started; carrying it into a different one would insert into
 				// a page that no longer exists.
@@ -520,74 +447,6 @@ export const useEditorStore = create<EditorState>()(
 		setBlockPageNumbers: (map) =>
 			set((state) => {
 				state.blockPageNumbers = map;
-			}),
-
-		setCommentsStatus: (status) =>
-			set((state) => {
-				state.commentsStatus = status;
-			}),
-
-		setComments: (comments, authors) =>
-			set((state) => {
-				state.comments = comments;
-				state.commentAuthors = authors;
-				state.commentsStatus = 'ready';
-			}),
-
-		upsertComment: (comment, author) =>
-			set((state) => {
-				const index = state.comments.findIndex((existing) => existing.id === comment.id);
-				if (index === -1) state.comments.push(comment);
-				else state.comments[index] = comment;
-				// The author of a just-posted comment may not be in the list the
-				// initial fetch returned (nobody had commented yet), and without
-				// their name their own comment would render as "Unknown" until
-				// the next reload.
-				if (author && !state.commentAuthors.some((existing) => existing.id === author.id)) {
-					state.commentAuthors.push(author);
-				}
-			}),
-
-		removeComments: (ids) =>
-			set((state) => {
-				state.comments = state.comments.filter((comment) => !ids.includes(comment.id));
-				if (state.activeCommentId && ids.includes(state.activeCommentId)) state.activeCommentId = null;
-			}),
-
-		setMentionableUsers: (users) =>
-			set((state) => {
-				state.mentionableUsers = users;
-			}),
-
-		setActiveCommentId: (id) =>
-			set((state) => {
-				state.activeCommentId = id;
-				// Selecting an existing thread abandons a half-composed new one:
-				// two open composers with different anchors is ambiguous about
-				// where the next thing typed would land.
-				if (id) {
-					state.pendingCommentAnchor = null;
-					// Focusing a thread has to reveal it — this is reached from the
-					// canvas (clicking a highlighted passage), which has no other
-					// way to show the sidebar.
-					state.commentsSidebarOpen = true;
-				}
-			}),
-
-		setPendingCommentAnchor: (anchor) =>
-			set((state) => {
-				state.pendingCommentAnchor = anchor;
-				if (anchor) {
-					state.activeCommentId = null;
-					// The composer lives in the sidebar, so starting a comment from
-					// a block's ⋯ menu must open it or the action looks broken.
-					state.commentsSidebarOpen = true;
-				}
-			}),
-
-		setCommentsSidebarOpen: (open) =>
-			set((state) => {
-				state.commentsSidebarOpen = open;
 			}),
 
 		setOpenRailPanel: (panel) =>

@@ -1,20 +1,19 @@
 import { listCatalogItems } from '../api/catalogItems';
 import { listContentLibraryItems } from '../api/contentLibrary';
-import { listMentionableUsers } from '../api/comments';
 import { useEditorStore } from './store/editorStore';
 
 /**
- * The editor's three **workspace-level** datasets — the product catalog, the
- * content library, and the @-mentionable user list — fetched the first time
- * something actually needs them rather than on every editor open.
+ * The editor's **workspace-level** datasets — the product catalog and the
+ * content library — fetched the first time something actually needs them rather
+ * than on every editor open.
  *
- * They used to be three unconditional `useEffect`s in `TemplateEditor`, which
- * meant opening any template cost three requests for data most sessions never
- * looked at: the catalog only matters to the Catalog panel and to a pricing
- * table's "price changed" check, the library only to its own panel and the
- * save-to-library dialog, and mentionable users only inside the comments
- * sidebar. A measured editor page load made 7 API calls; three of them were
- * these.
+ * They used to be unconditional `useEffect`s in `TemplateEditor`, which meant
+ * opening any template cost a request each for data most sessions never looked
+ * at: the catalog only matters to the Catalog panel and to a pricing table's
+ * "price changed" check, and the library only to its own panel and the
+ * save-to-library dialog. A measured editor page load made 7 API calls; three
+ * of them were these (the third fetched the @-mention list for comments, which
+ * the editor no longer has).
  *
  * None of them are template-scoped, so once loaded they're kept for the life of
  * the page — `loadTemplate` deliberately doesn't clear them, and opening a
@@ -49,24 +48,5 @@ export async function ensureContentLibraryItems(): Promise<void> {
 		setContentLibraryItems(await listContentLibraryItems());
 	} catch {
 		setContentLibraryStatus('error');
-	}
-}
-
-/**
- * Unlike the two above, this has no status field of its own in the store — the
- * mention list has no loading or error UI, it either resolves names or doesn't.
- * A module-level flag is enough to keep it to one request per page.
- */
-let mentionableUsersRequested = false;
-
-export async function ensureMentionableUsers(): Promise<void> {
-	if (mentionableUsersRequested) return;
-	mentionableUsersRequested = true;
-	try {
-		useEditorStore.getState().setMentionableUsers(await listMentionableUsers());
-	} catch {
-		// Silently ignored, as before: mentions stop resolving to names, which is
-		// not worth an error surface in the comment composer.
-		mentionableUsersRequested = false;
 	}
 }

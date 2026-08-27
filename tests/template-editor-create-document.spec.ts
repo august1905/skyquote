@@ -19,20 +19,16 @@ test("creating a document produces a per-recipient link that opens with no login
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Text field' }).click();
 
-	// Block styling on the text block above, so the recipient assertion below can
-	// prove it survives into their view. Until this was wired, `BlockStyle` was an
-	// editor-only effect in exactly the way the page background had been: an author
-	// could pad and colour a block, see it on the canvas, and send a document with
-	// none of it.
-	await page.locator('.canvas-block').first().click();
-	await page.getByLabel('Padding left').fill('40');
-	await page.getByLabel('Margin top').fill('12');
-
 	// And a pinned block, whose whole reason for existing is landing on a specific
 	// part of the page background — so it has to arrive at the same coordinates in
 	// the recipient's view, not just in the editor.
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Spacer' }).click();
+	// Selected explicitly: inserting a block doesn't select it, and Pin acts on
+	// the selection. This used to ride on a click left over from setting padding
+	// on the *first* block — so it was really pinning that one, not the spacer it
+	// reads as. Saying which block is being pinned is the point of the step.
+	await page.locator('.canvas-block').last().click();
 	await page.getByRole('button', { name: 'Pin block to the page' }).click();
 	await page.getByLabel('Position X').fill('160');
 	await page.getByLabel('Position Y').fill('480');
@@ -109,11 +105,6 @@ test("creating a document produces a per-recipient link that opens with no login
 
 	await expect(recipientPage.locator('.doc-view-pricing-row')).toContainText('Weekly cleaning');
 	await expect(recipientPage.locator('.doc-view-pricing-footer-total')).toContainText('$120.00');
-
-	// Block padding and margin reach the recipient too, not just the page background.
-	const styledBlock = recipientPage.locator('.doc-view-block').first();
-	await expect(styledBlock).toHaveCSS('padding-left', '40px');
-	await expect(styledBlock).toHaveCSS('margin-top', '12px');
 
 	// The pinned block arrives pinned, at the coordinates it was placed at.
 	// Horizontal is a percentage of the page width (160/816, 408/816) so it holds

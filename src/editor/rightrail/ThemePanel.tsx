@@ -36,24 +36,6 @@ export function ThemePanel({ onClose }: ThemePanelProps) {
 				</button>
 			</div>
 			<label className="theme-panel-row">
-				<span>Heading font</span>
-				<input
-					type="text"
-					value={theme.headingFont}
-					onChange={(e) => update({ headingFont: e.target.value }, { coalesceKey: 'theme-heading-font' })}
-					onBlur={endCoalescing}
-				/>
-			</label>
-			<label className="theme-panel-row">
-				<span>Body font</span>
-				<input
-					type="text"
-					value={theme.bodyFont}
-					onChange={(e) => update({ bodyFont: e.target.value }, { coalesceKey: 'theme-body-font' })}
-					onBlur={endCoalescing}
-				/>
-			</label>
-			<label className="theme-panel-row">
 				<span>Heading color</span>
 				<input type="color" value={theme.primaryColor} onChange={(e) => update({ primaryColor: e.target.value })} />
 			</label>

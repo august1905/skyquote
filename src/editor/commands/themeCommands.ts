@@ -10,8 +10,6 @@ import { snapshot } from './blockTree';
  */
 export function defaultTheme(): Theme {
 	return {
-		headingFont: 'Georgia, serif',
-		bodyFont: 'Arial, sans-serif',
 		primaryColor: '#1a1a1a',
 		textColor: '#333333',
 		pageBackgroundColor: '#ffffff',
