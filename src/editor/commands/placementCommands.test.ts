@@ -34,10 +34,11 @@ describe('setBlockPlacement', () => {
 
 	it('round-trips an unpin, so undo can put a block back exactly where it was pinned', () => {
 		const placement = { x: 80, y: 240, width: 400, height: 120 };
-		const pinned = produce(makeBody(), (draft) => {
-			setBlockPlacement('page-1', firstBlock(draft as unknown as TemplateBody)!.id, placement).apply(draft);
+		const original = makeBody();
+		const id = firstBlock(original)!.id;
+		const pinned = produce(original, (draft) => {
+			setBlockPlacement('page-1', id, placement).apply(draft);
 		});
-		const id = firstBlock(pinned)!.id;
 
 		let inverse!: Command;
 		const unpinned = produce(pinned, (draft) => {

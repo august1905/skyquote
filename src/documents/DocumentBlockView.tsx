@@ -130,7 +130,18 @@ function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInterac
 		case 'field': {
 			const live = viewerRoleId !== null && viewerRoleId === block.field.roleId;
 			return (
-				<div className="doc-view-field-block">
+				// The data attributes are what `collectFieldGeometry` reads to tell Zoho
+				// Sign where to put each signature box, and for whom. Emitted here rather
+				// than in a second, print-only renderer so the coordinates come from the
+				// same element the recipient actually sees.
+				<div
+					className="doc-view-field-block"
+					data-field-id={block.field.id}
+					data-field-role={block.field.roleId}
+					data-field-type={block.field.type}
+					data-field-name={block.field.name}
+					data-field-required={block.field.required}
+				>
 					<span className="doc-view-field-name">
 						{block.field.name}
 						{block.field.required && <span className="doc-view-field-required"> *</span>}
