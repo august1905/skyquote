@@ -152,6 +152,7 @@ function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInterac
 						value={fieldInteraction?.fieldValues[block.field.id]}
 						onChange={fieldInteraction ? (value) => fieldInteraction.onFieldChange(block.field.id, value) : undefined}
 						readOnly={fieldInteraction?.readOnly}
+						onOpenSigning={fieldInteraction?.onOpenSigning}
 					/>
 				</div>
 			);

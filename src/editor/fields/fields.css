@@ -155,6 +155,30 @@
 	background: #eff6ff;
 }
 
+/* A signature box on a document that's actually with Zoho Sign. Styled as the
+   invitation it is rather than as an empty box: the real signing button sits at
+   the foot of the document, which on a three-page proposal is a long way from
+   the signature line the recipient is looking at. This is the one they'll find
+   first, so it has to be the one that works. */
+.field-block-live-sign {
+	border-style: solid;
+	border-color: #064d81;
+	color: #064d81;
+	background: #f4f8fc;
+	font-weight: 600;
+}
+
+.field-block-live-sign:hover:not(:disabled) {
+	background: #e7f0f8;
+}
+
+.field-block-live-sign:disabled {
+	border-color: #15803d;
+	color: #15803d;
+	background: #f0fdf4;
+	cursor: default;
+}
+
 .field-block-live-upload {
 	position: relative;
 	cursor: pointer;

@@ -126,6 +126,9 @@ function DocumentView() {
 		fieldValues,
 		onFieldChange: (fieldId, value) => setFieldValues((prev) => ({ ...prev, [fieldId]: value })),
 		readOnly: isFrozen,
+		// Only when Zoho Sign actually has this document. Before that there is
+		// nothing for a signature box to open, so it stays the plain toggle.
+		onOpenSigning: data.document.awaitingSignature && !isFrozen ? () => setSigningOpen(true) : undefined,
 	};
 
 	async function handleSubmit() {

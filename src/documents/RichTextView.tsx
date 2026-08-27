@@ -14,6 +14,17 @@ export interface FieldInteraction {
 	onFieldChange: (fieldId: string, value: FieldValue) => void;
 	/** Freezes every live field read-only once this recipient has already submitted/declined. */
 	readOnly: boolean;
+	/**
+	 * Opens the Zoho Sign panel — passed only once the document has actually been
+	 * sent for signature, which is what makes a signature box mean something.
+	 *
+	 * Until this existed, a sent document showed the recipient a signature box
+	 * that toggled to "✓ Signature added" and wrote a boolean. Nothing was signed.
+	 * A customer clicking it had every reason to think they had signed and to stop
+	 * there, never scrolling to the real button at the foot of the page — the worst
+	 * kind of bug, because both sides believe the thing is done.
+	 */
+	onOpenSigning?: (() => void) | undefined;
 }
 
 interface RichTextViewProps {
@@ -99,6 +110,7 @@ function RenderNode({
 						value={fieldInteraction?.fieldValues[field.id]}
 						onChange={fieldInteraction ? (value) => fieldInteraction.onFieldChange(field.id, value) : undefined}
 						readOnly={fieldInteraction?.readOnly}
+						onOpenSigning={fieldInteraction?.onOpenSigning}
 					/>
 				</span>
 			);
