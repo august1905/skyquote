@@ -326,7 +326,9 @@ function TemplateEditor() {
 				{pdfExporting && body && (
 					<PdfExporter body={body} blockPageNumbers={blockPageNumbers} filename={`${meta.name || 'template'}.pdf`} onFinished={handlePdfFinished} />
 				)}
-				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} />}
+				{/* The template is already open here, so it's handed straight over rather
+				    than re-fetched and the wizard's own template step drops out. */}
+				{wizardOpen && body && <CreateDocumentWizard template={{ meta, body }} onClose={() => setWizardOpen(false)} />}
 				{recoverableDraft && (
 					<div className="template-editor-draft-banner" role="alert">
 						<span>

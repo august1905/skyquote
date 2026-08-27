@@ -75,3 +75,31 @@
 	color: #1d4ed8;
 	text-decoration: underline;
 }
+
+.documents-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.documents-header h1 {
+	margin: 0;
+}
+
+.documents-create-button {
+	padding: 7px 14px;
+	border: 1px solid #1d4ed8;
+	border-radius: 4px;
+	background: #1d4ed8;
+	color: #fff;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.documents-create-button:hover {
+	background: #1a44bd;
+	border-color: #1a44bd;
+}

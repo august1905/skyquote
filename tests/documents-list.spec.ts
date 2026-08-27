@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture';
 
 // The Documents list and the internal document view — real backend, no mocking.
 //
@@ -26,6 +26,7 @@ async function createDocument(page: Page): Promise<{ title: string; link: string
 
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');
+	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
 
 	await page.getByLabel('Client name').fill('Casey Client');
@@ -130,4 +131,60 @@ test('Delete really deletes the document, and its recipient link stops working',
 	await recipientPage.goto(link);
 	await expect(recipientPage.getByRole('alert')).toHaveText('This link is invalid or has expired.');
 	await recipientContext.close();
+});
+
+/**
+ * The Documents screen's own `Create document`, which is now the primary way a
+ * quote gets made: pick the template, pick the CRM deal, fill in the rest.
+ *
+ * Distinct from every other document-creating spec here, all of which start
+ * inside a template's editor — where the template is already chosen and the
+ * wizard never has to ask. This covers the two questions only this entry point
+ * asks, and the fact that the second of them can always be declined.
+ */
+test('Create document on the Documents screen chooses a template, offers the CRM deal step, and creates the document', async ({ page }) => {
+	// Unique, so the picker's search lands on this template and not one of the
+	// `zz-fixture` rows another worker left behind.
+	const name = `zz-fixture-crm-${Date.now()}`;
+	await openNewTemplate(page, name);
+
+	await page.locator('.canvas-block .ProseMirror').first().click();
+	await page.keyboard.type(CONTENT);
+	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
+	await page.getByRole('button', { name: '+ Add role' }).click();
+	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill('Client');
+	await page.getByRole('button', { name: 'Close roles panel' }).click();
+	// Saved *after* the role is added, unlike the editor-based helper above: this
+	// flow reads the template back from the server, so an unsaved role would
+	// simply not be there and the Recipients step would have nothing to bind.
+	await saveNow(page);
+
+	await page.goto('/documents');
+	await page.getByRole('button', { name: 'Create document' }).click();
+	const wizard = page.locator('.wizard-card');
+
+	await wizard.getByLabel('Search templates').fill(name);
+	await wizard.getByRole('button', { name }).click();
+
+	// Deal step. Asserted as "it's here and it can be declined" rather than "the
+	// CRM is down": whether deals actually load depends on a connection
+	// configured in the Catalyst console, which is outside this repo and can
+	// change without a deploy. A test that asserted the failure would start
+	// failing the day the integration started working.
+	await expect(wizard.getByLabel('Search deals')).toBeVisible();
+	await skipWizardDealStep(wizard);
+
+	await wizard.getByRole('button', { name: 'Next' }).click(); // name
+	await page.getByLabel('Client name').fill('Casey Client');
+	await page.getByLabel('Client email').fill('casey@example.com');
+	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
+	await wizard.getByRole('button', { name: 'Next' }).click(); // variables
+	await wizard.getByRole('button', { name: 'Next' }).click(); // pricing
+	await wizard.getByRole('button', { name: 'Create document' }).click();
+
+	await expect(page.locator('.wizard-success-heading')).toContainText(name);
+	await page.getByRole('button', { name: 'Done' }).click();
+
+	// The list refreshed itself — no reload — because a document was actually created.
+	await expect(firstRow(page)).toContainText(name);
 });

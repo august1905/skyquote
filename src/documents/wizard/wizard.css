@@ -224,3 +224,80 @@
 	font-size: 0.8rem;
 	white-space: nowrap;
 }
+
+/* The template and deal pickers. Scrolls inside itself rather than letting the
+   card grow — a 50-deal list would otherwise push Next and Back off the bottom
+   of the screen. */
+.wizard-picker-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 320px;
+	overflow-y: auto;
+	border: 1px solid #eee;
+	border-radius: 6px;
+}
+
+.wizard-picker-list:empty {
+	display: none;
+}
+
+.wizard-picker-row {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	padding: 9px 12px;
+	border: none;
+	border-bottom: 1px solid #f2f2f2;
+	background: #fff;
+	text-align: left;
+	cursor: pointer;
+	font: inherit;
+}
+
+.wizard-picker-list li:last-child .wizard-picker-row {
+	border-bottom: none;
+}
+
+.wizard-picker-row:hover:not(:disabled) {
+	background: #f7f9ff;
+}
+
+.wizard-picker-row:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.wizard-picker-row-selected {
+	background: #eef3ff;
+	box-shadow: inset 3px 0 0 #1d4ed8;
+}
+
+.wizard-picker-title {
+	font-size: 0.9rem;
+	color: #1a1a1a;
+}
+
+.wizard-picker-meta {
+	font-size: 0.78rem;
+	color: #777;
+}
+
+/* Deliberately quiet — skipping the deal is a legitimate route through the
+   wizard, not the recommended one. */
+.wizard-skip-button {
+	align-self: flex-start;
+	padding: 4px 0;
+	border: none;
+	background: none;
+	color: #1d4ed8;
+	font-size: 0.82rem;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.wizard-skip-button:disabled {
+	color: #999;
+	cursor: default;
+}

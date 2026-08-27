@@ -15,6 +15,17 @@ export const SYSTEM_VARIABLES: VariableDef[] = [
 	{ key: 'Client.Name', label: 'Client name', source: 'contact', format: 'text' },
 	{ key: 'Client.Company', label: 'Client company', source: 'company', format: 'text' },
 	{ key: 'Client.Email', label: 'Client email', source: 'contact', format: 'text' },
+	// The `deal` source §2.2 always listed, now that there is something behind it:
+	// the Create Document wizard's deal step fills every one of these from the
+	// chosen Zoho CRM deal (see `documents/wizard/dealVariableValues.ts`). Filled
+	// exactly like the `contact`/`company` ones — prefilled into the wizard's own
+	// variable form, editable there, frozen into the document at creation — so a
+	// template that uses them still works when no deal is chosen.
+	{ key: 'Deal.Name', label: 'Deal name', source: 'deal', format: 'text' },
+	{ key: 'Deal.Amount', label: 'Deal amount', source: 'deal', format: 'currency' },
+	{ key: 'Deal.Stage', label: 'Deal stage', source: 'deal', format: 'text' },
+	{ key: 'Deal.CloseDate', label: 'Deal close date', source: 'deal', format: 'date' },
+	{ key: 'Deal.Owner', label: 'Deal owner', source: 'deal', format: 'text' },
 	{ key: 'Sender.Name', label: 'Sender name', source: 'sender', format: 'text' },
 	{ key: 'Sender.Company', label: 'Sender company', source: 'sender', format: 'text' },
 	{ key: 'Sender.Email', label: 'Sender email', source: 'sender', format: 'text' },

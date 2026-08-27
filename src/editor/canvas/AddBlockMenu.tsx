@@ -60,6 +60,42 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 		return () => document.removeEventListener('mousedown', handleOutsideClick);
 	}, [open]);
 
+	/**
+	 * Inserts a block, then makes sure the author can actually see it.
+	 *
+	 * The reveal isn't a nicety. Clicking an item in this menu focuses that
+	 * button, and the browser scrolls the nearest scrollable ancestor — the
+	 * canvas — to bring the focused element into view. This menu is up to 420px
+	 * tall, so on a short canvas that scroll runs to hundreds of pixels and the
+	 * block that was just inserted ends up *above* the visible area.
+	 *
+	 * Measured, not guessed: with the editor toolbar two rows tall (85px, which
+	 * is what the font-size slider and the per-side spacing controls made it),
+	 * inserting a pricing table scrolled the canvas from 0 to 445 and left the
+	 * new block 174px off the top of the canvas. Shrinking the toolbar back to
+	 * one row in the same run scrolled 12px and left the block plainly visible.
+	 * The toolbar is allowed to be two rows; the block still has to be on screen.
+	 *
+	 * Centred rather than `block: 'nearest'`, which was tried first and is worse
+	 * in a way that isn't obvious: `nearest` parks the new block flush against
+	 * the top edge of the canvas, and that edge is dnd-kit's auto-scroll zone.
+	 * A pricing table sitting there scrolls itself out from under a catalog item
+	 * being dragged into it — visible, and still not usable. Centring puts the
+	 * new block clear of both edges.
+	 *
+	 * Instant rather than smooth: the browser's own focus scroll has already
+	 * jumped, and animating a second scroll on top of it reads as the canvas
+	 * lurching twice.
+	 */
+	function insert(block: Block) {
+		onInsert(block);
+		// Next frame, so the block has been committed to the DOM — and after the
+		// browser's focus scroll, so this wins rather than races it.
+		requestAnimationFrame(() => {
+			document.querySelector(`[data-block-id="${block.id}"]`)?.scrollIntoView({ block: 'center' });
+		});
+	}
+
 	// Video's oEmbed fetch: a real "working" state to show, and a real failure
 	// mode (unsupported provider, not found) to surface, unlike the synchronous
 	// `create()` kinds. Image used to share this path when inserting meant
@@ -71,7 +107,7 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 		setErrorMessage('');
 		try {
 			const block = await run();
-			onInsert(block);
+			insert(block);
 			setStatus('idle');
 		} catch (err) {
 			setStatus('error');
@@ -146,7 +182,7 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 								type="button"
 								role="menuitem"
 								onClick={() => {
-									if (kind.create) onInsert(kind.create());
+									if (kind.create) insert(kind.create());
 									setOpen(false);
 								}}
 							>
@@ -179,7 +215,7 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 										role="menuitem"
 										onClick={() => {
 											if (!body) return;
-											onInsert(createFieldBlockOfType(kind.fieldType, fieldRoleId, collectAllFields(body)));
+											insert(createFieldBlockOfType(kind.fieldType, fieldRoleId, collectAllFields(body)));
 											setOpen(false);
 										}}
 									>
@@ -203,7 +239,7 @@ export function AddBlockMenu({ onInsert, kinds = INSERTABLE_BLOCK_KINDS }: AddBl
 				<ImageLibraryPicker
 					onPick={(asset) => {
 						setPickingImage(false);
-						onInsert(createImageBlockFromAsset(asset));
+						insert(createImageBlockFromAsset(asset));
 					}}
 					onClose={() => setPickingImage(false)}
 				/>

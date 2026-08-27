@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { expectBackgroundImageLoads, openNewTemplate, saveNow } from './templateFixture';
+import { expectBackgroundImageLoads, openNewTemplate, railButton, saveNow } from './templateFixture';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // Real backend, no mocking, same convention as the rest of this suite. §3's
@@ -9,7 +9,7 @@ test.describe('Theme panel', () => {
 		await openNewTemplate(page);
 
 		await expect(page.locator('.theme-panel')).toHaveCount(0);
-		await page.getByRole('button', { name: 'Theme' }).click();
+		await railButton(page, 'Theme').click();
 		await expect(page.locator('.theme-panel')).toBeVisible();
 
 		await page.getByLabel('Heading font').fill('Impact, sans-serif');
@@ -37,7 +37,7 @@ test.describe('Theme panel', () => {
 		await page.reload();
 
 		await expect(page.locator('.canvas-page').first()).toHaveCSS('background-color', 'rgb(238, 238, 238)');
-		await page.getByRole('button', { name: 'Theme' }).click();
+		await railButton(page, 'Theme').click();
 		await expect(page.getByLabel('Block spacing (px)')).toHaveValue('40');
 	});
 
@@ -52,7 +52,7 @@ test.describe('Theme panel', () => {
 			await page.getByRole('menuitem', { name: /Blank page/ }).click();
 			await expect(page.locator('.canvas-page')).toHaveCount(2);
 
-			await page.getByRole('button', { name: 'Theme' }).click();
+			await railButton(page, 'Theme').click();
 			await page.locator('.theme-panel').getByRole('button', { name: 'Choose image' }).click();
 			const picker = page.getByRole('dialog', { name: 'Choose an image' });
 			await picker.getByLabel('Upload images').setInputFiles(themeImage);

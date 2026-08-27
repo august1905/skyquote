@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { expectBackgroundImageLoads, openNewTemplate, saveNow } from './templateFixture';
+import { expectBackgroundImageLoads, openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // §11's Create Document wizard + the recipient's own public web-link view.
@@ -62,6 +62,9 @@ test("creating a document produces a per-recipient link that opens with no login
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');
 	await expect(wizard.getByRole('heading', { name: 'Create document' })).toBeVisible();
+
+	// Deal step — no CRM behind a local backend, and it must not matter.
+	await skipWizardDealStep(wizard);
 
 	// Name step — leave the default title as-is.
 	await wizard.getByRole('button', { name: 'Next' }).click();

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, railButton } from './templateFixture';
 
 // §13's accessibility line: "Full keyboard operation of toolbar/panels, ARIA
 // on all controls, visible focus rings, alt text enforcement."
@@ -33,7 +33,7 @@ test.describe('Keyboard operation and focus (§13)', () => {
 			['Content Library', '.content-library-panel'],
 			['Theme', '.theme-panel'],
 		] as const) {
-			await page.getByRole('button', { name: railLabel }).first().click();
+			await railButton(page, railLabel).click();
 			await expect(page.locator(panelSelector)).toBeVisible();
 			await page.keyboard.press('Escape');
 			await expect(page.locator(panelSelector)).toHaveCount(0);
@@ -74,7 +74,7 @@ test.describe('Keyboard operation and focus (§13)', () => {
 		// The subtle rule: Escape means different things depending on where it
 		// comes from, and text-edit wins. Closing a panel the user wasn't looking
 		// at — and losing their caret — would be the wrong call.
-		await page.getByRole('button', { name: 'Theme' }).click();
+		await railButton(page, 'Theme').click();
 		await expect(page.locator('.theme-panel')).toBeVisible();
 
 		await page.locator('.canvas-block .ProseMirror').first().click();

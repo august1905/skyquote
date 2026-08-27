@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture';
 
 // §3's Attachments panel: "files appended to generated documents." Real
 // backend, real uploads — the file goes through POST /assets/files into Stratus
@@ -88,6 +88,7 @@ test.describe('Attachments (§3)', () => {
 
 		await page.getByRole('button', { name: 'Create document' }).click();
 		const wizard = page.locator('.wizard-card');
+		await skipWizardDealStep(wizard);
 		await wizard.getByRole('button', { name: 'Next' }).click(); // name
 		await page.getByLabel('Client name').fill('Casey Client');
 		await page.getByLabel('Client email').fill('casey@example.com');

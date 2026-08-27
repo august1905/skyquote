@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture';
 
 // §4.5's SmartContentBlock: a container shown/hidden by rules built against
 // variables, pricing totals, and field values. Real backend, no mocking.
@@ -125,6 +125,7 @@ test.describe('Smart content (§4.5)', () => {
 			await page.getByRole('button', { name: 'Create document' }).click();
 			const wizard = page.locator('.wizard-card');
 			await expect(wizard.getByRole('heading', { name: 'Create document' })).toBeVisible();
+			await skipWizardDealStep(wizard);
 			await wizard.getByRole('button', { name: 'Next' }).click();
 
 			await page.getByLabel('Client name').fill('Casey Client');

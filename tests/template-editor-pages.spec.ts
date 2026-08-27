@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { expectBackgroundImageLoads, openNewTemplate, saveNow } from './templateFixture';
+import { expectBackgroundImageLoads, openNewTemplate, railButton, saveNow } from './templateFixture';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 
 // §3 ⑤'s per-page chrome (name, insert-after, `…` menu) and §3 ②'s page
@@ -151,7 +151,7 @@ test.describe('Page management (§3 ⑤)', () => {
 		await clearMenu.getByRole('button', { name: 'Clear background' }).click();
 		await expect(pageGroups(page).nth(0).locator('.canvas-page')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
-		await page.getByRole('button', { name: 'Theme' }).click();
+		await railButton(page, 'Theme').click();
 		await page.getByLabel('Page background').fill('#00ff00');
 		await page.getByRole('button', { name: 'Close theme panel' }).click();
 		await expect(pageGroups(page).nth(0).locator('.canvas-page')).toHaveCSS('background-color', 'rgb(0, 255, 0)');

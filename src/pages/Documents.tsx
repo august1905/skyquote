@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listDocuments } from '../api/documents';
 import type { DocumentMeta, DocumentStatus } from '../editor/types';
 import { formatMoney } from '../pricing/formatMoney';
+import { CreateDocumentWizard } from '../documents/wizard/CreateDocumentWizard';
 import AppShell from '../components/AppShell';
 import './Documents.css';
 
@@ -26,6 +27,11 @@ const STATUS_LABEL: Record<DocumentStatus, string> = {
  * that modal did (recipients, regenerate a link) lives on that page now, next to
  * the document itself.
  *
+ * **This is where documents get made.** Creating one used to mean finding its
+ * template, opening the editor and pressing a button in the header — which put
+ * the act of writing a quote behind the act of designing one. The same wizard
+ * runs from here, asking for the template and the Zoho CRM deal first.
+ *
  * Still short of `BASIC_ARCHITECHTURE.md` for this screen: no folders, no tabs
  * (All / Created by me / Recent), no search, no `New folder`. The Templates list
  * has all of that, and `templates/templateListView.ts` is the shape this one
@@ -35,8 +41,9 @@ function Documents() {
 	const navigate = useNavigate();
 	const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 	const [documents, setDocuments] = useState<DocumentMeta[]>([]);
+	const [wizardOpen, setWizardOpen] = useState(false);
 
-	useEffect(() => {
+	const load = useCallback(() => {
 		let cancelled = false;
 		listDocuments()
 			.then((result) => {
@@ -52,6 +59,8 @@ function Documents() {
 		};
 	}, []);
 
+	useEffect(() => load(), [load]);
+
 	function open(id: string) {
 		void navigate(`/documents/${id}`);
 	}
@@ -59,10 +68,18 @@ function Documents() {
 	return (
 		<AppShell>
 			<div className="documents-page">
-				<h1>Documents</h1>
+				<div className="documents-header">
+					<h1>Documents</h1>
+					<button type="button" className="documents-create-button" onClick={() => setWizardOpen(true)}>
+						Create document
+					</button>
+				</div>
+				{/* Refetched only on a real creation, never on a dismissal — every list
+				    call is a billed Data Store read. */}
+				{wizardOpen && <CreateDocumentWizard onClose={() => setWizardOpen(false)} onCreated={load} />}
 				{status === 'loading' && <p>Loading…</p>}
 				{status === 'error' && <p role="alert">Couldn&apos;t load documents.</p>}
-				{status === 'ready' && documents.length === 0 && <p>No documents yet — create one from a template&apos;s editor.</p>}
+				{status === 'ready' && documents.length === 0 && <p>No documents yet — press Create document to make your first one.</p>}
 				{status === 'ready' && documents.length > 0 && (
 					<table className="documents-table">
 						<thead>

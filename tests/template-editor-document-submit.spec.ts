@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture';
 
 // The recipient document view's submit/decline flow, on top of the Create
 // Document wizard already covered in template-editor-create-document.spec.ts.
@@ -38,6 +38,7 @@ test('a recipient must fill required fields before submitting, and the document 
 
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');
+	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
 
 	await page.getByLabel('Client name').fill('Casey Client');
@@ -95,6 +96,7 @@ test('a recipient can decline a document with no fields of their own', async ({ 
 
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');
+	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
 
 	await page.getByLabel('Client name').fill('Casey Client');

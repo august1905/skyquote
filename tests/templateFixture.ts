@@ -86,3 +86,31 @@ export async function expectBackgroundImageLoads(contextPage: Page, locator: Loc
 	expect(response.status(), `background image did not load: ${url}`).toBe(200);
 	expect(response.headers()['content-type'], `background image is not an image: ${url}`).toMatch(/^image\//);
 }
+
+/**
+ * Clicks past the Create Document wizard's deal step without choosing one.
+ *
+ * Every spec that creates a document goes through here, which makes the suite a
+ * standing proof of something that matters more than the happy path: **a Zoho
+ * CRM that can't be reached must never stop a quote being written.** These runs
+ * hit a local `catalyst serve` backend with no CRM connection behind it, so the
+ * step genuinely fails to load its deals every time — and creating a document
+ * still works. See `DealStep`.
+ */
+export async function skipWizardDealStep(wizard: Locator) {
+	await wizard.getByRole('button', { name: 'Continue without a deal' }).click();
+}
+
+/**
+ * A right-rail panel button, scoped to the rail.
+ *
+ * Scoped deliberately. `getByRole('button', { name })` matches accessible names
+ * by **substring**, so an unscoped `{ name: 'Theme' }` also matched the
+ * toolbar's `Reset font size to theme` the moment that control was added — five
+ * specs failed at once on a locator that had been quietly fragile since it was
+ * written. The rail is what these tests mean; saying so costs nothing and can't
+ * be broken by a label added somewhere else.
+ */
+export function railButton(page: Page, label: string): Locator {
+	return page.locator('.right-rail').getByRole('button', { name: label });
+}
