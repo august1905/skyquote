@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { PX_TO_PT, ZOHO_SIGN_FIELD_TYPES, signableFields, toSignFieldGeometry, type MeasuredField, type SignFieldGeometry } from './fieldGeometry';
+import { makeBodyWithFields, makeField, makeFieldBlock } from '../editor/commands/testFixtures';
+import type { Block, TemplateBody } from '../editor/types';
+import { PX_TO_PT, ZOHO_SIGN_FIELD_TYPES, hasSignableField, signableFields, toSignFieldGeometry, type MeasuredField, type SignFieldGeometry } from './fieldGeometry';
 
 const LETTER_WIDTH_PX = 816;
 /** A page rendered at exactly its design size, at the document origin — what the offscreen print tree gives us. */
@@ -93,5 +95,39 @@ describe('signableFields', () => {
 		expect(Object.keys(ZOHO_SIGN_FIELD_TYPES).sort()).toEqual(
 			['billing_details', 'checkbox', 'date', 'dropdown', 'file_upload', 'initials', 'radio_group', 'signature', 'stamp', 'text'].sort()
 		);
+	});
+});
+
+describe('hasSignableField', () => {
+	const bodyWith = (blocks: Block[]): TemplateBody => ({
+		pages: [{ id: 'p', name: 'P', order: 0, blocks }],
+		roles: [],
+		variables: [],
+		settings: makeBodyWithFields().settings,
+	});
+
+	it('is true for a body with a signature field', () => {
+		expect(hasSignableField(bodyWith([makeFieldBlock('b', makeField('f', 'role-a', { type: 'signature' }))]))).toBe(true);
+	});
+
+	it('is true for a body whose only field is one Zoho Sign can place but nobody calls a signature', () => {
+		// The send places every representable field, not just signatures — a document
+		// that only collects a date is still a real signature request.
+		expect(hasSignableField(bodyWith([makeFieldBlock('b', makeField('f', 'role-a', { type: 'date' }))]))).toBe(true);
+	});
+
+	it('is false for a body with no fields at all', () => {
+		expect(hasSignableField(bodyWith([]))).toBe(false);
+	});
+
+	it('is false when every field is one Zoho Sign has no equivalent for', () => {
+		// The case worth having a test for: `stamp` and `billing_details` look like
+		// fields to an author and are invisible to Zoho Sign, so auto-sending such a
+		// document could only ever come back "there is nothing to sign".
+		const body = bodyWith([
+			makeFieldBlock('b1', makeField('f1', 'role-a', { type: 'stamp' })),
+			makeFieldBlock('b2', makeField('f2', 'role-a', { type: 'billing_details' })),
+		]);
+		expect(hasSignableField(body)).toBe(false);
 	});
 });

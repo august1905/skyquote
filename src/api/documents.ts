@@ -195,14 +195,34 @@ export interface SendForSignatureResult {
  * one offscreen render rather than two, so the coordinates can't disagree with
  * the page they were taken from.
  */
-export function sendForSignature(
+/**
+ * Long, because this is the slowest call in the app: a SmartBrowz render plus two
+ * Zoho Sign round trips, measured at ~15s against the deployed function.
+ *
+ * Bounded at all, because the alternative is worse than slow. Against a local
+ * `catalyst serve` SmartBrowz doesn't work and the request **never resolves** —
+ * the same failure `api/pdf.ts` carries a timeout for. Without one, the create
+ * wizard's "Setting up signing…" would sit there forever, and the sender would
+ * have no way to learn that the document they just made isn't signable.
+ */
+const SEND_FOR_SIGNATURE_TIMEOUT_MS = 90_000;
+
+export async function sendForSignature(
 	documentId: string,
 	input: { html: string; fields: unknown[]; format: 'Letter' | 'A4' }
 ): Promise<SendForSignatureResult> {
-	return apiFetch<SendForSignatureResult>(`/documents/${documentId}/send-for-signature`, {
-		method: 'POST',
-		body: JSON.stringify(input),
-	});
+	try {
+		return await apiFetch<SendForSignatureResult>(`/documents/${documentId}/send-for-signature`, {
+			method: 'POST',
+			body: JSON.stringify(input),
+			signal: AbortSignal.timeout(SEND_FOR_SIGNATURE_TIMEOUT_MS),
+		});
+	} catch (error) {
+		if (error instanceof DOMException && error.name === 'TimeoutError') {
+			throw new Error('Zoho Sign took too long to respond.');
+		}
+		throw error;
+	}
 }
 
 /**

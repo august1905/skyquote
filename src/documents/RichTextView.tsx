@@ -15,20 +15,22 @@ export interface FieldInteraction {
 	/** Freezes every live field read-only once this recipient has already submitted/declined. */
 	readOnly: boolean;
 	/**
-	 * Set only once the document is registered with Zoho Sign, which is what
-	 * makes a signature box mean anything at all.
-	 *
-	 * Before this, a sent document showed a box that toggled to "✓ Signature
-	 * added" and wrote a boolean. Nothing was signed. A recipient clicking it had
-	 * every reason to think they were done — the worst kind of bug, because both
-	 * sides then believe a document is signed when it isn't.
+	 * Set for every real document, `'not-sent'` included — omitted **only** outside
+	 * a document (the template editor's "Preview as role"). That distinction is
+	 * load-bearing: while this was set only for documents Zoho Sign already knew
+	 * about, a document nobody had sent fell through to the editor's preview
+	 * toggle, so a recipient got a box that flipped to "✓ Signature added" and
+	 * wrote a boolean. Nothing was signed. They had every reason to think they were
+	 * done — the worst kind of bug, because both sides then believe a document is
+	 * signed when it isn't.
 	 */
 	signing?: RecipientSigning | undefined;
 }
 
 /** What Zoho Sign currently says about the recipient reading this document, and how to open the panel. */
 export interface RecipientSigning {
-	status: 'awaiting' | 'signed' | 'declined';
+	/** `not-sent` = this document never reached Zoho Sign, so there is nothing to open. */
+	status: 'not-sent' | 'awaiting' | 'signed' | 'declined';
 	open: () => void;
 }
 

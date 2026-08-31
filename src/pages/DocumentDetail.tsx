@@ -215,8 +215,14 @@ function DocumentDetail() {
 						</p>
 					) : (
 						<>
+							{/* Signing normally sets itself up as the document is created, so
+							    reaching this state means that didn't happen — usually the
+							    document has no signature field at all, or the send failed and
+							    the wizard sent whoever created it here. Saying which it is
+							    would need the event trail; naming the retry is what matters. */}
 							<p className="document-detail-signature-hint">
-								Sends this document to Zoho Sign and turns on in-document signing for every recipient who has a field to fill.
+								Not set up for signing. Sends this document to Zoho Sign and turns on in-document signing for every recipient who has a field
+								to fill.
 							</p>
 							<button type="button" className="document-detail-send-signature" disabled={sending} onClick={() => {
 								setSendError(null);

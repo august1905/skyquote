@@ -35,7 +35,13 @@ function isRequiredFieldMissing(field: FillableField, value: FieldValue | undefi
 	if (!field.required) return false;
 	// Never actually submitted (see the module doc comment) — nothing to require yet.
 	if (field.type === 'file_upload' || field.type === 'billing_details') return false;
-	if (field.type === 'checkbox' || field.type === 'signature' || field.type === 'initials' || field.type === 'stamp') {
+	// Zoho Sign's business, not Submit's. A signature or set of initials is
+	// satisfied in the signing panel and recorded by the webhook, so this form has
+	// nothing to gate on — and can't: the local boolean it used to read was written
+	// by a toggle that no longer exists on a real document, so leaving it here
+	// would make a required signature field block Submit forever.
+	if (field.type === 'signature' || field.type === 'initials') return false;
+	if (field.type === 'checkbox' || field.type === 'stamp') {
 		return value !== true;
 	}
 	return !(typeof value === 'string' && value.trim().length > 0);
@@ -131,16 +137,22 @@ function DocumentView() {
 		fieldValues,
 		onFieldChange: (fieldId, value) => setFieldValues((prev) => ({ ...prev, [fieldId]: value })),
 		readOnly: isFrozen,
-		// Only when Zoho Sign actually has this document. Before that there is
-		// nothing for a signature box to report or open, so it stays the plain
-		// toggle. Note this stays set *after* signing — that's the whole point:
-		// the box has to be able to say "Signed", not fall back to looking empty.
-		signing: registeredWithSign
-			? {
-					status: recipientStatus === 'completed' ? 'signed' : recipientStatus === 'declined' ? 'declined' : 'awaiting',
-					open: () => setSigningOpen(true),
-				}
-			: undefined,
+		// Always set here, `not-sent` included — this is a real document, and that
+		// alone is what a signature box needs to know to stop pretending. Leaving it
+		// undefined when Zoho Sign hadn't heard of the document made the box fall
+		// through to the template editor's preview toggle, which is the bug this
+		// page existed to avoid. Note it also stays set *after* signing: the box has
+		// to be able to say "Signed" rather than fall back to looking empty.
+		signing: {
+			status: !registeredWithSign
+				? 'not-sent'
+				: recipientStatus === 'completed'
+					? 'signed'
+					: recipientStatus === 'declined'
+						? 'declined'
+						: 'awaiting',
+			open: () => setSigningOpen(true),
+		},
 	};
 
 	async function handleSubmit() {

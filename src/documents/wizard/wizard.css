@@ -196,6 +196,43 @@
 	margin: 0;
 }
 
+/* The automatic hand-off to Zoho Sign, reported on the success screen. Three
+   outcomes, three weights: in progress is quiet, ready is a confirmation, and a
+   failure is the one thing on this screen that has to be read — the document is
+   saved either way, so nothing here is styled as a creation error. */
+.wizard-signing-status {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	font-size: 0.85rem;
+}
+
+.wizard-signing-status p {
+	margin: 0;
+}
+
+.wizard-signing-sending {
+	border-color: #dfe3e8;
+	background: #f7f8fa;
+	color: #52606d;
+}
+
+.wizard-signing-sent {
+	border-color: #bbf7d0;
+	background: #f0fdf4;
+	color: #15803d;
+}
+
+.wizard-signing-failed {
+	border-color: #fecaca;
+	background: #fef2f2;
+	color: #b03a2e;
+}
+
 .wizard-link-row {
 	display: grid;
 	grid-template-columns: 1fr 2fr auto;

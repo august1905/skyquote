@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { ApiError } from '../../api/client';
-import { createDocument, type CreateDocumentResult } from '../../api/documents';
+import { createDocument, type CreateDocumentResult, type DocumentBody, type SendForSignatureResult } from '../../api/documents';
 import { getTemplate, type TemplateEnvelope } from '../../api/templates';
 import { getCrmDeal, type CrmDeal, type CrmDealSummary } from '../../api/zohoCrm';
 import { collectVariableKeys } from '../../editor/variables/collectVariableKeys';
 import { allVariables } from '../../editor/variables/systemVariables';
+import { hasSignableField } from '../../print/fieldGeometry';
 import { computeTotals } from '../../pricing/computeTotals';
 import type { TemplateBody, TemplateMeta } from '../../editor/types';
 import { computeResolvedVariableValues, resolveTitle, resolveVariablesInBody } from '../resolveVariables';
@@ -16,8 +17,9 @@ import { RecipientsStep } from './RecipientsStep';
 import { VariablesStep } from './VariablesStep';
 import { PricingStep } from './PricingStep';
 import { ReviewStep } from './ReviewStep';
+import { SignatureSender } from '../SignatureSender';
 import { SuccessScreen } from './SuccessScreen';
-import { wizardStepsFor, type RecipientDraft, type WizardStep } from './types';
+import { wizardStepsFor, type RecipientDraft, type SigningSetupState, type WizardStep } from './types';
 import './wizard.css';
 
 interface CreateDocumentWizardProps {
@@ -108,6 +110,16 @@ export function CreateDocumentWizard({ template: initialTemplate, onClose, onCre
 	const [submitting, setSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [result, setResult] = useState<CreateDocumentResult | null>(null);
+	/**
+	 * The body exactly as it was persisted — variables resolved, values frozen in.
+	 * Kept so the auto-send measures the document the recipient will actually read
+	 * rather than the pre-resolution draft, whose text (and therefore whose layout,
+	 * and therefore whose field coordinates) can differ.
+	 */
+	const [createdBody, setCreatedBody] = useState<DocumentBody | null>(null);
+	// Signing sets itself up right after creation, and is deliberately allowed to
+	// fail without taking the document with it — see `finishSigningSetup`.
+	const [signingSetup, setSigningSetup] = useState<SigningSetupState>({ phase: 'idle' });
 
 	const totals = workingBody ? computeTotals(workingBody) : null;
 	const currency = totals?.currency ?? template?.meta.currency ?? 'USD';
@@ -189,6 +201,7 @@ export function CreateDocumentWizard({ template: initialTemplate, onClose, onCre
 		setSubmitError(null);
 		const now = new Date();
 		const resolvedValues = computeResolvedVariableValues({ body: workingBody, templateName: title, wizardValues: variableValues, totals, now });
+		const storedBody: DocumentBody = { ...resolveVariablesInBody(workingBody, resolvedValues), resolvedVariableValues: resolvedValues };
 		try {
 			const created = await createDocument({
 				title: resolveTitle(title, resolvedValues),
@@ -196,7 +209,7 @@ export function CreateDocumentWizard({ template: initialTemplate, onClose, onCre
 				sourceTemplateVersion: template.meta.version,
 				currency: totals.currency,
 				computedTotal: totals.total,
-				body: { ...resolveVariablesInBody(workingBody, resolvedValues), resolvedVariableValues: resolvedValues },
+				body: storedBody,
 				recipients: recipients.map((r) => ({
 					roleId: r.roleId,
 					roleName: r.roleName,
@@ -206,6 +219,12 @@ export function CreateDocumentWizard({ template: initialTemplate, onClose, onCre
 				})),
 			});
 			setResult(created);
+			setCreatedBody(storedBody);
+			// Signing starts itself here rather than waiting for someone to find the
+			// button on the document. A document with nothing Zoho Sign can place
+			// skips it outright — most quotes have no signature field, and a send
+			// that could only fail is worse than no send at all.
+			setSigningSetup(hasSignableField(storedBody) ? { phase: 'sending' } : { phase: 'skipped' });
 			onCreated?.();
 		} catch (err) {
 			setSubmitError(err instanceof ApiError ? err.message : 'Could not create the document.');
@@ -214,11 +233,41 @@ export function CreateDocumentWizard({ template: initialTemplate, onClose, onCre
 		}
 	}
 
+	/**
+	 * The auto-send's one and only outcome handler — and it never fails the
+	 * document.
+	 *
+	 * By the time this runs the document exists, is stored, and its recipient links
+	 * are already on screen. Signing is the part that can still go wrong, and it
+	 * has real, ordinary ways to: SmartBrowz doesn't work from `catalyst serve` at
+	 * all, and `SignatureSender` refuses outright when a page's content overruns
+	 * its sheet. Neither is a reason to lose a quote somebody just spent five steps
+	 * writing, so the failure is reported here and the document's own
+	 * `Send for signature` button is the retry.
+	 */
+	function finishSigningSetup(error: string | null, sent: SendForSignatureResult | null) {
+		setSigningSetup(error || !sent ? { phase: 'failed', error: error ?? 'Could not set up signing.' } : { phase: 'sent', result: sent });
+	}
+
 	if (result) {
 		return (
 			<div className="wizard-overlay">
 				<div className="wizard-card">
-					<SuccessScreen result={result} onClose={onClose} />
+					<SuccessScreen result={result} signing={signingSetup} onClose={onClose} />
+					{/* Offscreen, and mounted only while the send is in flight. Rendering
+					    the document is the only way to measure where its fields sit — see
+					    `SignatureSender`. Nothing here is shown to anybody. */}
+					{signingSetup.phase === 'sending' && createdBody && (
+						<SignatureSender
+							documentId={result.document.id}
+							body={createdBody}
+							// Documents aren't paginated (that map is the editor canvas's, and
+							// it isn't mounted here), so each authored page is one sheet and
+							// `SignatureSender` refuses rather than guess if one overflows.
+							blockPageNumbers={new Map()}
+							onFinished={finishSigningSetup}
+						/>
+					)}
 				</div>
 			</div>
 		);

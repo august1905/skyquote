@@ -183,6 +183,18 @@
 	font-weight: 600;
 }
 
+/* A real document Zoho Sign has never heard of. Deliberately quiet and
+   deliberately not a button: it isn't an error the recipient can act on, it's the
+   sender's to fix, and anything that looks pressable here is how this box came to
+   be mistaken for a broken signing flow in the first place. */
+.field-block-unsent {
+	border-style: dashed;
+	border-color: #cbd2d9;
+	color: #7b8794;
+	background: #fafbfc;
+	font-style: italic;
+}
+
 .field-block-declined {
 	border-style: solid;
 	border-color: #c0392b;

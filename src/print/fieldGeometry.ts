@@ -1,4 +1,5 @@
-import type { FieldType } from '../editor/types';
+import { collectAllFields } from '../editor/fields/collectFields';
+import type { FieldType, TemplateBody } from '../editor/types';
 
 /**
  * The canvas, the recipient's page and the print sheet all lay out at the
@@ -135,6 +136,19 @@ export const ZOHO_SIGN_FIELD_TYPES: Record<FieldType, string | null> = {
 	stamp: null,
 	billing_details: null,
 };
+
+/**
+ * Whether this body has anything Zoho Sign could actually place — asked *before*
+ * a send is attempted, so a document with no signature field is never rendered,
+ * measured and posted only to come back "there is nothing to sign".
+ *
+ * Reads the same `ZOHO_SIGN_FIELD_TYPES` map the send path does rather than
+ * looking for `type === 'signature'`, so a body whose only field is a `stamp`
+ * (which Zoho Sign has no equivalent for) correctly counts as nothing to sign.
+ */
+export function hasSignableField(body: TemplateBody): boolean {
+	return collectAllFields(body).some((field) => ZOHO_SIGN_FIELD_TYPES[field.type] !== null);
+}
 
 /** Drops the fields Zoho Sign can't represent, so callers never have to special-case the nulls. */
 export function signableFields(geometry: SignFieldGeometry[]): Array<SignFieldGeometry & { zohoType: string }> {

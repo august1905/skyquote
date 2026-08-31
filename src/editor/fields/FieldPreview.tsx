@@ -30,9 +30,13 @@ interface FieldPreviewProps {
 	/** Freezes an already-`live` control once the recipient has submitted/declined — still shows their answer, just can't be changed again. Meaningless without `live`. */
 	readOnly?: boolean | undefined;
 	/**
-	 * Given once the document is with Zoho Sign, which takes signature, initials
-	 * and stamp fields out of this component's hands entirely — see the
-	 * `signature` branch in `LiveFieldPreview`.
+	 * Given for every field on a real document — including one Zoho Sign has never
+	 * heard of (`status: 'not-sent'`), which is the whole point: it's what lets a
+	 * signature box distinguish "nobody sent this" from the template editor's
+	 * preview, instead of showing the same fake toggle for both. Takes signature
+	 * and initials out of this component's hands entirely; `stamp` has no Zoho Sign
+	 * counterpart and keeps its local toggle. See the `signature` branch in
+	 * `LiveFieldPreview`.
 	 */
 	signing?: RecipientSigning | undefined;
 }
@@ -121,13 +125,16 @@ function LiveFieldPreview({ field, value, onChange, readOnly, signing }: LiveFie
 		case 'initials':
 		case 'stamp': {
 			const label = FIELD_TYPE_LABELS[field.type].toLowerCase();
-			// Once the document is with Zoho Sign, this box reports what Zoho Sign
-			// says and offers the panel — it keeps no state of its own, because a
-			// real signature exists there or it doesn't and this component is in no
-			// position to know which. The webhook is. Saying "✓ Signature added"
-			// off a local boolean is how a recipient ends up believing they signed
-			// something they didn't.
-			if (signing) {
+			// Zoho Sign has no stamp field at all (`ZOHO_SIGN_FIELD_TYPES.stamp` is
+			// null), so a stamp is never part of a signature request and keeps the
+			// local toggle below regardless of what the document's signing state is.
+			const zohoSignOwnsThis = field.type !== 'stamp';
+			// On a real document this box reports what Zoho Sign says and offers the
+			// panel — it keeps no state of its own, because a real signature exists
+			// there or it doesn't and this component is in no position to know which.
+			// The webhook is. Saying "✓ Signature added" off a local boolean is how a
+			// recipient ends up believing they signed something they didn't.
+			if (signing && zohoSignOwnsThis) {
 				if (signing.status === 'signed') {
 					return (
 						<div className="field-block-box field-block-signed">
@@ -138,16 +145,24 @@ function LiveFieldPreview({ field, value, onChange, readOnly, signing }: LiveFie
 				if (signing.status === 'declined') {
 					return <div className="field-block-box field-block-declined">Declined</div>;
 				}
+				if (signing.status === 'not-sent') {
+					// A real document that never reached Zoho Sign — normally because
+					// setting up signing failed at creation, and the sender can retry it
+					// from the document. There is nothing to open and nothing this box
+					// could truthfully record, so it says so. It used to render the local
+					// toggle below, which is how a document nobody had sent still offered
+					// a button that said "✓ Signature added" once clicked.
+					return <div className="field-block-box field-block-unsent">Not ready for signing yet</div>;
+				}
 				return (
 					<button type="button" className="field-block-box field-block-live-toggle field-block-live-sign" onClick={signing.open}>
 						{`Click to add your ${label}`}
 					</button>
 				);
 			}
-			// No signing request behind it — the template editor's "Preview as
-			// role", or a document nobody has sent yet. A local toggle is honest
-			// there: it's demonstrating that the field is fillable, not claiming
-			// anything was filled.
+			// No document behind it at all — the template editor's "Preview as role".
+			// A local toggle is honest there: it's demonstrating that the field is
+			// fillable, not claiming anything was filled.
 			const marked = controlled ? Boolean(value) : localMarked;
 			const setMarked = (next: boolean) => (controlled ? onChange(next) : setLocalMarked(next));
 			return (
