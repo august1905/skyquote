@@ -131,6 +131,18 @@
 	color: var(--grey-700, #4a5568);
 }
 
+/* Same bar, same place, opposite message — green rather than neutral so the
+   change of state is visible without reading, since it replaces a control the
+   recipient was looking straight at. */
+.doc-view-sign-bar-signed {
+	border-color: #bbf7d0;
+	background: #f0fdf4;
+}
+
+.doc-view-sign-bar-signed p {
+	color: #15803d;
+}
+
 .doc-view-sign-button {
 	padding: 12px 28px;
 	border: 1px solid var(--navy, #064d81);

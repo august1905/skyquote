@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getPublicDocument, requestSigningUrl } from '../api/documents';
+import { requestSigningUrl, syncSigningStatus } from '../api/documents';
 import type { DocumentRecipient } from '../editor/types';
 import './signing-panel.css';
 
@@ -11,8 +11,14 @@ interface SigningPanelProps {
 	onClose: () => void;
 }
 
-/** How often the panel asks the server whether the signature landed. Only while it's open, so a signing session costs a handful of reads. */
-const STATUS_POLL_MS = 5000;
+/**
+ * How often the panel asks whether the signature landed. Only while it's open.
+ *
+ * 2.5s rather than the old 5s, and affordable *because* it changed what it polls:
+ * `syncSigningStatus` is one Zoho Sign read and no document body, where the old
+ * poll pulled the whole body out of Stratus. Twice as often, for less.
+ */
+const STATUS_POLL_MS = 2500;
 
 /**
  * Zoho Sign's signing surface, opened over the document the recipient is already
@@ -69,21 +75,26 @@ export function SigningPanel({ documentId, token, onSettled, onClose }: SigningP
 	 * Asks the server whether this recipient is finished, and settles the panel if
 	 * so.
 	 *
-	 * **The server is the only thing that can answer this.** Zoho Sign's own
-	 * completion is delivered by webhook, to the backend; the browser never sees
-	 * it. So the panel polls rather than guessing, and closing is something it
-	 * earns rather than something it does hopefully.
+	 * **The browser cannot answer this itself.** Zoho Sign's signing surface is a
+	 * cross-origin iframe, and — measured, not assumed — it posts **no message at
+	 * all** when a signer finishes. So there is nothing to listen for, and polling
+	 * is not a fallback here, it's the mechanism.
+	 *
+	 * What changed is *who* gets asked. This now reconciles against Zoho Sign
+	 * itself rather than re-reading our own database, which could only know once the
+	 * webhook had arrived: 8 seconds, live, between Finish and the panel closing.
+	 * Zoho Sign knew immediately.
 	 */
 	const checkSettled = useCallback(async () => {
 		try {
-			const fresh = await getPublicDocument(documentId, token);
-			const status = fresh.recipient.status;
+			const fresh = await syncSigningStatus(documentId, token);
+			const status = fresh.recipientStatus;
 			if (status === 'completed' || status === 'declined') {
 				onSettled(status);
 				return true;
 			}
 		} catch {
-			// A failed poll is not worth surfacing — the next one is 5 seconds away,
+			// A failed poll is not worth surfacing — the next one is 2.5 seconds away,
 			// and the recipient can always close the panel by hand.
 		}
 		return false;
@@ -99,15 +110,19 @@ export function SigningPanel({ documentId, token, onSettled, onClose }: SigningP
 	}, [checkSettled]);
 
 	/**
-	 * Zoho Sign posts a message to the parent window when the signer finishes.
+	 * An accelerator, and **on current evidence a dead one** — kept deliberately.
 	 *
-	 * Treated as a **prompt to check, not as proof**: anything can post a message
-	 * to a window, so all this does is bring the next poll forward. The
-	 * authoritative "this was signed" comes from Zoho Sign's webhook reaching the
-	 * backend, which nothing in the browser can forge.
+	 * A full signing session was driven end to end against the live account with
+	 * every inbound `postMessage` logged, and Zoho Sign sent **none**. So nothing
+	 * here can be relied on; the poll above is the mechanism, not the fallback. This
+	 * stays because it costs one listener, it would shave a couple of seconds if
+	 * Zoho Sign ever starts posting one, and it is safe either way: it only brings
+	 * the next reconcile forward. It never closes the panel and never claims a
+	 * signature — anything can post a message to a window, and the reconcile is what
+	 * decides.
 	 *
-	 * Matched loosely on purpose — the payload has been seen as both a bare string
-	 * and an object, and the cost of a false positive here is one extra read.
+	 * Matched loosely for that reason: the cost of a false positive is one extra
+	 * read, and the cost of a false negative is the two seconds this exists to save.
 	 */
 	useEffect(() => {
 		function handleMessage(event: MessageEvent) {

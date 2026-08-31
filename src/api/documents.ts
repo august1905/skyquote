@@ -160,6 +160,32 @@ export function declineDocument(documentId: string, token: string): Promise<Subm
 	});
 }
 
+export interface SigningStatusResult {
+	/** False when this document/recipient was never registered with Zoho Sign — there is nothing to wait for. */
+	registered: boolean;
+	recipientStatus: DocumentRecipient['status'];
+	documentStatus: string;
+	/** True when Zoho Sign couldn't be reached and this is the last known answer rather than a fresh one. */
+	stale: boolean;
+}
+
+/**
+ * Asks the server to ask **Zoho Sign** whether this recipient has signed, and to
+ * write the answer through.
+ *
+ * The panel polls this rather than re-reading the document, for two reasons that
+ * were both measured rather than assumed. It's *faster*: the old poll read our own
+ * database, which couldn't know a signature had happened until Zoho Sign's webhook
+ * arrived — 8 seconds, live, from clicking Finish to the panel noticing, while
+ * Zoho Sign's API had said `SIGNED` the whole time. And it's *cheaper*: reading the
+ * document pulled the entire body out of Stratus every 5 seconds to learn one word.
+ */
+export function syncSigningStatus(documentId: string, token: string): Promise<SigningStatusResult> {
+	return apiFetch<SigningStatusResult>(`/public/documents/${documentId}/${encodeURIComponent(token)}/signing-status`, {
+		method: 'POST',
+	});
+}
+
 export interface EmbedTokenResult {
 	/** Zoho Sign's one-time signing URL, for an iframe. */
 	signUrl: string;

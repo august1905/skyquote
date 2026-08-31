@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
-import { declineDocument, getPublicDocument, resolvePublicAssetUrl, submitDocumentFields, type PublicDocumentView } from '../api/documents';
+import { declineDocument, getPublicDocument, resolvePublicAssetUrl, submitDocumentFields, syncSigningStatus, type PublicDocumentView } from '../api/documents';
 import { SigningPanel } from '../documents/SigningPanel';
 import { collectAllFields } from '../editor/fields/collectFields';
 import type { FieldValue } from '../editor/fields/FieldPreview';
@@ -82,6 +82,50 @@ function DocumentView() {
 			cancelled = true;
 		};
 	}, [documentId, token]);
+
+	/**
+	 * Reconciles this recipient's status against Zoho Sign and repaints.
+	 *
+	 * Used in two places, for the same reason: our own database only learns about a
+	 * signature when Zoho Sign's webhook arrives, and anything that reads it before
+	 * then reports a signed document as unsigned. Zoho Sign itself always knows.
+	 *
+	 * Silent on failure by design — this only ever *upgrades* what's on screen, so a
+	 * failed reconcile leaves the page exactly as it already was. There is nothing
+	 * to tell the recipient and nothing for them to do about it.
+	 */
+	const refreshSigningStatus = useCallback(async () => {
+		if (!documentId || !token) return;
+		try {
+			const fresh = await syncSigningStatus(documentId, token);
+			setRecipientStatus(fresh.recipientStatus);
+		} catch {
+			// Deliberately swallowed — see above.
+		}
+	}, [documentId, token]);
+
+	/**
+	 * One reconcile on load, and only when it could tell us something new.
+	 *
+	 * Gated on being registered with Zoho Sign and *not* already finished, which is
+	 * exactly the window where our stored status can be stale — a webhook that was
+	 * delayed, dropped, or never configured. A recipient who has already signed
+	 * never triggers this again, so the steady-state cost is nothing, and a document
+	 * nobody sent for signature never triggers it at all.
+	 *
+	 * This is what makes a lost webhook survivable rather than permanent: before it,
+	 * a signed document whose webhook went missing showed its signature boxes as
+	 * unsigned forever, still inviting a signature Zoho Sign would refuse.
+	 */
+	useEffect(() => {
+		if (status !== 'ready' || !data) return;
+		if (!data.document.awaitingSignature) return;
+		if (recipientStatus === 'completed' || recipientStatus === 'declined') return;
+		void refreshSigningStatus();
+		// Deliberately keyed on the load, not on `recipientStatus` — this is a
+		// one-shot catch-up, and the panel's own poll covers everything after it.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [status, data, refreshSigningStatus]);
 
 	// Built even while `data` is still null (falls back to empty) so this hook
 	// runs on every render regardless of `status` — an early return above a
@@ -214,11 +258,35 @@ function DocumentView() {
 					</button>
 				</div>
 			)}
+			{/* The confirmation, in the same place the invitation was.
+			    Every signature box already turns green and says "✓ Signed", but those
+			    sit wherever the author put them — potentially pages up, and easy to
+			    scroll past. This is the one that lands where the recipient was last
+			    looking, which is the button they just pressed. */}
+			{registeredWithSign && recipientStatus === 'completed' && (
+				<div className="doc-view-sign-bar doc-view-sign-bar-signed" role="status">
+					<p>
+						<span aria-hidden="true">✓ </span>
+						<strong>Signed.</strong> Your signature is recorded with Zoho Sign — there&apos;s nothing else to do.
+					</p>
+				</div>
+			)}
 			{signingOpen && (
 				<SigningPanel
 					documentId={documentId}
 					token={token}
-					onClose={() => setSigningOpen(false)}
+					// Closing by hand **re-checks**, it doesn't just hide the panel.
+					// This was the bug: Zoho Sign posts no completion message, so the
+					// panel could only close itself once a webhook had landed — about 8
+					// seconds. Long enough that the obvious thing to do is press X, which
+					// fired this handler instead of `onSettled` and left the page showing
+					// "Click to add your signature" over a document that was already
+					// signed, until a full reload. The X closes instantly, as it should,
+					// and the answer catches up a moment later.
+					onClose={() => {
+						setSigningOpen(false);
+						void refreshSigningStatus();
+					}}
 					// Already confirmed against the server by the panel itself, so there's
 					// nothing to re-check here — see SigningPanel for why it never trusts
 					// Zoho Sign's postMessage on its own.
