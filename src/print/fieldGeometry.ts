@@ -150,6 +150,21 @@ export function hasSignableField(body: TemplateBody): boolean {
 	return collectAllFields(body).some((field) => ZOHO_SIGN_FIELD_TYPES[field.type] !== null);
 }
 
+/**
+ * Whether this document is something a recipient **signs**, as opposed to a form
+ * they fill in.
+ *
+ * Deliberately narrower than `hasSignableField`: that asks "can Zoho Sign place
+ * anything here", which is true of a document whose only field is a text box.
+ * This asks "is there a signature to collect", which is what decides whether the
+ * recipient gets the configure → review → sign flow or the older
+ * fill-in-and-submit one. A quote with a text field and no signature line is a
+ * questionnaire, and sending it through a signing ceremony would be theatre.
+ */
+export function needsSignature(body: TemplateBody): boolean {
+	return collectAllFields(body).some((field) => field.type === 'signature' || field.type === 'initials');
+}
+
 /** Drops the fields Zoho Sign can't represent, so callers never have to special-case the nulls. */
 export function signableFields(geometry: SignFieldGeometry[]): Array<SignFieldGeometry & { zohoType: string }> {
 	const signable: Array<SignFieldGeometry & { zohoType: string }> = [];

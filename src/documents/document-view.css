@@ -104,6 +104,37 @@
 	border-bottom: 1px solid #f0f0f0;
 }
 
+/* Section 1's chooser. Only ever rendered in a recipient's own view — the
+   internal reader and the print tree pass no `pricingInteraction`, so neither
+   gains a control. */
+.doc-view-pricing-choice {
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	margin: 2px 4px 0 0;
+	cursor: pointer;
+	accent-color: var(--navy, #064d81);
+}
+
+.doc-view-pricing-choice:disabled {
+	cursor: default;
+}
+
+/* A declined row stays visible so it can be reinstated, but reads as not part of
+   the price — muted rather than struck through, since it isn't a deletion. */
+.doc-view-pricing-row-excluded .doc-view-pricing-name,
+.doc-view-pricing-row-excluded .doc-view-pricing-description,
+.doc-view-pricing-row-excluded .doc-view-pricing-qty,
+.doc-view-pricing-row-excluded .doc-view-pricing-line-total {
+	color: #9aa5b1;
+}
+
+.doc-view-quote-group-required {
+	font-weight: 400;
+	font-size: 0.8rem;
+	color: #7b8794;
+}
+
 .doc-view-pricing-name {
 	flex: 1;
 	font-weight: 500;

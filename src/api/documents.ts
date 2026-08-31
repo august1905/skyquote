@@ -112,6 +112,13 @@ export function regenerateRecipientToken(documentId: string, recipientId: string
 export interface DocumentBody extends TemplateBody {
 	fieldValues?: Record<string, FieldValue>;
 	/**
+	 * Section 1's line-item choices, keyed by `PricingItem.id` — working state, not
+	 * the agreement. The agreement is a separate frozen object written once when the
+	 * customer continues to signing (`utils/agreementSnapshot.js`), which is what
+	 * makes saving here repeatedly safe.
+	 */
+	pricingSelections?: Record<string, boolean>;
+	/**
 	 * The flat variable-key → literal-string map computed once at
 	 * document-creation time (`resolveVariables.ts`'s `computeResolvedVariableValues`),
 	 * used to freeze every `variable` chip into plain text. That freeze is
@@ -132,6 +139,8 @@ export interface PublicDocumentView {
 		computedTotal: Money;
 		/** True once the sender has sent this for signature *and* this recipient has something to sign — both, since a recipient with no fields is never registered with Zoho Sign. */
 		awaitingSignature: boolean;
+		/** True as soon as *anyone's* signature request exists. This is what locks section 1's choices — a co-signer with no signable field of their own must still see the configuration frozen. */
+		signatureRequested: boolean;
 	};
 	recipient: { roleId: RoleId; roleName: string; name: string; status: DocumentRecipient['status'] };
 	body: DocumentBody;
@@ -250,6 +259,40 @@ export async function sendForSignature(
 		throw error;
 	}
 }
+
+/** Section 1's line-item choices, keyed by `PricingItem.id`. Mirrors `PricingSelections`. */
+export function saveSelections(documentId: string, token: string, selections: Record<string, boolean>): Promise<{ selections: Record<string, boolean> }> {
+	return apiFetch<{ selections: Record<string, boolean> }>(`/public/documents/${documentId}/${encodeURIComponent(token)}/selections`, {
+		method: 'PUT',
+		body: JSON.stringify({ selections }),
+	});
+}
+
+/**
+ * Section 2: hands the document, **as the customer configured it**, to Zoho Sign.
+ *
+ * The recipient-authenticated twin of `sendForSignature`. Same 90s ceiling and the
+ * same reason for it, but this one has a customer waiting on it rather than a
+ * member of staff, so the caller is expected to show real progress.
+ */
+export async function sendConfiguredForSignature(
+	documentId: string,
+	token: string,
+	input: { html: string; fields: unknown[]; format: 'Letter' | 'A4'; agreementHash?: string }
+): Promise<SendForSignatureResult & { agreementHash: string }> {
+	try {
+		return await apiFetch<SendForSignatureResult & { agreementHash: string }>(
+			`/public/documents/${documentId}/${encodeURIComponent(token)}/send-for-signature`,
+			{ method: 'POST', body: JSON.stringify(input), signal: AbortSignal.timeout(SEND_FOR_SIGNATURE_TIMEOUT_MS) }
+		);
+	} catch (error) {
+		if (error instanceof DOMException && error.name === 'TimeoutError') {
+			throw new Error('Preparing your document took too long. Try again.');
+		}
+		throw error;
+	}
+}
+
 
 /**
  * An `ImageBlock.url` inside a resolved document body is still the relative

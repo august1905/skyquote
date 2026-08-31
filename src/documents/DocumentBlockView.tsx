@@ -1,12 +1,31 @@
 import { embedUrlFor } from '../editor/blocks/videoEmbed';
 import { FieldPreview } from '../editor/fields/FieldPreview';
 import { computePricingTableTotals, computeQuoteBuilderTotals, type LineTotal } from '../pricing/computeTotals';
+import type { PricingSelections } from '../pricing/recipientSelections';
 import { formatMoney } from '../pricing/formatMoney';
 import type { Block, PricingItem, PricingTableBlock, QuoteBuilderBlock } from '../editor/types';
 import { evaluateSmartContent, type SmartContentContext } from '../smartContent/evaluateRules';
 import { RichTextView, type FieldInteraction } from './RichTextView';
 import { blockStyleToCss } from './blockStyle';
 import './document-view.css';
+
+/**
+ * Section 1's line-item choosing, threaded down the same way `FieldInteraction`
+ * is. Omitted everywhere it must not be interactive: the internal reader
+ * (`DocumentDetail`), and the print tree that becomes the signed PDF.
+ *
+ * `onChange` takes the whole next map rather than a single toggle, because a
+ * quote-builder `single` group has to clear its siblings atomically — and the
+ * block view is the only thing that knows which options are siblings.
+ */
+export interface PricingInteraction {
+	selections: PricingSelections;
+	onChange: (next: PricingSelections) => void;
+	/** Ids the recipient may actually toggle — see `selectableItemIds`. Precomputed once rather than per block. */
+	selectable: ReadonlySet<string>;
+	/** Frozen once the document is locked for signing, so the choices behind a generated PDF can't move. */
+	readOnly: boolean;
+}
 
 interface DocumentBlockViewProps {
 	block: Block;
@@ -21,6 +40,8 @@ interface DocumentBlockViewProps {
 	/** The viewing recipient's own role, or `null` if nothing should ever be live (there's no such thing as an anonymous viewer for a real document, but this keeps the component usable for a future authenticated preview too). */
 	viewerRoleId: string | null;
 	fieldInteraction?: FieldInteraction | undefined;
+	/** Given only in section 1 of a recipient's view. Its absence is what makes every other caller render the configured result rather than a chooser. */
+	pricingInteraction?: PricingInteraction | undefined;
 	smartContentContext: SmartContentContext;
 }
 
@@ -58,7 +79,7 @@ export function DocumentBlockView(props: DocumentBlockViewProps) {
 	);
 }
 
-function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInteraction, smartContentContext }: DocumentBlockViewProps) {
+function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInteraction, pricingInteraction, smartContentContext }: DocumentBlockViewProps) {
 	switch (block.type) {
 		case 'text':
 			return <RichTextView doc={block.doc} viewerRoleId={viewerRoleId} fieldInteraction={fieldInteraction} />;
@@ -112,6 +133,7 @@ function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInterac
 									resolveImageSrc={resolveImageSrc}
 									viewerRoleId={viewerRoleId}
 									fieldInteraction={fieldInteraction}
+									pricingInteraction={pricingInteraction}
 									smartContentContext={smartContentContext}
 								/>
 							))}
@@ -158,9 +180,9 @@ function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInterac
 			);
 		}
 		case 'pricing_table':
-			return <DocumentPricingTableBlockView block={block} />;
+			return <DocumentPricingTableBlockView block={block} pricing={pricingInteraction} />;
 		case 'quote_builder':
-			return <DocumentQuoteBuilderBlockView block={block} />;
+			return <DocumentQuoteBuilderBlockView block={block} pricing={pricingInteraction} />;
 		case 'smart_content': {
 			if (!evaluateSmartContent(block, smartContentContext)) return null;
 			return (
@@ -172,6 +194,7 @@ function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInterac
 							resolveImageSrc={resolveImageSrc}
 							viewerRoleId={viewerRoleId}
 							fieldInteraction={fieldInteraction}
+							pricingInteraction={pricingInteraction}
 							smartContentContext={smartContentContext}
 						/>
 					))}
@@ -193,15 +216,52 @@ function renderBlockContent({ block, resolveImageSrc, viewerRoleId, fieldInterac
  * own-add-ons interactivity yet (see BUILD_STATUS.md), so showing a
  * declined item here would suggest an interactivity that isn't there.
  */
-function DocumentPricingLines({ items, lineByItemId, currency }: { items: PricingItem[]; lineByItemId: Map<string, LineTotal>; currency: string }) {
+/** How one choosable row is picked. `radio` shares a `name` across a quote-builder group so the browser enforces single-selection for free. */
+interface LineChoice {
+	control: 'checkbox' | 'radio';
+	name?: string;
+	onPick: (itemId: string, next: boolean) => void;
+}
+
+function DocumentPricingLines({
+	items,
+	lineByItemId,
+	currency,
+	pricing,
+	choice,
+}: {
+	items: PricingItem[];
+	lineByItemId: Map<string, LineTotal>;
+	currency: string;
+	pricing?: PricingInteraction | undefined;
+	choice?: LineChoice | undefined;
+}) {
+	const isChoosable = (item: PricingItem) => Boolean(choice && pricing?.selectable.has(item.id));
 	return (
 		<>
 			{items
-				.filter((item) => lineByItemId.get(item.id)?.included)
+				// A choosable row stays on screen even when it's currently excluded —
+				// otherwise section 1 hides the very things it exists to let you pick.
+				// Everywhere else (the internal reader, the print tree that becomes the
+				// signed PDF) keeps the original rule: only what's actually included.
+				.filter((item) => isChoosable(item) || lineByItemId.get(item.id)?.included)
 				.map((item) => {
 					const line = lineByItemId.get(item.id)!;
+					const choosable = isChoosable(item);
+					const included = Boolean(line.included);
 					return (
-						<div key={item.id} className="doc-view-pricing-row">
+						<div key={item.id} className={`doc-view-pricing-row${choosable && !included ? ' doc-view-pricing-row-excluded' : ''}`}>
+							{choosable && (
+								<input
+									className="doc-view-pricing-choice"
+									type={choice!.control}
+									name={choice!.name}
+									checked={included}
+									disabled={pricing!.readOnly}
+									aria-label={item.name || 'Line item'}
+									onChange={(e) => choice!.onPick(item.id, e.target.checked)}
+								/>
+							)}
 							<span className="doc-view-pricing-name">{item.name}</span>
 							{item.description && <span className="doc-view-pricing-description">{item.description}</span>}
 							<span className="doc-view-pricing-qty">×{item.qty}</span>
@@ -213,12 +273,17 @@ function DocumentPricingLines({ items, lineByItemId, currency }: { items: Pricin
 	);
 }
 
-function DocumentPricingTableBlockView({ block }: { block: PricingTableBlock }) {
+function DocumentPricingTableBlockView({ block, pricing }: { block: PricingTableBlock; pricing?: PricingInteraction | undefined }) {
 	const totals = computePricingTableTotals(block);
 	const lineByItemId = new Map(totals.lines.map((l) => [l.itemId, l] as const));
+	// Independent tick-boxes: a table's optional rows have no relationship to each
+	// other, unlike a quote-builder group's options.
+	const choice: LineChoice | undefined = pricing
+		? { control: 'checkbox', onPick: (itemId, next) => pricing.onChange({ ...pricing.selections, [itemId]: next }) }
+		: undefined;
 	return (
 		<div className="doc-view-pricing-table">
-			<DocumentPricingLines items={block.items} lineByItemId={lineByItemId} currency={block.currency} />
+			<DocumentPricingLines items={block.items} lineByItemId={lineByItemId} currency={block.currency} pricing={pricing} choice={choice} />
 			<div className="doc-view-pricing-footer">
 				{block.settings.showSubtotal && (
 					<div className="doc-view-pricing-footer-row">
@@ -250,17 +315,41 @@ function DocumentPricingTableBlockView({ block }: { block: PricingTableBlock }) 
 }
 
 /** No recipient-side option-picking yet either (same gap as pricing table's optional items) — shows whatever the sender's wizard step left selected. */
-function DocumentQuoteBuilderBlockView({ block }: { block: QuoteBuilderBlock }) {
+function DocumentQuoteBuilderBlockView({ block, pricing }: { block: QuoteBuilderBlock; pricing?: PricingInteraction | undefined }) {
 	const totals = computeQuoteBuilderTotals(block);
 	const lineByItemId = new Map(totals.lines.map((l) => [l.itemId, l] as const));
 	return (
 		<div className="doc-view-pricing-table">
-			{block.groups.map((group) => (
-				<div key={group.id} className="doc-view-quote-group">
-					<div className="doc-view-quote-group-name">{group.name}</div>
-					<DocumentPricingLines items={group.options} lineByItemId={lineByItemId} currency={block.currency} />
-				</div>
-			))}
+			{block.groups.map((group) => {
+				// A `single` group clears its siblings in the same update rather than
+				// relying on the radio's native behaviour — the browser would deselect
+				// the other input visually while our state still had it true.
+				const choice: LineChoice | undefined = pricing
+					? {
+							control: group.selection === 'single' ? 'radio' : 'checkbox',
+							name: `quote-group-${group.id}`,
+							onPick: (itemId, next) => {
+								if (group.selection !== 'single') {
+									pricing.onChange({ ...pricing.selections, [itemId]: next });
+									return;
+								}
+								const cleared = { ...pricing.selections };
+								for (const option of group.options) cleared[option.id] = false;
+								cleared[itemId] = true;
+								pricing.onChange(cleared);
+							},
+						}
+					: undefined;
+				return (
+					<div key={group.id} className="doc-view-quote-group">
+						<div className="doc-view-quote-group-name">
+							{group.name}
+							{pricing && group.required && <span className="doc-view-quote-group-required"> · required</span>}
+						</div>
+						<DocumentPricingLines items={group.options} lineByItemId={lineByItemId} currency={block.currency} pricing={pricing} choice={choice} />
+					</div>
+				);
+			})}
 			<div className="doc-view-pricing-footer-row doc-view-pricing-footer-total">
 				<span>Total</span>
 				<span>{formatMoney(totals.total, block.currency)}</span>

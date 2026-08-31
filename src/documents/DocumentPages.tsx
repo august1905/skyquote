@@ -1,7 +1,7 @@
 import type { DocumentBody } from '../api/documents';
 import type { RoleId } from '../editor/types';
 import type { SmartContentContext } from '../smartContent/evaluateRules';
-import { DocumentBlockView } from './DocumentBlockView';
+import { DocumentBlockView, type PricingInteraction } from './DocumentBlockView';
 import type { FieldInteraction } from './RichTextView';
 import { readOnlyPageBackgroundStyle } from './pageBackground';
 import { placementToCss, splitPlacedBlocks } from './blockPlacement';
@@ -14,6 +14,8 @@ interface DocumentPagesProps {
 	/** Whose fields render live. `null` means nobody's — the internal read-only view. */
 	viewerRoleId: RoleId | null;
 	fieldInteraction: FieldInteraction;
+	/** Section 1's line-item chooser. Omitted by the internal reader and the print tree, which must render the configured result rather than a chooser. */
+	pricingInteraction?: PricingInteraction | undefined;
 	smartContentContext: SmartContentContext;
 }
 
@@ -28,7 +30,7 @@ interface DocumentPagesProps {
  * callers genuinely differ in only two things: how an asset URL is built, and
  * whose fields (if anyone's) are interactive.
  */
-export function DocumentPages({ body, resolveImageSrc, viewerRoleId, fieldInteraction, smartContentContext }: DocumentPagesProps) {
+export function DocumentPages({ body, resolveImageSrc, viewerRoleId, fieldInteraction, pricingInteraction, smartContentContext }: DocumentPagesProps) {
 	const attachments = body.attachments ?? [];
 	// The page size the author placed against — pinned coordinates are in those
 	// units, so this is what turns them back into CSS here.
@@ -51,6 +53,7 @@ export function DocumentPages({ body, resolveImageSrc, viewerRoleId, fieldIntera
 									block={block}
 									resolveImageSrc={resolveImageSrc}
 									viewerRoleId={viewerRoleId}
+									pricingInteraction={pricingInteraction}
 									fieldInteraction={fieldInteraction}
 									smartContentContext={smartContentContext}
 								/>
@@ -65,6 +68,7 @@ export function DocumentPages({ body, resolveImageSrc, viewerRoleId, fieldIntera
 											block={block}
 											resolveImageSrc={resolveImageSrc}
 											viewerRoleId={viewerRoleId}
+											pricingInteraction={pricingInteraction}
 											fieldInteraction={fieldInteraction}
 											smartContentContext={smartContentContext}
 										/>

@@ -124,3 +124,36 @@
 	gap: 4px;
 	font-size: 0.88rem;
 }
+
+/* The two-step progress line for a document that gets signed. Deliberately plain
+   text rather than a graphical stepper: there are two steps, and a customer needs
+   to know which one they're on, not be impressed. */
+.doc-view-steps {
+	display: flex;
+	gap: 20px;
+	list-style: none;
+	margin: 0 auto 8px;
+	padding: 0 24px;
+	max-width: 816px;
+	font-size: 0.85rem;
+	color: var(--grey-600, #7b8794);
+}
+
+.doc-view-step-current {
+	color: var(--navy, #064d81);
+	font-weight: 600;
+}
+
+.doc-view-step-done {
+	color: var(--grey-500, #9aa5b1);
+}
+
+/* Sits inside `.doc-view-sign-bar`, which is already a centred flex row — this is
+   the text half, so the button stays on the right at wide widths and wraps under
+   at narrow ones. */
+.doc-view-continue-summary {
+	flex: 1 1 320px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}

@@ -2,31 +2,25 @@ import { test, expect } from '@playwright/test';
 import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture';
 
 /**
- * Signature fields on a real document — the flow that had no e2e coverage at all
- * while the bug it exists to catch was live.
+ * **A signature box on a real document must never be a local toggle.**
  *
- * **What this suite can and cannot prove locally.** Handing a document to Zoho
- * Sign needs SmartBrowz to render it first, and SmartBrowz does not work from
- * `catalyst serve` (see PROJECT_CONTEXT.md) — so against the local backend the
- * automatic send always fails. That makes this suite a test of the two things
- * that *must* hold when it does:
+ * That is the whole point of this file, and it is a different concern from the
+ * line-item flow in `document-configure-and-sign.spec.ts`: this one covers a
+ * document with *nothing to choose*, which is the plainest possible case and the
+ * one the original bug appeared in.
  *
- * 1. the document is still created, intact, links and all; and
- * 2. an unsigned signature box says so instead of offering a fake toggle.
+ * A document nobody had sent used to render the template editor's "Preview as
+ * role" toggle to the recipient — a box that flipped to "✓ Signature added" and
+ * recorded nothing. It reads as a dead button, and if believed it means both sides
+ * think a document is signed when it isn't.
  *
- * (2) is the whole reason this file exists. A document nobody had sent used to
- * render the template editor's "Preview as role" toggle to the recipient: a box
- * that flipped to "✓ Signature added" and recorded nothing. It reads as a broken
- * button, and if believed it means both sides think a document is signed when it
- * isn't.
+ * **Updated 2026-08-31 for the two-step flow.** This spec used to assert on the
+ * create-document wizard's auto-send status, because signing was set up the moment
+ * a document was created. It no longer is — the PDF has to be rendered from the
+ * customer's choices, so the send moved to the end of section 1. The box-honesty
+ * assertions below are unchanged in substance; only where they happen moved.
  *
- * The *success* path — a live signature request, `awaitingSignature: true` and a
- * `sign.zoho.com` panel framed in the document — is verified against the deployed
- * function, which is the only place SmartBrowz runs. See BUILD_STATUS.md.
- *
- * Deliberately not `@core`: creating a template and a document, then loading a
- * recipient link, is one of the more expensive specs in the suite, and every call
- * is a real Data Store round trip.
+ * Deliberately not `@core`: it builds a template and a document.
  */
 
 async function addRole(page: import('@playwright/test').Page, name: string) {
@@ -42,9 +36,8 @@ test('a signature field on a document that never reached Zoho Sign says so, and 
 
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Signature' }).click();
-	// Required, because a required signature field used to block Submit forever
-	// once its local toggle stopped existing — see DocumentView's
-	// `isRequiredFieldMissing`.
+	// Required, because a required signature field used to block Submit forever once
+	// its local toggle stopped existing — see DocumentView's `isRequiredFieldMissing`.
 	await page.locator('.field-block').first().click();
 	await page.getByLabel('Required').check();
 	await page.locator('.field-settings-popover').getByRole('button', { name: 'Done' }).click();
@@ -55,56 +48,47 @@ test('a signature field on a document that never reached Zoho Sign says so, and 
 	const wizard = page.locator('.wizard-card');
 	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
-
 	await page.getByLabel('Client name').fill('Casey Client');
 	await page.getByLabel('Client email').fill('casey@example.com');
 	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
 	await wizard.getByRole('button', { name: 'Next' }).click(); // variables
 	await wizard.getByRole('button', { name: 'Next' }).click(); // pricing
-	await wizard.getByRole('button', { name: 'Create document' }).click(); // review -> create
+	await wizard.getByRole('button', { name: 'Create document' }).click();
 
-	// The document exists and its links are usable *before* signing has settled —
-	// that ordering is the point. Signing is allowed to fail; losing the quote
-	// somebody just wrote is not.
 	const link = await page.getByLabel('Casey Client link').inputValue();
 	expect(link).toContain('/d/');
-
-	// Locally this resolves to the failure branch (no SmartBrowz). Either terminal
-	// outcome is accepted so the spec doesn't invert if it's ever run somewhere
-	// SmartBrowz works; what's asserted is that it *reaches* one and names it.
-	const settled = page.locator('.wizard-signing-sent, .wizard-signing-failed');
-	await expect(settled).toBeVisible({ timeout: 120_000 });
-	const failed = await page.locator('.wizard-signing-failed').count();
-	if (failed) {
-		// The retry has to be findable, or a document sits unsignable in silence.
-		await expect(page.getByText(/Send for signature/)).toBeVisible();
-	}
-
 	await page.getByRole('button', { name: 'Done' }).click();
 
 	const recipientContext = await context.browser()!.newContext();
 	const recipientPage = await recipientContext.newPage();
 	await recipientPage.goto(link);
 
+	// Nothing has been sent to Zoho Sign — the send happens when the customer
+	// confirms at section 2, not at creation — so the box must say exactly that.
 	const signatureBox = recipientPage.locator('.doc-view-field-block .field-block-box');
 	await expect(signatureBox).toBeVisible();
+	await expect(signatureBox).toHaveText(/not ready for signing yet/i);
 
-	if (failed) {
-		await expect(signatureBox).toHaveText(/not ready for signing yet/i);
-		// The assertion that guards the original bug: whatever this box says, it must
-		// not be something the recipient can press and mistake for signing.
-		await expect(recipientPage.locator('.doc-view-field-block button')).toHaveCount(0);
-		await expect(recipientPage.getByText('Click to add signature')).toHaveCount(0);
-		await expect(recipientPage.locator('.doc-view-sign-bar')).toHaveCount(0);
-	} else {
-		await expect(signatureBox).toHaveText(/click to add your signature/i);
-		await expect(recipientPage.locator('.doc-view-sign-bar')).toBeVisible();
-	}
+	// The assertion that guards the original bug: whatever this box says, it must
+	// not be something the recipient can press and mistake for signing.
+	await expect(recipientPage.locator('.doc-view-field-block button')).toHaveCount(0);
+	await expect(recipientPage.getByText('Click to add signature')).toHaveCount(0);
+	await expect(recipientPage.getByText('✓ Signature added')).toHaveCount(0);
+	// No invitation to sign either, since there is nothing to sign yet.
+	await expect(recipientPage.locator('.doc-view-sign-bar-signed')).toHaveCount(0);
+	await expect(recipientPage.getByRole('button', { name: 'Sign this document' })).toHaveCount(0);
 
-	// A required signature field must not hold Submit hostage either way: it's
-	// satisfied in the signing panel and recorded by the webhook, not by this form.
-	await expect(recipientPage.getByRole('button', { name: 'Submit' })).toBeEnabled();
+	// With nothing optional in the document there is nothing to choose, so section 1
+	// is a read-through — but it still exists, and Continue is the way out of it.
+	await expect(recipientPage.locator('.doc-view-steps')).toContainText('Review your quote');
+	await expect(recipientPage.getByRole('button', { name: 'Continue' })).toBeEnabled();
+
+	// A required signature field must not hold anything hostage: it is satisfied in
+	// the signing panel and recorded by the webhook, never by this page's own form.
 	await expect(recipientPage.getByText(/Fill in before submitting/)).toHaveCount(0);
+	// And Submit is deliberately absent on a signing document — it marks the
+	// recipient `completed`, which this page renders as "Signed".
+	await expect(recipientPage.getByRole('button', { name: 'Submit' })).toHaveCount(0);
 
 	await recipientContext.close();
 });

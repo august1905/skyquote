@@ -14,6 +14,22 @@ interface SignatureSenderProps {
 	body: DocumentBody;
 	blockPageNumbers: ReadonlyMap<BlockId, number>;
 	onFinished: (error: string | null, result: SendForSignatureResult | null) => void;
+	/**
+	 * How the measured render is actually sent. Injected because there are two
+	 * callers with different authentication: a member of staff on the internal page
+	 * (session, `sendForSignature`) and the **customer** at the end of section 1
+	 * (recipient token, `sendConfiguredForSignature`). Everything else — the
+	 * offscreen render, the font wait, the overflow refusal, the measurement — is
+	 * identical and must stay identical, which is why this is a parameter rather
+	 * than a second component.
+	 */
+	send?: ((input: { html: string; fields: unknown[]; format: 'Letter' | 'A4' }) => Promise<SendForSignatureResult>) | undefined;
+	/**
+	 * How an image becomes a URL inside the print tree. Defaults to the
+	 * session-authenticated asset route; a recipient has no session and must pass
+	 * their token-gated mirror, or every image 401s and the PDF renders blank boxes.
+	 */
+	resolveImageSrc?: ((assetId: string) => string) | undefined;
 }
 
 /**
@@ -29,7 +45,7 @@ interface SignatureSenderProps {
  * signature to, and its API places fields on an uploaded document by page and
  * coordinate. Nothing here downloads, and nothing offers to.
  */
-export function SignatureSender({ documentId, body, blockPageNumbers, onFinished }: SignatureSenderProps) {
+export function SignatureSender({ documentId, body, blockPageNumbers, onFinished, send, resolveImageSrc }: SignatureSenderProps) {
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	// Exactly one send per mount, with no cancel-on-cleanup — StrictMode's
 	// setup → cleanup → setup would otherwise make the first attempt cancel
@@ -85,11 +101,8 @@ export function SignatureSender({ documentId, body, blockPageNumbers, onFinished
 				}
 
 				const { html } = await serializePrintTree(node, 'document');
-				const result = await sendForSignature(documentId, {
-					html,
-					fields,
-					format: body.settings.pageSize === 'A4' ? 'A4' : 'Letter',
-				});
+				const payload = { html, fields, format: body.settings.pageSize === 'A4' ? ('A4' as const) : ('Letter' as const) };
+				const result = send ? await send(payload) : await sendForSignature(documentId, payload);
 				finish(null, result);
 			} catch (error) {
 				finish(error instanceof Error ? error.message : 'Could not send this document for signature', null);
@@ -97,14 +110,14 @@ export function SignatureSender({ documentId, body, blockPageNumbers, onFinished
 		}
 
 		void run();
-	}, [documentId, body, blockPageNumbers, onFinished]);
+	}, [documentId, body, blockPageNumbers, onFinished, send]);
 
 	return (
 		<div ref={rootRef} aria-hidden="true" data-testid="signature-print-tree">
 			<PrintTemplate
 				body={body}
 				blockPageNumbers={blockPageNumbers}
-				resolveImageSrc={(assetId) => resolveAssetUrl(assetFileRelativePath(assetId))}
+				resolveImageSrc={resolveImageSrc ?? ((assetId) => resolveAssetUrl(assetFileRelativePath(assetId)))}
 				smartContentContext={EMPTY_SMART_CONTENT_CONTEXT}
 				// A document already has its conditions resolved against real recipients
 				// and values, so hidden content stays hidden — unlike a template export,

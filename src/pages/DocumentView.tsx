@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
-import { declineDocument, getPublicDocument, resolvePublicAssetUrl, submitDocumentFields, syncSigningStatus, type PublicDocumentView } from '../api/documents';
+import {
+	declineDocument,
+	getPublicDocument,
+	resolvePublicAssetUrl,
+	saveSelections,
+	sendConfiguredForSignature,
+	submitDocumentFields,
+	syncSigningStatus,
+	type PublicDocumentView,
+} from '../api/documents';
 import { SigningPanel } from '../documents/SigningPanel';
 import { collectAllFields } from '../editor/fields/collectFields';
 import type { FieldValue } from '../editor/fields/FieldPreview';
@@ -9,7 +18,20 @@ import type { FillableField } from '../editor/types';
 import { computeTotals } from '../pricing/computeTotals';
 import type { SmartContentContext } from '../smartContent/evaluateRules';
 import { DocumentPages } from '../documents/DocumentPages';
+import { SignatureSender } from '../documents/SignatureSender';
+import type { PricingInteraction } from '../documents/DocumentBlockView';
 import type { FieldInteraction } from '../documents/RichTextView';
+import { needsSignature } from '../print/fieldGeometry';
+import {
+	applyPricingSelections,
+	configuredBodyForAgreement,
+	defaultSelections,
+	hasRecipientChoices,
+	selectableItemIds,
+	unsatisfiedGroups,
+	type PricingSelections,
+} from '../pricing/recipientSelections';
+import { formatMoney } from '../pricing/formatMoney';
 import './DocumentView.css';
 
 /**
@@ -23,9 +45,16 @@ import './DocumentView.css';
  * Scope, stated plainly rather than left implicit: a recipient's own field
  * renders live and their entries submit for real (`routes/publicDocumentView.js`'s
  * submit route, stored on the Document's own Stratus body — see
- * `src/api/documents.ts`'s `DocumentBody`). Recipient-side pricing
- * interactivity (picking/unpicking optional items, choosing a quote-builder
- * option) is a separate, still-not-built story — see BUILD_STATUS.md.
+ * `src/api/documents.ts`'s `DocumentBody`).
+ *
+ * **A document that gets signed runs in two steps** (`step`): section 1 is the
+ * quote, where optional line items and quote-builder options are the recipient's
+ * to choose; section 2 is the same document with everything they declined
+ * *removed*, which is what gets rendered to PDF and signed. That ordering is the
+ * point — the agreement is produced from the choices rather than before them. A
+ * document with no signature line skips all of it and keeps the older
+ * fill-in-and-submit form. See `recipient-signing-flow.md`.
+ *
  * `file_upload`/`billing_details` fields stay a preview of interactivity,
  * never actually submitted — no upload endpoint, no payment provider (§16
  * Q7 is still an open product question).
@@ -58,6 +87,18 @@ function DocumentView() {
 	// §4's embedded signing. Opened by the recipient, never automatically: the
 	// signing URL behind it is single-use and expires in two minutes.
 	const [signingOpen, setSigningOpen] = useState(false);
+	/**
+	 * Which half of the flow the customer is in. `configure` is section 1 — read the
+	 * quote, tick the line items you want. `agreement` is section 2 — the same
+	 * document with the declined items gone, which is the thing that gets rendered
+	 * to PDF and signed.
+	 */
+	const [step, setStep] = useState<'configure' | 'agreement'>('configure');
+	const [selections, setSelections] = useState<PricingSelections>({});
+	// Mounts the offscreen renderer that measures the fields and sends. Only ever in
+	// flight for a few seconds, and only after the customer has confirmed.
+	const [preparing, setPreparing] = useState(false);
+	const [prepareError, setPrepareError] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!documentId || !token) {
@@ -71,6 +112,14 @@ function DocumentView() {
 				if (cancelled) return;
 				setData(result);
 				setFieldValues(result.body.fieldValues ?? {});
+				// Stored choices win over the author's defaults, so returning to a
+				// half-configured quote shows what you last picked rather than resetting it.
+				setSelections({ ...defaultSelections(result.body), ...(result.body.pricingSelections ?? {}) });
+				// A document already sent for signature has nothing left to configure —
+				// its PDF was rendered from one specific set of choices and they are now
+				// frozen. Landing on section 2 is both correct and less confusing than
+				// showing a chooser that refuses to move.
+				if (result.document.signatureRequested) setStep('agreement');
 				setRecipientStatus(result.recipient.status);
 				setStatus('ready');
 			})
@@ -169,6 +218,27 @@ function DocumentView() {
 		);
 	}
 
+	/**
+	 * Whether this document goes through configure → review → sign at all.
+	 *
+	 * Narrower than "has fields Zoho Sign could place": a quote with a text box and
+	 * no signature line is a questionnaire, and putting it through a signing
+	 * ceremony would be theatre. Those keep the older fill-in-and-submit form
+	 * unchanged.
+	 */
+	const isSigningDocument = needsSignature(data.body);
+	const locked = data.document.signatureRequested;
+	const canChoose = hasRecipientChoices(data.body) && !locked;
+	// Section 1 renders this: every row still present, unticked ones merely excluded
+	// from the total, because a hidden row is one you cannot choose.
+	const configuredBody = applyPricingSelections(data.body, selections);
+	// Section 2 renders this, and it is what gets rendered to PDF and signed:
+	// declined rows are gone, not greyed.
+	const agreementBody = configuredBodyForAgreement(data.body, selections);
+	const shownBody = step === 'agreement' ? agreementBody : configuredBody;
+	const agreementTotals = computeTotals(agreementBody);
+	const groupProblems = unsatisfiedGroups(data.body, selections);
+
 	const myFields = collectAllFields(data.body).filter((field) => field.roleId === data.recipient.roleId);
 	const isFrozen = recipientStatus === 'completed' || recipientStatus === 'declined';
 	// `awaitingSignature` is really "this recipient is registered with Zoho Sign",
@@ -177,6 +247,15 @@ function DocumentView() {
 	// merely submitted, without needing a new field from the API.
 	const registeredWithSign = data.document.awaitingSignature;
 	const missingRequired = myFields.filter((field) => isRequiredFieldMissing(field, fieldValues[field.id]));
+	/**
+	 * Section 1's chooser. Given only in the `configure` step and only when the
+	 * document is unlocked — its absence is what makes section 2 and the print tree
+	 * render the configured *result* rather than a set of controls.
+	 */
+	const pricingInteraction: PricingInteraction | undefined =
+		step === 'configure' && canChoose
+			? { selections, onChange: setSelections, selectable: selectableItemIds(data.body), readOnly: locked || isFrozen }
+			: undefined;
 	const fieldInteraction: FieldInteraction = {
 		fieldValues,
 		onFieldChange: (fieldId, value) => setFieldValues((prev) => ({ ...prev, [fieldId]: value })),
@@ -213,6 +292,63 @@ function DocumentView() {
 		}
 	}
 
+	/**
+	 * End of section 1: save the choices, then move to the agreement.
+	 *
+	 * Saving first, and refusing to advance if it fails, is deliberate. Section 2
+	 * renders the agreement from `selections` held in this component, but the PDF is
+	 * built by the **server** from the stored ones — so advancing on a failed save
+	 * would show the customer one thing and sign another.
+	 */
+	async function handleContinueToAgreement() {
+		if (groupProblems.length > 0) return;
+		setSubmitting(true);
+		setActionError(null);
+		try {
+			if (canChoose) await saveSelections(documentId!, token!, selections);
+			setStep('agreement');
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		} catch (err) {
+			setActionError(err instanceof ApiError ? err.message : 'Could not save your choices.');
+		} finally {
+			setSubmitting(false);
+		}
+	}
+
+	/**
+	 * Section 2's confirm: renders the agreement, sends it to Zoho Sign, and opens
+	 * the signing panel.
+	 *
+	 * This is the moment the record is created — deliberately *after* the customer
+	 * has chosen, which is the whole point of the flow. It replaced sending at
+	 * document creation, where the PDF necessarily predated every choice in it.
+	 */
+	function handleConfirmAndSign() {
+		setPrepareError(null);
+		setPreparing(true);
+	}
+
+	async function handleSendFinished(error: string | null) {
+		setPreparing(false);
+		if (error) {
+			setPrepareError(error);
+			return;
+		}
+		// Re-read rather than assume: the send stored `sign_request_id` and this
+		// recipient's `sign_action_id`, and the panel cannot mint an embed token until
+		// both are visible here.
+		try {
+			const fresh = await getPublicDocument(documentId!, token!);
+			setData(fresh);
+			setRecipientStatus(fresh.recipient.status);
+			if (fresh.document.awaitingSignature) setSigningOpen(true);
+		} catch {
+			// The document is sent regardless; a failed refetch just means the customer
+			// presses the sign button themselves rather than the panel opening for them.
+			setPrepareError('Your document is ready, but the page could not refresh. Reload to sign.');
+		}
+	}
+
 	async function handleDecline() {
 		if (!window.confirm('Decline this document? This cannot be undone.')) return;
 		setSubmitting(true);
@@ -239,13 +375,95 @@ function DocumentView() {
 					{recipientStatus === 'declined' && <span className="doc-view-status-pill doc-view-status-declined"> · Declined</span>}
 				</span>
 			</header>
+			{/* Only for documents that actually get signed — a plain form has one step
+			    and numbering it would invent a process that isn't there. */}
+			{isSigningDocument && !isFrozen && (
+				<ol className="doc-view-steps" aria-label="Progress">
+					<li className={step === 'configure' ? 'doc-view-step-current' : 'doc-view-step-done'}>
+						1. {canChoose ? 'Choose what you need' : 'Review your quote'}
+					</li>
+					<li className={step === 'agreement' ? 'doc-view-step-current' : undefined}>2. Review &amp; sign</li>
+				</ol>
+			)}
 			<DocumentPages
-				body={data.body}
+				body={shownBody}
 				resolveImageSrc={(assetId) => resolvePublicAssetUrl(documentId, token, assetId)}
 				viewerRoleId={data.recipient.roleId}
 				fieldInteraction={fieldInteraction}
+				pricingInteraction={pricingInteraction}
 				smartContentContext={smartContentContext}
 			/>
+			{/* End of section 1. Shown only for documents that get signed and only
+			    before anything is locked; a plain form keeps its own Submit below. */}
+			{isSigningDocument && step === 'configure' && !locked && !isFrozen && (
+				<div className="doc-view-sign-bar">
+					<div className="doc-view-continue-summary">
+						<p>
+							{canChoose ? 'Happy with your selections?' : 'Ready to continue?'} Your total is{' '}
+							<strong>{formatMoney(agreementTotals.total, agreementTotals.currency)}</strong>.
+						</p>
+						{groupProblems.length > 0 && (
+							<p className="doc-view-actions-hint" role="alert">
+								{groupProblems
+									.map((g) => (g.reason === 'none-chosen' ? `Choose an option for ${g.groupName}` : `Choose only one option for ${g.groupName}`))
+									.join('; ')}
+							</p>
+						)}
+					</div>
+					<button
+						type="button"
+						className="doc-view-sign-button"
+						disabled={submitting || groupProblems.length > 0}
+						onClick={() => void handleContinueToAgreement()}
+					>
+						{submitting ? 'Saving…' : 'Continue'}
+					</button>
+				</div>
+			)}
+			{/* Section 2's confirm — the last moment before a record exists. Spelled
+			    out, because pressing this is what turns a quote into an agreement. */}
+			{isSigningDocument && step === 'agreement' && !locked && !isFrozen && (
+				<div className="doc-view-sign-bar">
+					<div className="doc-view-continue-summary">
+						<p>
+							<strong>This is what you&apos;ll sign.</strong> It shows only the items you chose, totalling{' '}
+							<strong>{formatMoney(agreementTotals.total, agreementTotals.currency)}</strong>. Once you continue, these choices are fixed.
+						</p>
+						{prepareError && (
+							<p className="doc-view-error" role="alert">
+								{prepareError}
+							</p>
+						)}
+					</div>
+					<div className="doc-view-actions-buttons">
+						<button type="button" onClick={() => setStep('configure')} disabled={preparing}>
+							Back
+						</button>
+						<button type="button" className="doc-view-sign-button" onClick={handleConfirmAndSign} disabled={preparing}>
+							{preparing ? 'Preparing your document…' : 'Confirm and sign'}
+						</button>
+					</div>
+				</div>
+			)}
+			{/* Offscreen, mounted only while the send is in flight. Rendering the
+			    agreement is the only way to measure where its signature fields sit, and
+			    it is the *agreement* body — declined line items already removed — that
+			    becomes the PDF. Nothing here is shown to anybody. */}
+			{preparing && (
+				<SignatureSender
+					documentId={documentId}
+					body={agreementBody}
+					// Documents aren't paginated (that map is the editor canvas's, and it
+					// isn't mounted here), so each authored page is one sheet and
+					// `SignatureSender` refuses rather than guess if one overflows.
+					blockPageNumbers={new Map()}
+					// A recipient has no session: both the send and every image URL have to
+					// go through their token-gated routes or the render 401s.
+					send={(input) => sendConfiguredForSignature(documentId, token, input)}
+					resolveImageSrc={(assetId) => resolvePublicAssetUrl(documentId, token, assetId)}
+					onFinished={(error) => void handleSendFinished(error)}
+				/>
+			)}
 			{/* Signing happens here, in the document, not in an inbox — recipients
 			    are registered with Zoho Sign as embedded signers, which stops it
 			    emailing them a link of its own. Shown only once the sender has
@@ -311,7 +529,7 @@ function DocumentView() {
 					</p>
 				) : (
 					<>
-						{missingRequired.length > 0 && (
+						{!isSigningDocument && missingRequired.length > 0 && (
 							<p className="doc-view-actions-hint">Fill in before submitting: {missingRequired.map((f) => f.name).join(', ')}</p>
 						)}
 						{actionError && (
@@ -323,9 +541,16 @@ function DocumentView() {
 							<button type="button" onClick={() => void handleDecline()} disabled={submitting}>
 								Decline
 							</button>
-							<button type="button" onClick={() => void handleSubmit()} disabled={submitting || missingRequired.length > 0}>
-								{submitting ? 'Submitting…' : 'Submit'}
-							</button>
+							{/* Deliberately absent on a signing document. `submitDocumentFields`
+							    marks the recipient `completed`, and on a document with a
+							    signature line this page renders `completed` as **Signed** — so
+							    Submit was a button that made someone look like they had signed
+							    without signing. Signing documents finish through the panel. */}
+							{!isSigningDocument && (
+								<button type="button" onClick={() => void handleSubmit()} disabled={submitting || missingRequired.length > 0}>
+									{submitting ? 'Submitting…' : 'Submit'}
+								</button>
+							)}
 						</div>
 					</>
 				)}
