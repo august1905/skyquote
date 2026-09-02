@@ -141,15 +141,33 @@ test.describe('Columns block', () => {
 		await columns.nth(0).locator('.canvas-block').nth(1).click();
 		const handle = page.getByRole('button', { name: 'Drag to reorder' });
 		const handleBox = await handle.boundingBox();
+		const draggedBox = await columns.nth(0).locator('.canvas-block').nth(1).boundingBox();
 		const targetBox = await columns.nth(0).locator('.canvas-block').nth(0).boundingBox();
-		if (!handleBox || !targetBox) throw new Error('expected both blocks to have a bounding box');
+		if (!handleBox || !draggedBox || !targetBox) throw new Error('expected both blocks to have a bounding box');
 
-		await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+		// Drag straight up by the distance between the two blocks' midpoints,
+		// keeping X fixed. Both halves are load-bearing and were learned the hard
+		// way when the Montserrat font swap made this fail:
+		// - The vertical distance is computed from the rects, not hardcoded — the
+		//   drop index comes from where the *dragged block's* translated rect ends
+		//   up, so "15px up then 5px into the target" quietly stopped reaching far
+		//   enough when chrome metrics shifted.
+		// - X stays put because the handle floats in the block toolbar, which
+		//   overflows *left* of a narrow column (`.canvas-block-toolbar`'s own
+		//   comment) — so ending on the target's center-X drags the block's rect
+		//   sideways by (block center − handle center) ≈ 150px, far enough into
+		//   the *neighbouring column* that rectIntersection resolves `over` to
+		//   that column's block and the cross-column drop is (correctly) refused.
+		const midpointGap = draggedBox.y + draggedBox.height / 2 - (targetBox.y + targetBox.height / 2);
+		const startX = handleBox.x + handleBox.width / 2;
+		const startY = handleBox.y + handleBox.height / 2;
+
+		await page.mouse.move(startX, startY);
 		await page.mouse.down();
 		await page.waitForTimeout(100);
-		await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2 - 15, { steps: 10 });
+		await page.mouse.move(startX, startY - 15, { steps: 10 });
 		await page.waitForTimeout(100);
-		await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + 5, { steps: 20 });
+		await page.mouse.move(startX, startY - midpointGap - 8, { steps: 20 });
 		await page.waitForTimeout(100);
 		await page.mouse.up();
 		await page.waitForTimeout(150);

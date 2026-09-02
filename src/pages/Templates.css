@@ -23,29 +23,29 @@
 }
 
 .templates-header-actions button {
-	border: 1px solid #d5d5d5;
+	border: 1px solid var(--border-subtle);
 	background: #fff;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	padding: 6px 12px;
 	font-size: 0.85rem;
 	cursor: pointer;
 }
 
 .templates-header-actions button:disabled {
-	color: #999;
+	color: var(--grey-400);
 	cursor: default;
 }
 
 .templates-primary {
-	background: #1d4ed8 !important;
-	border-color: #1d4ed8 !important;
+	background: var(--navy) !important;
+	border-color: var(--navy) !important;
 	color: #fff;
 	font-weight: 600;
 }
 
 .templates-primary:disabled {
-	background: #93a7e6 !important;
-	border-color: #93a7e6 !important;
+	background: var(--grey-300) !important;
+	border-color: var(--grey-300) !important;
 }
 
 .templates-toolbar {
@@ -64,8 +64,8 @@
 	font: inherit;
 	font-size: 0.9rem;
 	padding: 7px 10px;
-	border: 1px solid #d5d5d5;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 }
 
 .templates-sort {
@@ -73,22 +73,22 @@
 	align-items: center;
 	gap: 6px;
 	font-size: 0.8rem;
-	color: #777;
+	color: var(--grey-500);
 }
 
 .templates-sort button {
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	background: #fff;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	padding: 4px 9px;
 	font-size: 0.8rem;
 	cursor: pointer;
 }
 
 .templates-sort button[aria-pressed='true'] {
-	background: #eef2ff;
-	border-color: #c7d2fe;
-	color: #1d4ed8;
+	background: color-mix(in srgb, var(--sky-blue) 10%, #fff);
+	border-color: color-mix(in srgb, var(--sky-blue) 30%, #fff);
+	color: var(--sky-blue-deep);
 	font-weight: 600;
 }
 
@@ -99,7 +99,7 @@
 	flex-wrap: wrap;
 	margin: 12px 0 0;
 	font-size: 0.85rem;
-	color: #666;
+	color: var(--grey-500);
 }
 
 .templates-crumb {
@@ -108,23 +108,23 @@
 	padding: 2px 4px;
 	font: inherit;
 	font-size: 0.85rem;
-	color: #1d4ed8;
+	color: var(--sky-blue);
 	cursor: pointer;
 	border-radius: 3px;
 }
 
 .templates-crumb:hover:not(:disabled) {
-	background: #f0f0f0;
+	background: var(--grey-100);
 }
 
 .templates-crumb:disabled {
-	color: #333;
+	color: var(--grey-700);
 	font-weight: 600;
 	cursor: default;
 }
 
 .templates-crumb-sep {
-	color: #bbb;
+	color: var(--grey-300);
 }
 
 .templates-new-folder {
@@ -137,15 +137,15 @@
 	font: inherit;
 	font-size: 0.85rem;
 	padding: 6px 9px;
-	border: 1px solid #d5d5d5;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 	min-width: 220px;
 }
 
 .templates-new-folder button {
-	border: 1px solid #d5d5d5;
+	border: 1px solid var(--border-subtle);
 	background: #fff;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	padding: 5px 11px;
 	font-size: 0.82rem;
 	cursor: pointer;
@@ -153,7 +153,7 @@
 
 .templates-empty {
 	margin-top: 18px;
-	color: #666;
+	color: var(--grey-500);
 	font-size: 0.9rem;
 }
 
@@ -166,20 +166,20 @@
 .templates-table th {
 	text-align: left;
 	font-size: 0.8rem;
-	color: #777;
+	color: var(--grey-500);
 	padding: 6px 10px;
-	border-bottom: 1px solid #ddd;
+	border-bottom: 1px solid var(--border-subtle);
 }
 
 .templates-table td {
 	padding: 4px 10px;
-	border-bottom: 1px solid #f0f0f0;
+	border-bottom: 1px solid var(--grey-100);
 	font-size: 0.9rem;
 	vertical-align: middle;
 }
 
 .templates-row:hover {
-	background: #fafafa;
+	background: var(--grey-50);
 }
 
 /* Folders sort above templates in the markup, so a divider isn't needed — but a
@@ -194,28 +194,28 @@
 	padding: 6px 0;
 	font: inherit;
 	font-size: 0.9rem;
-	color: #1a1a1a;
+	color: var(--grey-900);
 	text-align: left;
 	cursor: pointer;
 }
 
 .templates-name-button:hover {
-	color: #1d4ed8;
+	color: var(--sky-blue);
 	text-decoration: underline;
 }
 
 .templates-row-folder-hint {
 	margin-left: 8px;
 	font-size: 0.76rem;
-	color: #888;
+	color: var(--grey-400);
 }
 
 .templates-rename-input {
 	font: inherit;
 	font-size: 0.9rem;
 	padding: 4px 7px;
-	border: 1px solid #1d4ed8;
-	border-radius: 4px;
+	border: 1px solid var(--sky-blue);
+	border-radius: var(--radius-xs);
 	width: 100%;
 	max-width: 320px;
 }
@@ -233,16 +233,16 @@
 .templates-menu-anchor > button {
 	border: 1px solid transparent;
 	background: transparent;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	padding: 3px 7px;
 	font-size: 1rem;
 	line-height: 1;
-	color: #555;
+	color: var(--grey-600);
 	cursor: pointer;
 }
 
 .templates-menu-anchor > button:hover {
-	background: #eee;
+	background: var(--grey-100);
 }
 
 .templates-menu {
@@ -252,9 +252,9 @@
 	z-index: 40;
 	min-width: 180px;
 	background: #fff;
-	border: 1px solid #e0e0e0;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
-	box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+	box-shadow: var(--shadow-hover);
 	padding: 4px;
 	display: flex;
 	flex-direction: column;
@@ -267,23 +267,23 @@
 	background: transparent;
 	text-align: left;
 	padding: 6px 8px;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	font-size: 0.85rem;
 	cursor: pointer;
 	white-space: nowrap;
 }
 
 .templates-menu button:hover:not(:disabled) {
-	background: #f0f0f0;
+	background: var(--grey-100);
 }
 
 .templates-menu button:disabled {
-	color: #999;
+	color: var(--grey-400);
 	cursor: default;
 }
 
 .templates-menu-danger {
-	color: #b3261e;
+	color: var(--danger);
 }
 
 .templates-menu-confirm {
@@ -291,10 +291,10 @@
 	flex-direction: column;
 	gap: 3px;
 	padding: 6px 8px;
-	border-top: 1px solid #f0f0f0;
+	border-top: 1px solid var(--grey-100);
 	font-size: 0.8rem;
 }
 
 .templates-menu-confirm span {
-	color: #444;
+	color: var(--grey-700);
 }

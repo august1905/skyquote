@@ -206,11 +206,11 @@
 .content-panel-error {
 	margin: 0;
 	padding: 8px 10px;
-	border: 1px solid color-mix(in srgb, #b3261e 30%, transparent);
+	border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
 	border-radius: var(--radius-sm);
-	background: color-mix(in srgb, #b3261e 7%, #fff);
+	background: color-mix(in srgb, var(--danger) 7%, #fff);
 	font-size: 0.76rem;
-	color: #8c1d18;
+	color: var(--danger);
 }
 
 .content-panel-url-form {

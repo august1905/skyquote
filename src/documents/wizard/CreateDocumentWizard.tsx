@@ -55,15 +55,19 @@ function recipientDraftsFor(body: TemplateBody | undefined): RecipientDraft[] {
 		name: '',
 		email: '',
 		signingOrder: role.signingOrder != null ? String(role.signingOrder) : '',
+		isSender: role.isSender,
 	}));
 }
 
 /**
  * A deal names exactly one primary contact, so it can only speak for **one**
- * role — the first. Spreading that same person across every role of a
- * two-signer template would be a guess dressed up as data, and a wrong email is
- * worse than an empty one: the empty box is visibly incomplete, the wrong
- * address quietly sends someone else's quote.
+ * role — the first that isn't ours. Spreading that same person across every
+ * role of a two-signer template would be a guess dressed up as data, and a
+ * wrong email is worse than an empty one: the empty box is visibly
+ * incomplete, the wrong address quietly sends someone else's quote. Sender
+ * roles are skipped because they're our own people (the app-user dropdown
+ * fills those), and putting the customer in one would be exactly that wrong
+ * email.
  *
  * Never overwrites something already typed.
  */
@@ -71,7 +75,9 @@ function prefillFirstRecipient(drafts: RecipientDraft[], deal: CrmDeal): Recipie
 	const name = deal.contact?.name || deal.contactName || '';
 	const email = deal.contact?.email || '';
 	if (!name && !email) return drafts;
-	return drafts.map((draft, index) => (index === 0 ? { ...draft, name: draft.name || name, email: draft.email || email } : draft));
+	const targetIndex = drafts.findIndex((draft) => !draft.isSender);
+	if (targetIndex === -1) return drafts;
+	return drafts.map((draft, index) => (index === targetIndex ? { ...draft, name: draft.name || name, email: draft.email || email } : draft));
 }
 
 /**

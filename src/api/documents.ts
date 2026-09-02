@@ -65,6 +65,8 @@ export interface DocumentEvent {
 	/** `null` for a document-level event, like being sent. */
 	recipientId: string | null;
 	eventType: string;
+	/** Raw stored detail — usually a JSON string (webhook rows hold Zoho Sign's whole payload). Parse defensively; see documents/detail/auditTrail.ts. */
+	detail: string | null;
 	occurredAt: string | null;
 }
 
@@ -95,6 +97,25 @@ export function deleteDocument(id: string): Promise<{ deleted: boolean }> {
 export function regenerateRecipientToken(documentId: string, recipientId: string): Promise<{ recipient: DocumentRecipientWithToken }> {
 	return apiFetch<{ recipient: DocumentRecipientWithToken }>(`/documents/${documentId}/recipients/${recipientId}/regenerate-token`, {
 		method: 'POST',
+	});
+}
+
+/**
+ * Reassigns who a recipient row points at — the internal countersigner
+ * dropdown in the document's Recipients panel. The backend refuses with 409
+ * once a signature request exists (the recipient's identity is baked into
+ * it), regenerates the access token as part of the swap (the old link
+ * belonged to the old assignee), and returns the fresh token exactly once,
+ * like creation does.
+ */
+export function updateDocumentRecipient(
+	documentId: string,
+	recipientId: string,
+	input: { name: string; email: string }
+): Promise<{ recipient: DocumentRecipientWithToken }> {
+	return apiFetch<{ recipient: DocumentRecipientWithToken }>(`/documents/${documentId}/recipients/${recipientId}`, {
+		method: 'PUT',
+		body: JSON.stringify(input),
 	});
 }
 

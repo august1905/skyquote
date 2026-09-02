@@ -6,52 +6,81 @@
    `color` inherits this file's text color — both effectively invisible
    against every other component's light background. */
 
-/* Design tokens — the Skyline brand system, shared with skycamone.
-   Poppins/Mulish are Google-Fonts substitutes for the brand's actual
-   (licensed) display/body typefaces — see index.html for the font load.
+/* Design tokens — the Skyline Parent Design System's official values
+   (source: "Skyline Parent Design System" tokens/, derived from the brand
+   color sheet). The variable *names* are the app's own, kept stable so every
+   component keeps referencing them; only the values moved onto the official
+   palette. Montserrat is the confirmed brand font for display and body alike
+   — the old Poppins/Mulish pair were stand-ins.
    Every component should reference these variables rather than hard-coding
    hex/shadow values, so a future palette tweak is a one-file change. */
 :root {
-  --font-display: 'Poppins', system-ui, sans-serif;
-  --font-body: 'Mulish', system-ui, sans-serif;
+  --font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
 
-  /* Brand anchors */
-  --navy: #064d81;
-  --navy-deep: #043a61;
-  --navy-light: #0a6bab;
-  --orange: #ee7026;
-  --orange-deep: #d95f16;
-  --sky-blue: #10a2db;
-  --sky-blue-deep: #0c84b3;
-  --gold: #fbb628;
+  /* Brand core (official sheet values) */
+  --navy: #094d82; /* Skyline Navy — the wordmark */
+  --navy-deep: #134570;
+  --navy-ink: #0a2e4d; /* darkest navy — gradient ends */
+  --navy-light: #0b5e9d; /* derived hover shade */
+  --orange: #ed6825;
+  --orange-deep: #c8501a; /* derived */
+  --orange-warm: #f5842f; /* derived */
+  --sky-blue: #13a5df;
+  --sky-blue-bright: #4fc0ec; /* derived tint */
+  --sky-blue-deep: #0e85b5; /* derived */
+  --gold: #f7b718;
+  --magenta: #df4f8a;
+  --purple: #b4519f;
+
+  /* Semantic */
+  --success: #2fa36b;
+  --warning: #f7b718;
+  --danger: #d9463c;
+  --info: #13a5df;
 
   /* Cool blue-grey neutrals — never warm greys */
-  --grey-50: #f7f9fc;
-  --grey-100: #eef1f6;
-  --grey-200: #e1e6ee;
-  --grey-300: #c7cfdc;
-  --grey-500: #7c8798;
-  --grey-700: #4a5568;
-  --grey-900: #16202e;
+  --grey-50: #f5f8fb;
+  --grey-100: #eaf0f6;
+  --grey-200: #d6e0ea;
+  --grey-300: #b9c6d4;
+  --grey-400: #8a9bac;
+  --grey-500: #657586;
+  --grey-600: #4a5867;
+  --grey-700: #33414f;
+  --grey-800: #1e2a36;
+  --grey-900: #0f1922;
 
-  --border-subtle: #e1e6ee;
-  --border-strong: #c7cfdc;
+  --border-subtle: var(--grey-200);
+  --border-strong: var(--grey-300);
+
+  /* Official brand gradients (the three service-line blends) */
+  --grad-blue: linear-gradient(135deg, #134570 0%, #13a5df 100%);
+  --grad-pink: linear-gradient(135deg, #b4519f 0%, #df4f8a 100%);
+  --grad-orange: linear-gradient(135deg, #ed6825 0%, #f7b718 100%);
 
   /* Navy-tinted, soft/diffuse shadows — never plain black */
-  --shadow-resting: 0 2px 8px rgba(6, 34, 58, 0.08);
-  --shadow-hover: 0 8px 24px rgba(6, 34, 58, 0.16);
-  --shadow-glow-navy: 0 8px 20px rgba(6, 77, 129, 0.35);
-  --shadow-glow-orange: 0 8px 20px rgba(238, 112, 38, 0.35);
-  --shadow-glow-blue: 0 8px 20px rgba(16, 162, 219, 0.35);
+  --shadow-resting: 0 2px 8px rgba(11, 44, 74, 0.08);
+  --shadow-hover: 0 8px 24px rgba(11, 44, 74, 0.1);
+  --shadow-lifted: 0 18px 48px rgba(11, 44, 74, 0.14);
+  --shadow-glow-navy: 0 8px 20px rgba(9, 77, 130, 0.3);
+  --shadow-glow-orange: 0 12px 30px rgba(238, 112, 38, 0.3);
+  --shadow-glow-blue: 0 12px 30px rgba(16, 162, 219, 0.28);
 
+  --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-lg: 18px; /* cards */
+  --radius-xl: 24px; /* feature tiles */
   --radius-pill: 999px;
 
+  /* Signature wide-tracked caps ("CLEANING SERVICES") and small labels */
+  --tracking-caps: 0.22em;
+  --tracking-label: 0.08em;
+
   /* Subtle and functional — never bouncy/theatrical, per brand spec */
-  --transition-fast: 160ms ease;
-  --transition-base: 200ms ease;
+  --transition-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 
   font-family: var(--font-body);
   line-height: 1.5;
@@ -114,6 +143,12 @@ button {
 }
 button:hover {
   border-color: var(--border-strong);
+}
+/* The brand's press behaviour: hover lifts settle back down on press. The lift
+   itself is opt-in per surface (a toolbar of 24px icon buttons doesn't want
+   it); the settle is universal so nothing stays floating while held. */
+button:active {
+  transform: none;
 }
 button:focus-visible {
   outline: 2px solid var(--sky-blue);

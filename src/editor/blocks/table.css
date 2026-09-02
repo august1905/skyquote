@@ -37,9 +37,9 @@
 }
 
 .block-table-controls button {
-	background: #f2f2f2;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	background: var(--grey-100);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 	padding: 2px 8px;
 	cursor: pointer;
 }
@@ -54,5 +54,5 @@
 	align-items: center;
 	gap: 4px;
 	margin-left: 8px;
-	color: #555;
+	color: var(--grey-600);
 }

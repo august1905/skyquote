@@ -11,22 +11,22 @@
 .documents-table th {
 	text-align: left;
 	font-size: 0.8rem;
-	color: #777;
+	color: var(--grey-500);
 	padding: 6px 10px;
-	border-bottom: 1px solid #ddd;
+	border-bottom: 1px solid var(--border-subtle);
 }
 
 .documents-table td {
 	padding: 8px 10px;
-	border-bottom: 1px solid #f0f0f0;
+	border-bottom: 1px solid var(--grey-100);
 	font-size: 0.9rem;
 }
 
 .documents-table button {
 	padding: 4px 10px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	background: #f5f5f5;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
+	background: var(--grey-100);
 	cursor: pointer;
 	font-size: 0.8rem;
 }
@@ -35,29 +35,33 @@
 	font-size: 0.75rem;
 	font-weight: 600;
 	padding: 2px 8px;
-	border-radius: 999px;
-	background: #eee;
-	color: #555;
+	border-radius: var(--radius-pill);
+	background: var(--grey-100);
+	color: var(--grey-600);
 }
 
 .documents-status-completed {
-	background: #dcfce7;
-	color: #15803d;
+	background: color-mix(in srgb, var(--success) 14%, #fff);
+	color: var(--success);
 }
 
 .documents-status-declined {
-	background: #fee2e2;
-	color: #c0392b;
+	background: color-mix(in srgb, var(--danger) 14%, #fff);
+	color: var(--danger);
 }
 
-.documents-status-viewed,
+.documents-status-viewed {
+	background: color-mix(in srgb, var(--purple) 14%, #fff);
+	color: var(--purple);
+}
+
 .documents-status-sent {
-	background: #dbeafe;
-	color: #1d4ed8;
+	background: color-mix(in srgb, var(--sky-blue) 14%, #fff);
+	color: var(--sky-blue-deep);
 }
 
 .documents-row:hover {
-	background: #fafafa;
+	background: var(--grey-50);
 }
 
 .documents-title-button {
@@ -66,13 +70,13 @@
 	padding: 4px 0;
 	font: inherit;
 	font-size: 0.9rem;
-	color: #1a1a1a;
+	color: var(--grey-900);
 	text-align: left;
 	cursor: pointer;
 }
 
 .documents-title-button:hover {
-	color: #1d4ed8;
+	color: var(--sky-blue);
 	text-decoration: underline;
 }
 
@@ -90,9 +94,9 @@
 
 .documents-create-button {
 	padding: 7px 14px;
-	border: 1px solid #1d4ed8;
-	border-radius: 4px;
-	background: #1d4ed8;
+	border: 1px solid var(--navy);
+	border-radius: var(--radius-xs);
+	background: var(--navy);
 	color: #fff;
 	font-size: 0.85rem;
 	font-weight: 600;
@@ -100,6 +104,6 @@
 }
 
 .documents-create-button:hover {
-	background: #1a44bd;
-	border-color: #1a44bd;
+	background: var(--navy-light);
+	border-color: var(--navy-light);
 }

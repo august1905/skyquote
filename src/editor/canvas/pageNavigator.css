@@ -4,8 +4,8 @@
 	flex-direction: column;
 	gap: 8px;
 	padding: 12px;
-	border-right: 1px solid #e5e5e5;
-	background: #fafafa;
+	border-right: 1px solid var(--border-subtle);
+	background: var(--grey-50);
 	overflow-y: auto;
 }
 
@@ -14,7 +14,7 @@
 	align-items: center;
 	justify-content: space-between;
 	font-size: 0.85rem;
-	color: #444;
+	color: var(--grey-700);
 }
 
 .page-navigator-header button {
@@ -22,7 +22,7 @@
 	background: transparent;
 	font-size: 1rem;
 	line-height: 1;
-	color: #666;
+	color: var(--grey-600);
 	cursor: pointer;
 }
 
@@ -51,16 +51,16 @@
 		'index meta';
 	gap: 0 8px;
 	padding: 6px 8px;
-	border: 1px solid #e0e0e0;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 	background: #fff;
 	text-align: left;
 	cursor: pointer;
 }
 
 .page-navigator-goto:hover {
-	border-color: #b8c8f0;
-	background: #f5f8ff;
+	border-color: color-mix(in srgb, var(--sky-blue) 40%, #fff);
+	background: color-mix(in srgb, var(--sky-blue) 5%, #fff);
 }
 
 .page-navigator-index {
@@ -69,13 +69,13 @@
 	min-width: 18px;
 	font-size: 0.75rem;
 	font-weight: 600;
-	color: #888;
+	color: var(--grey-500);
 }
 
 .page-navigator-name {
 	grid-area: name;
 	font-size: 0.8rem;
-	color: #333;
+	color: var(--grey-800);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -86,7 +86,7 @@
 .page-navigator-meta {
 	grid-area: meta;
 	font-size: 0.7rem;
-	color: #999;
+	color: var(--grey-400);
 }
 
 .page-navigator-actions {
@@ -103,12 +103,12 @@
 	font-size: 0.7rem;
 	line-height: 1;
 	padding: 2px 4px;
-	color: #666;
+	color: var(--grey-600);
 	cursor: pointer;
 }
 
 .page-navigator-actions button:hover:not(:disabled) {
-	background: #ececec;
+	background: var(--grey-100);
 }
 
 .page-navigator-actions button:disabled {
@@ -119,15 +119,15 @@
 .page-navigator-add {
 	margin-top: 4px;
 	padding: 6px 8px;
-	border: 1px dashed #ccc;
-	border-radius: 4px;
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--radius-xs);
 	background: transparent;
 	font-size: 0.8rem;
-	color: #555;
+	color: var(--grey-600);
 	cursor: pointer;
 }
 
 .page-navigator-add:hover {
-	background: #f0f0f0;
-	border-color: #aaa;
+	background: var(--grey-100);
+	border-color: var(--grey-400);
 }

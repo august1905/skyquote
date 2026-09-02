@@ -7,6 +7,8 @@ export interface RecipientDraft {
 	name: string;
 	email: string;
 	signingOrder: string;
+	/** Carried from the template's `Role.isSender`: a sender role is one of our own people, so the step offers the app-user dropdown instead of free-text name/email. */
+	isSender: boolean;
 }
 
 export type WizardStep = 'template' | 'deal' | 'name' | 'recipients' | 'variables' | 'pricing' | 'review';

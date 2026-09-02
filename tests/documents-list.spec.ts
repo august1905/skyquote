@@ -71,8 +71,25 @@ test('a created document shows up in the list and opens as the actual document, 
 	// would be forging it.
 	await expect(page.locator('.doc-view-page [contenteditable="true"]')).toHaveCount(0);
 
-	// And the metadata the old modal carried is still here, beside the document.
-	await expect(page.getByText('Casey Client (Client) — Pending')).toBeVisible();
+	// The metadata the old modal carried lives in the side tab rail now.
+	// Recipients opens by default: the customer row, with status.
+	const recipientsPanel = page.locator('.recipients-rail-panel');
+	await expect(recipientsPanel.getByText('Casey Client')).toBeVisible();
+	await expect(recipientsPanel.getByText('casey@example.com')).toBeVisible();
+	await expect(recipientsPanel.locator('.recipients-panel-status')).toHaveText('Pending');
+
+	// The audit trail is the other tab: creating the document is its first entry,
+	// stamped with who did it — the trail's whole reason to exist.
+	await page.getByRole('tab', { name: 'Audit trail' }).click();
+	const auditPanel = page.locator('.audit-rail-panel');
+	await expect(auditPanel.getByText(/created this document/)).toBeVisible();
+	await expect(auditPanel.getByRole('button', { name: 'Export as CSV' })).toBeEnabled();
+
+	// And "22 hours ago"-style timestamps must not say the future: the created
+	// event just happened, so it reads as just now — this is the regression
+	// guard for the UTC-written / Chicago-read skew that shifted every event
+	// 5–6 hours forward.
+	await expect(auditPanel.locator('.audit-entry-time').last()).toHaveText('just now');
 });
 
 test('a lost recipient link can be regenerated from the document, and the old one dies', async ({ page, context }) => {

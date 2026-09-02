@@ -10,9 +10,9 @@
 }
 
 .template-name-chip {
-	background: #fff3c4;
-	border: 1px solid #e8d382;
-	border-radius: 4px;
+	background: color-mix(in srgb, var(--gold) 25%, #fff);
+	border: 1px solid color-mix(in srgb, var(--gold) 55%, #fff);
+	border-radius: var(--radius-xs);
 	padding: 0 4px;
 }
 
@@ -24,8 +24,8 @@
 	font: inherit;
 	font-weight: inherit;
 	padding: 2px 6px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-xs);
 	min-width: 240px;
 }
 
@@ -39,9 +39,9 @@
 	list-style: none;
 	width: 260px;
 	background: #fff;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	box-shadow: 0 4px 12px rgba(11, 44, 74, 0.12);
 	font-size: 0.85rem;
 }
 
@@ -52,16 +52,16 @@
 	padding: 6px 8px;
 	border: none;
 	background: transparent;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	cursor: pointer;
 	font-size: 0.85rem;
 }
 
 .template-name-picker button:hover {
-	background: #dbe6ff;
+	background: color-mix(in srgb, var(--sky-blue) 15%, #fff);
 }
 
 .template-name-picker-key {
-	color: #777;
+	color: var(--grey-500);
 	font-size: 0.75rem;
 }

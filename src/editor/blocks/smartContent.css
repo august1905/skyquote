@@ -1,12 +1,12 @@
 .block-smart-content {
-	border: 1px dashed #999;
+	border: 1px dashed var(--grey-400);
 	border-radius: 6px;
 	padding: 8px;
-	background: #fafafa;
+	background: var(--grey-50);
 }
 
 .block-smart-content-selected {
-	border-color: #4a7dff;
+	border-color: var(--sky-blue);
 }
 
 .smart-content-header {
@@ -20,16 +20,16 @@
 .smart-content-name {
 	font-weight: 600;
 	font-size: 0.85rem;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .smart-content-rule-chip {
-	border: 1px solid #ddd;
-	border-radius: 999px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-pill);
 	padding: 2px 10px;
 	font-size: 0.8rem;
 	background: #fff;
-	color: #444;
+	color: var(--grey-700);
 	cursor: pointer;
 	max-width: 100%;
 	overflow: hidden;
@@ -42,7 +42,7 @@
 	align-items: center;
 	gap: 8px;
 	font-size: 0.8rem;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .smart-content-toolbar select {
@@ -56,14 +56,14 @@
 }
 
 .smart-content-hidden-note {
-	color: #999;
+	color: var(--grey-400);
 	font-size: 0.85rem;
 	font-style: italic;
 	margin: 0;
 }
 
 .smart-content-rule-popover {
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
 	background: #fff;
 	padding: 10px;
@@ -80,7 +80,7 @@
 }
 
 .smart-content-rule-empty {
-	color: #999;
+	color: var(--grey-400);
 	font-size: 0.85rem;
 	margin: 0;
 }

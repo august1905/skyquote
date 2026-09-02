@@ -75,7 +75,7 @@
 .theme-panel {
 	width: 260px;
 	padding: 12px;
-	border-right: 1px solid #e2e2e2;
+	border-right: 1px solid var(--border-subtle);
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
@@ -99,7 +99,7 @@
 	font-size: 1.1rem;
 	line-height: 1;
 	cursor: pointer;
-	color: #777;
+	color: var(--grey-500);
 }
 
 .theme-panel-row {
@@ -111,27 +111,27 @@
 }
 
 .theme-panel-row span {
-	color: #555;
+	color: var(--grey-600);
 }
 
 .theme-panel-row input[type='text'] {
 	width: 130px;
 	padding: 4px 6px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 }
 
 .theme-panel-row input[type='number'] {
 	width: 60px;
 	padding: 4px 6px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 }
 
 .roles-panel {
 	width: 300px;
 	padding: 12px;
-	border-right: 1px solid #e2e2e2;
+	border-right: 1px solid var(--border-subtle);
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
@@ -155,12 +155,12 @@
 	font-size: 1.1rem;
 	line-height: 1;
 	cursor: pointer;
-	color: #777;
+	color: var(--grey-500);
 }
 
 .roles-panel-empty {
 	font-size: 0.85rem;
-	color: #777;
+	color: var(--grey-500);
 	margin: 0;
 }
 
@@ -174,7 +174,7 @@
 }
 
 .roles-panel-row {
-	border: 1px solid #e2e2e2;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
 	padding: 8px;
 	display: flex;
@@ -200,8 +200,8 @@
 	flex: 1;
 	min-width: 0;
 	padding: 4px 6px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 	font-size: 0.85rem;
 }
 
@@ -213,9 +213,9 @@
 .roles-panel-row-move button {
 	width: 22px;
 	height: 22px;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	background: #fff;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	cursor: pointer;
 	font-size: 0.75rem;
 }
@@ -230,7 +230,7 @@
 	align-items: center;
 	gap: 12px;
 	font-size: 0.8rem;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .roles-panel-row-details label {
@@ -242,8 +242,8 @@
 .roles-panel-row-details input[type='number'] {
 	width: 48px;
 	padding: 2px 4px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 }
 
 .roles-panel-removal-prompt {
@@ -251,15 +251,15 @@
 	flex-direction: column;
 	gap: 8px;
 	padding: 10px;
-	border: 1px solid #e8c37a;
-	background: #fff8e8;
+	border: 1px solid color-mix(in srgb, var(--warning) 60%, #fff);
+	background: color-mix(in srgb, var(--warning) 10%, #fff);
 	border-radius: 6px;
 	font-size: 0.8rem;
 }
 
 .roles-panel-removal-prompt p {
 	margin: 0;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .roles-panel-removal-reassign {
@@ -271,8 +271,8 @@
 .roles-panel-removal-reassign select {
 	flex: 1;
 	padding: 3px 5px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 }
 
 .roles-panel-removal-actions {
@@ -283,9 +283,9 @@
 
 .roles-panel-removal-actions button {
 	padding: 5px 8px;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	background: #fff;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	cursor: pointer;
 	font-size: 0.75rem;
 }
@@ -293,7 +293,7 @@
 .roles-panel-add {
 	align-self: flex-start;
 	padding: 6px 10px;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	background: #fff;
 	border-radius: 6px;
 	cursor: pointer;
@@ -303,7 +303,7 @@
 .variables-panel {
 	width: 280px;
 	padding: 12px;
-	border-right: 1px solid #e2e2e2;
+	border-right: 1px solid var(--border-subtle);
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
@@ -327,14 +327,14 @@
 	font-size: 1.1rem;
 	line-height: 1;
 	cursor: pointer;
-	color: #777;
+	color: var(--grey-500);
 }
 
 .variables-panel-group h3 {
 	font-size: 0.75rem;
 	text-transform: uppercase;
 	letter-spacing: 0.03em;
-	color: #888;
+	color: var(--grey-500);
 	margin: 0 0 4px;
 }
 
@@ -359,20 +359,20 @@
 	padding: 6px 8px;
 	border: none;
 	background: transparent;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	cursor: pointer;
 	font-size: 0.85rem;
 }
 
 .variables-panel-insert:hover {
-	background: #f0f0f0;
+	background: var(--grey-100);
 }
 
 .variables-panel-remove {
 	border: none;
 	background: transparent;
 	cursor: pointer;
-	color: #999;
+	color: var(--grey-400);
 	font-size: 0.9rem;
 	padding: 2px 6px;
 }
@@ -380,7 +380,7 @@
 .variables-panel-add {
 	align-self: flex-start;
 	padding: 6px 10px;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	background: #fff;
 	border-radius: 6px;
 	cursor: pointer;
@@ -392,7 +392,7 @@
 	flex-direction: column;
 	gap: 8px;
 	padding: 8px;
-	border: 1px solid #e2e2e2;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
 }
 
@@ -401,14 +401,14 @@
 	flex-direction: column;
 	gap: 2px;
 	font-size: 0.8rem;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .variables-panel-create input,
 .variables-panel-create select {
 	padding: 4px 6px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 	font-size: 0.85rem;
 }
 
@@ -419,9 +419,9 @@
 
 .variables-panel-create-actions button {
 	padding: 5px 10px;
-	border: 1px solid #ddd;
-	background: #f5f5f5;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	background: var(--grey-100);
+	border-radius: var(--radius-xs);
 	cursor: pointer;
 	font-size: 0.85rem;
 }
@@ -431,7 +431,7 @@
 .attachments-panel {
 	width: 280px;
 	padding: 12px;
-	border-right: 1px solid #e2e2e2;
+	border-right: 1px solid var(--border-subtle);
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
@@ -441,13 +441,13 @@
 .attachments-panel-hint {
 	margin: 0;
 	font-size: 0.78rem;
-	color: #666;
+	color: var(--grey-600);
 }
 
 .attachments-panel-error {
 	margin: 0;
 	font-size: 0.78rem;
-	color: #b3261e;
+	color: var(--danger);
 }
 
 .attachments-list {
@@ -460,7 +460,7 @@
 }
 
 .attachments-item {
-	border: 1px solid #e2e2e2;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
 	padding: 8px;
 	display: flex;
@@ -472,13 +472,13 @@
 	font: inherit;
 	font-size: 0.82rem;
 	padding: 4px 6px;
-	border: 1px solid #d5d5d5;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 }
 
 .attachments-item-meta {
 	font-size: 0.7rem;
-	color: #888;
+	color: var(--grey-500);
 	overflow-wrap: anywhere;
 }
 
@@ -494,7 +494,7 @@
 	background: transparent;
 	padding: 0;
 	font-size: 0.72rem;
-	color: #4a6fd4;
+	color: var(--sky-blue);
 	cursor: pointer;
 }
 

@@ -59,13 +59,13 @@
 }
 
 .auth-error {
-	background: #fdf1f0;
-	border: 1px solid #f3c9c5;
-	color: #b3413a;
+	background: color-mix(in srgb, var(--danger) 8%, #fff);
+	border: 1px solid color-mix(in srgb, var(--danger) 25%, #fff);
+	color: var(--danger);
 	font-size: 0.85rem;
 	font-weight: 500;
 	padding: 10px 12px;
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 	margin: 0 0 16px;
 }
 
@@ -106,7 +106,7 @@
 .auth-field input:focus {
 	outline: none;
 	border-color: var(--sky-blue);
-	box-shadow: 0 0 0 3px rgba(16, 162, 219, 0.2);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 20%, transparent);
 }
 
 .auth-submit {

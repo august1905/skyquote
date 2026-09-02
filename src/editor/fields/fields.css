@@ -4,36 +4,36 @@
 	flex-direction: column;
 	gap: 6px;
 	padding: 10px 12px;
-	border: 1.5px dashed #999;
+	border: 1.5px dashed var(--grey-400);
 	border-radius: 6px;
 	cursor: pointer;
-	background: rgba(0, 0, 0, 0.02);
+	background: rgba(11, 44, 74, 0.02);
 }
 
 .field-block-type {
 	font-size: 0.7rem;
 	text-transform: uppercase;
 	letter-spacing: 0.03em;
-	color: #777;
+	color: var(--grey-500);
 }
 
 .field-block-name {
 	font-size: 0.75rem;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .field-block-required {
-	color: #c0392b;
+	color: var(--danger);
 }
 
 .field-block-box {
 	height: 48px;
-	border: 1px dashed #bbb;
-	border-radius: 4px;
+	border: 1px dashed var(--grey-300);
+	border-radius: var(--radius-xs);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	color: #999;
+	color: var(--grey-400);
 	font-size: 0.8rem;
 	background: #fff;
 }
@@ -87,9 +87,9 @@
 	width: 260px;
 	padding: 12px;
 	background: #fff;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	box-shadow: 0 4px 12px rgba(11, 44, 74, 0.12);
 	font-size: 0.85rem;
 	white-space: normal;
 	cursor: default;
@@ -98,22 +98,22 @@
 .field-settings-type-label {
 	font-weight: 600;
 	font-size: 0.8rem;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .field-settings-row {
 	display: flex;
 	flex-direction: column;
 	gap: 3px;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .field-settings-row input[type='text'],
 .field-settings-row select,
 .field-settings-row textarea {
 	padding: 4px 6px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-xs);
 	font-size: 0.85rem;
 }
 
@@ -124,7 +124,7 @@
 
 .field-settings-warning {
 	margin: 0;
-	color: #c0392b;
+	color: var(--danger);
 	font-size: 0.75rem;
 }
 
@@ -135,9 +135,9 @@
 
 .field-settings-actions button {
 	padding: 5px 10px;
-	border: 1px solid #ddd;
-	background: #f5f5f5;
-	border-radius: 4px;
+	border: 1px solid var(--border-subtle);
+	background: var(--grey-100);
+	border-radius: var(--radius-xs);
 	cursor: pointer;
 	font-size: 0.8rem;
 }
@@ -145,14 +145,14 @@
 .field-block-live-toggle {
 	font: inherit;
 	cursor: pointer;
-	color: #555;
+	color: var(--grey-600);
 	background: #fff;
 }
 
 .field-block-live-marked {
-	border-color: #2563eb;
-	color: #2563eb;
-	background: #eff6ff;
+	border-color: var(--sky-blue);
+	color: var(--sky-blue);
+	background: color-mix(in srgb, var(--sky-blue) 8%, #fff);
 }
 
 /* A signature box on a document that's actually with Zoho Sign. Styled as the
@@ -162,14 +162,14 @@
    first, so it has to be the one that works. */
 .field-block-live-sign {
 	border-style: solid;
-	border-color: #064d81;
-	color: #064d81;
-	background: #f4f8fc;
+	border-color: var(--navy);
+	color: var(--navy);
+	background: color-mix(in srgb, var(--navy) 4%, #fff);
 	font-weight: 600;
 }
 
 .field-block-live-sign:hover:not(:disabled) {
-	background: #e7f0f8;
+	background: color-mix(in srgb, var(--navy) 8%, #fff);
 }
 
 /* Signed, as reported by the server rather than by this component. Deliberately
@@ -177,9 +177,9 @@
    reads as "you can't do this" rather than "this is done". */
 .field-block-signed {
 	border-style: solid;
-	border-color: #15803d;
-	color: #15803d;
-	background: #f0fdf4;
+	border-color: var(--success);
+	color: var(--success);
+	background: color-mix(in srgb, var(--success) 8%, #fff);
 	font-weight: 600;
 }
 
@@ -189,17 +189,17 @@
    be mistaken for a broken signing flow in the first place. */
 .field-block-unsent {
 	border-style: dashed;
-	border-color: #cbd2d9;
-	color: #7b8794;
-	background: #fafbfc;
+	border-color: var(--border-strong);
+	color: var(--grey-500);
+	background: var(--grey-50);
 	font-style: italic;
 }
 
 .field-block-declined {
 	border-style: solid;
-	border-color: #c0392b;
-	color: #c0392b;
-	background: #fef2f2;
+	border-color: var(--danger);
+	color: var(--danger);
+	background: color-mix(in srgb, var(--danger) 8%, #fff);
 	font-weight: 600;
 }
 
@@ -236,7 +236,7 @@
 	align-items: center;
 	gap: 4px;
 	border: 1px solid;
-	border-radius: 999px;
+	border-radius: var(--radius-pill);
 	padding: 1px 8px;
 	font: inherit;
 	font-size: 0.85em;
@@ -244,10 +244,10 @@
 }
 
 .rt-field-chip-required {
-	color: #c0392b;
+	color: var(--danger);
 }
 
 .rt-field-chip-selected .rt-field-chip-button {
-	outline: 2px solid #2563eb;
+	outline: 2px solid var(--sky-blue);
 	outline-offset: 1px;
 }

@@ -47,9 +47,9 @@
 .canvas-page-insert,
 .canvas-page-menu-anchor > button {
 	border: 1px solid transparent;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	background: transparent;
-	color: #555;
+	color: var(--grey-600);
 	font-size: 0.95rem;
 	line-height: 1;
 	padding: 3px 8px;
@@ -58,7 +58,7 @@
 
 .canvas-page-insert:hover,
 .canvas-page-menu-anchor > button:hover {
-	background: rgba(0, 0, 0, 0.06);
+	background: rgba(11, 44, 74, 0.06);
 }
 
 /* §3 ⑤'s page `+`, which now asks blank-or-image instead of inserting outright. */
@@ -179,16 +179,16 @@
 	min-width: 170px;
 	margin-top: 4px;
 	padding: 4px;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
 	background: #fff;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+	box-shadow: 0 4px 12px rgba(11, 44, 74, 0.14);
 }
 
 .page-menu-popover > button {
 	padding: 6px 8px;
 	border: 1px solid transparent;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	background: transparent;
 	text-align: left;
 	font-size: 0.8rem;
@@ -196,7 +196,7 @@
 }
 
 .page-menu-popover > button:hover:not(:disabled) {
-	background: #f0f0f0;
+	background: var(--grey-100);
 }
 
 .page-menu-popover > button:disabled {
@@ -205,8 +205,8 @@
 }
 
 .page-menu-popover .page-menu-danger:hover:not(:disabled) {
-	background: #fdecec;
-	color: #b3261e;
+	background: color-mix(in srgb, var(--danger) 8%, #fff);
+	color: var(--danger);
 }
 
 .page-menu-row {
@@ -216,7 +216,7 @@
 	gap: 8px;
 	padding: 6px 8px;
 	font-size: 0.8rem;
-	color: #444;
+	color: var(--grey-700);
 }
 
 .canvas-page {
@@ -231,7 +231,7 @@
 	background: var(--page-background, var(--theme-page-background, #fff));
 	width: var(--page-width, 816px);
 	min-height: var(--page-height, 1056px);
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 1px 4px rgba(11, 44, 74, 0.2);
 	padding: var(--page-margin-top, 96px) var(--page-margin-right, 96px) var(--page-margin-bottom, 96px) var(--page-margin-left, 96px);
 	display: flex;
 	flex-direction: column;
@@ -244,7 +244,7 @@
 	background: transparent;
 	font-weight: 600;
 	font-size: 0.85rem;
-	color: #666;
+	color: var(--grey-600);
 	padding: 4px 0;
 	/* §3 ⑤ shows the page name uppercase ("COVER PAGE"). A display transform,
 	   not a data one — the stored `Page.name` keeps whatever case was typed,
@@ -254,7 +254,7 @@
 }
 
 .canvas-page-name:focus {
-	outline: 1px solid #ccc;
+	outline: 1px solid var(--border-strong);
 }
 
 .canvas-page-blocks {
@@ -300,18 +300,18 @@
 .canvas-block {
 	position: relative;
 	border: 1px solid transparent;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	padding: 4px 8px;
 	cursor: pointer;
 }
 
 .canvas-block-selected {
-	border-color: #4a7dfc;
+	border-color: var(--sky-blue);
 }
 
 .canvas-block-multi-selected {
-	border-color: #4a7dfc;
-	background: rgba(74, 125, 252, 0.08);
+	border-color: var(--sky-blue);
+	background: color-mix(in srgb, var(--sky-blue) 8%, transparent);
 }
 
 .canvas-block-dragging {
@@ -395,8 +395,8 @@
 	width: max-content;
 	align-items: center;
 	gap: 4px;
-	background: #222;
-	border-radius: 4px;
+	background: var(--grey-900);
+	border-radius: var(--radius-xs);
 	padding: 4px;
 	z-index: 10;
 }
@@ -433,11 +433,11 @@
 	gap: 8px;
 	min-width: 220px;
 	background: #fff;
-	color: #222;
-	border: 1px solid #ddd;
+	color: var(--grey-900);
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
 	padding: 12px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	box-shadow: var(--shadow-resting);
 	cursor: default;
 	font-size: 0.85rem;
 }
@@ -450,7 +450,7 @@
 
 .block-settings-row span:first-child {
 	flex: 1;
-	color: #555;
+	color: var(--grey-600);
 }
 
 .block-settings-row input[type='number'] {
@@ -676,7 +676,7 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	color: #999;
+	color: var(--grey-400);
 	font-size: 0.75rem;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
@@ -686,7 +686,7 @@
 .block-page-break::after {
 	content: '';
 	flex: 1;
-	border-top: 1px dashed #ccc;
+	border-top: 1px dashed var(--border-strong);
 }
 
 /* §4.3/§8's block-toolbar overflow (`⋯`). Deliberately a compact menu rather
@@ -707,25 +707,25 @@
 	min-width: 150px;
 	margin-top: 4px;
 	padding: 4px;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-subtle);
 	border-radius: 6px;
 	background: #fff;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+	box-shadow: 0 4px 12px rgba(11, 44, 74, 0.16);
 }
 
 .canvas-block-overflow-menu > button {
 	padding: 6px 8px;
 	border: 1px solid transparent;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	background: transparent;
-	color: #333;
+	color: var(--grey-800);
 	text-align: left;
 	font-size: 0.8rem;
 	cursor: pointer;
 }
 
 .canvas-block-overflow-menu > button:hover {
-	background: #f0f0f0;
+	background: var(--grey-100);
 }
 
 /* ─── Pinned blocks (§4.3 placement) ───────────────────────────────────────
@@ -741,7 +741,7 @@
    image with no outline at all is one an author can lose track of. Faint enough
    not to read as a border on the design. */
 .canvas-placed > .canvas-block {
-	outline: 1px dashed color-mix(in srgb, var(--brand-primary, #4a7dfc) 20%, transparent);
+	outline: 1px dashed color-mix(in srgb, var(--brand-primary, var(--sky-blue)) 20%, transparent);
 	outline-offset: 1px;
 }
 
@@ -770,7 +770,7 @@
 }
 
 .canvas-placed-selected > .canvas-block {
-	outline-color: color-mix(in srgb, var(--brand-primary, #4a7dfc) 55%, transparent);
+	outline-color: color-mix(in srgb, var(--brand-primary, var(--sky-blue)) 55%, transparent);
 }
 
 .canvas-placed-move,
@@ -778,8 +778,8 @@
 	position: absolute;
 	padding: 0;
 	border: 2px solid #fff;
-	background: var(--brand-primary, #4a7dfc);
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+	background: var(--brand-primary, var(--sky-blue));
+	box-shadow: 0 1px 3px rgba(11, 44, 74, 0.25);
 	touch-action: none;
 	z-index: 4;
 }

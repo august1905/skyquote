@@ -48,9 +48,9 @@
 }
 
 .admin-users-form-error {
-	background: #fdf1f0;
-	border: 1px solid #f3c9c5;
-	color: #b3413a;
+	background: color-mix(in srgb, var(--danger) 8%, #fff);
+	border: 1px solid color-mix(in srgb, var(--danger) 25%, #fff);
+	color: var(--danger);
 	font-size: 0.85rem;
 	font-weight: 500;
 	padding: 10px 12px;
@@ -95,7 +95,7 @@
 .admin-users-field select:focus {
 	outline: none;
 	border-color: var(--sky-blue);
-	box-shadow: 0 0 0 3px rgba(16, 162, 219, 0.2);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sky-blue) 20%, transparent);
 }
 
 .admin-users-form-actions {
@@ -209,7 +209,7 @@
 
 .admin-users-status-active {
 	color: var(--sky-blue-deep);
-	background: rgba(16, 162, 219, 0.12);
+	background: color-mix(in srgb, var(--sky-blue) 12%, transparent);
 	font-weight: 600;
 	font-size: 0.8rem;
 	padding: 4px 10px;
@@ -237,18 +237,18 @@
 
 .admin-users-deactivate-button {
 	background: #fff;
-	color: #b3413a;
+	color: var(--danger);
 	font-weight: 600;
 	font-size: 0.85rem;
 	padding: 7px 14px;
-	border: 1px solid #f3c9c5;
+	border: 1px solid color-mix(in srgb, var(--danger) 25%, #fff);
 	border-radius: var(--radius-sm);
 	cursor: pointer;
 	transition: background-color var(--transition-fast);
 }
 
 .admin-users-deactivate-button:hover {
-	background: #fdf1f0;
+	background: color-mix(in srgb, var(--danger) 8%, #fff);
 	opacity: 1;
 }
 
@@ -273,12 +273,12 @@
 }
 
 .admin-users-confirm-yes {
-	background: #ef4444;
+	background: var(--danger);
 	color: #fff;
 }
 
 .admin-users-confirm-yes:hover:not(:disabled) {
-	background: #d13a3a;
+	background: color-mix(in srgb, var(--danger) 85%, #000);
 	opacity: 1;
 }
 

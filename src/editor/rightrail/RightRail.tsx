@@ -8,6 +8,7 @@ import { VariablesPanel } from './VariablesPanel';
 import { CatalogPanel } from '../catalog/CatalogPanel';
 import { ContentLibraryPanel } from '../contentLibrary/ContentLibraryPanel';
 import { AttachmentsPanel } from './AttachmentsPanel';
+import { LibraryIcon, PaletteIcon, PaperclipIcon, PeopleIcon, PricingIcon, VariablesIcon } from '../../components/icons';
 import './rightrail.css';
 
 /**
@@ -26,13 +27,14 @@ const RAIL_ITEMS = [
 	// First and visually distinct (see `.right-rail-icon-primary`), matching §3's
 	// own ordering and the reference product: it's the panel an author reaches for
 	// most, and §4.1's drag-a-tile-onto-the-page starts here.
+	// Line-icon SVGs, not emoji — the brand system's iconography rule.
 	{ key: 'content', icon: '＋', label: 'Content' },
-	{ key: 'roles', icon: '👥', label: 'Recipients / Roles' },
-	{ key: 'variables', icon: '⧉', label: 'Variables' },
-	{ key: 'catalog', icon: '💲', label: 'Catalog / Pricing' },
-	{ key: 'contentLibrary', icon: '🗄', label: 'Content Library' },
-	{ key: 'attachments', icon: '📎', label: 'Attachments' },
-	{ key: 'theme', icon: '🎨', label: 'Theme' },
+	{ key: 'roles', icon: <PeopleIcon />, label: 'Recipients / Roles' },
+	{ key: 'variables', icon: <VariablesIcon />, label: 'Variables' },
+	{ key: 'catalog', icon: <PricingIcon />, label: 'Catalog / Pricing' },
+	{ key: 'contentLibrary', icon: <LibraryIcon />, label: 'Content Library' },
+	{ key: 'attachments', icon: <PaperclipIcon />, label: 'Attachments' },
+	{ key: 'theme', icon: <PaletteIcon />, label: 'Theme' },
 ] as const;
 
 // No local key type: the open state lives in the store, and `setOpenRailPanel`'s
