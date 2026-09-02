@@ -146,7 +146,10 @@ export function PrintTemplate({ body, blockPageNumbers, resolveImageSrc, smartCo
 					    exactly where they were placed. */}
 					{splitPlacedBlocks(sheet.blocks).placed.map((block) =>
 						block.placement ? (
-							<div key={block.id} style={placementToCss(block.placement, pageWidthPx)}>
+							// The class matters: document-view.css's `.doc-view-placed` fill
+							// rules are what make a pinned field render at its pinned size
+							// here too, not just in the browser view.
+							<div key={block.id} className="doc-view-placed" style={placementToCss(block.placement, pageWidthPx)}>
 								<DocumentBlockView
 									block={block}
 									resolveImageSrc={resolveImageSrc}

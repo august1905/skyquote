@@ -474,6 +474,24 @@
 	margin-top: 12px;
 }
 
+/* The PAGE's own pill — not the nested per-column ones, which stay in their
+   column's flow. Anchored to the bottom of the paper, not the end of the flow
+   column: with blocks arriving pinned the flow collapses, which used to slide
+   this pill up underneath the first pinned block — where either the block ate
+   the pill's clicks or (with a z-index bandage) the pill ate the middle of the
+   block's. The bottom margin is the one band of the page content rarely
+   occupies. */
+.canvas-page > .canvas-add-block-menu {
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: 28px;
+	margin-top: 0;
+	/* Still above pinned blocks (z 2, selected 3) for the case where one is
+	   deliberately parked over the bottom margin. */
+	z-index: 4;
+}
+
 .canvas-add-block {
 	background: #fff;
 	border: 1px dashed var(--border-strong);
@@ -516,6 +534,14 @@
 	max-height: min(420px, 60vh);
 	overflow-y: auto;
 	overscroll-behavior: contain;
+}
+
+/* The page pill sits at the bottom margin, so its menu opens upward — a
+   downward one would run off the paper. Nested (column) menus keep opening
+   down. */
+.canvas-page > .canvas-add-block-menu .canvas-add-block-options {
+	top: auto;
+	bottom: calc(100% + 6px);
 }
 
 .canvas-add-block-section-label {
@@ -717,6 +743,26 @@
 .canvas-placed > .canvas-block {
 	outline: 1px dashed color-mix(in srgb, var(--brand-primary, #4a7dfc) 20%, transparent);
 	outline-offset: 1px;
+}
+
+/* The pinned box is the box the author drew: when a placement has an explicit
+   height, the block fills it rather than keeping its natural height — which
+   left the outline at one size and the content spilling past it (a 60px-tall
+   pinned signature rendered ~119px of content pouring out the bottom). With no
+   pinned height the wrapper is auto-sized and `100%` resolves right back to
+   the natural height, so unfixed-height pins are untouched. */
+.canvas-placed > .canvas-block,
+.canvas-placed .canvas-block-content,
+.canvas-placed .field-block {
+	height: 100%;
+	box-sizing: border-box;
+}
+
+/* Inside a pinned box it's the signature/initials area that absorbs the pinned
+   size, not the labels around it — resizing the pin resizes the box you sign in. */
+.canvas-placed .field-block .field-block-box {
+	flex: 1 1 auto;
+	min-height: 0;
 }
 
 .canvas-placed-selected {

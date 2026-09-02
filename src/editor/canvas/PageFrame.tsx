@@ -1,6 +1,7 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useEffect, useRef, useState } from 'react';
-import { insertBlock, renamePage, type BlockContainer } from '../commands';
+import { renamePage, type BlockContainer } from '../commands';
+import { usePaletteInsert } from '../content/usePaletteInsert';
 import { editorPageBackgroundStyle } from '../../documents/pageBackground';
 import { splitPlacedBlocks } from '../../documents/blockPlacement';
 import { useEditorStore } from '../store/editorStore';
@@ -79,6 +80,9 @@ export function PageFrame({
 }: PageFrameProps) {
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const endCoalescing = useEditorStore((s) => s.endCoalescing);
+	// The shared insert path, so "+ Add block" gets the same pinned-on-arrival
+	// behaviour as a palette drop — see `usePaletteInsert`.
+	const { insertBlockAt } = usePaletteInsert();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const nameInputRef = useRef<HTMLInputElement>(null);
 	const container: BlockContainer = { pageId: page.id };
@@ -184,7 +188,7 @@ export function PageFrame({
 										pageHeightPx={pageHeightPx}
 									/>
 								))}
-							{isLast && <AddBlockMenu onInsert={(block) => runCommand(insertBlock(container, page.blocks.length, block))} />}
+							{isLast && <AddBlockMenu onInsert={(block) => insertBlockAt(block, { container, index: page.blocks.length })} />}
 							{showPageNumbers && <div className="canvas-page-number">Page {startPageNumber + physicalPageIndex}</div>}
 						</div>
 					);

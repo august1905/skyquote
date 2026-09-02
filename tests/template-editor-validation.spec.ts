@@ -18,6 +18,11 @@ test.describe('Validation surface', () => {
 		await page.getByRole('menuitem', { name: 'Signature' }).click();
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Initials' }).click();
+		// New blocks arrive pinned a frame after inserting; wait for both pins to
+		// land before trusting `.field-block` order — mid-pin, the still-in-flow
+		// block renders *before* the already-pinned one, so nth(1) would rename
+		// the signature to its own name and never create the collision.
+		await expect(page.locator('.canvas-placed')).toHaveCount(2);
 
 		// Force a name collision — rename "Initials 1" to "Signature 1".
 		await page.locator('.field-block').nth(1).click();

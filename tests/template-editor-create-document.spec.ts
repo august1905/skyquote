@@ -21,15 +21,12 @@ test("creating a document produces a per-recipient link that opens with no login
 
 	// And a pinned block, whose whole reason for existing is landing on a specific
 	// part of the page background — so it has to arrive at the same coordinates in
-	// the recipient's view, not just in the editor.
+	// the recipient's view, not just in the editor. It arrives pinned and selected
+	// (the default since 2026-09-02 — clicking Pin here would *unpin* it), so the
+	// coordinates are typed straight in.
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Spacer' }).click();
-	// Selected explicitly: inserting a block doesn't select it, and Pin acts on
-	// the selection. This used to ride on a click left over from setting padding
-	// on the *first* block — so it was really pinning that one, not the spacer it
-	// reads as. Saying which block is being pinned is the point of the step.
-	await page.locator('.canvas-block').last().click();
-	await page.getByRole('button', { name: 'Pin block to the page' }).click();
+	await expect(page.getByRole('button', { name: 'Pin block to the page' })).toHaveAttribute('aria-pressed', 'true');
 	await page.getByLabel('Position X').fill('160');
 	await page.getByLabel('Position Y').fill('480');
 	await page.getByLabel('Position W').fill('408');
@@ -108,9 +105,11 @@ test("creating a document produces a per-recipient link that opens with no login
 
 	// The pinned block arrives pinned, at the coordinates it was placed at.
 	// Horizontal is a percentage of the page width (160/816, 408/816) so it holds
-	// its spot if the recipient's page shrinks; vertical is exact.
-	const pinned = recipientPage.locator('.doc-view-placed');
-	await expect(pinned).toHaveCount(1);
+	// its spot if the recipient's page shrinks; vertical is exact. Every block
+	// arrives pinned now, so all three placed wrappers exist — the one whose
+	// coordinates were *typed in* is the spacer, second in insertion order.
+	await expect(recipientPage.locator('.doc-view-placed')).toHaveCount(3);
+	const pinned = recipientPage.locator('.doc-view-placed').nth(1);
 	await expect(pinned).toHaveCSS('position', 'absolute');
 	await expect(pinned).toHaveCSS('top', '480px');
 	// Compared numerically: the browser rounds an inline percentage to 4 decimal

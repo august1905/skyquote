@@ -60,6 +60,39 @@ test.describe('Block settings popover', () => {
 // indirect way of saying "put it here". Stored spacing still renders, so
 // `blockStyle.ts` and its unit tests stay.
 test.describe('Pinning a block to the page', () => {
+	test('a new block arrives pinned at the spot it landed, movable immediately, and one undo removes it entirely', async ({ page }) => {
+		await openNewTemplate(page);
+
+		// The freshly inserted block is pinned without any further click — the
+		// default Grayson asked for (2026-09-02: "Items in the template editor
+		// should be pinned by default with the movable position").
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByRole('menuitem', { name: 'Text' }).click();
+		const placed = page.locator('.canvas-placed');
+		await expect(placed).toHaveCount(1);
+		await expect(page.getByRole('button', { name: 'Pin block to the page' })).toHaveAttribute('aria-pressed', 'true');
+
+		// Pinned where it landed, not teleported to 0,0 — same capture rule as the
+		// manual Pin toggle.
+		const pinnedY = Number(await page.getByLabel('Position Y').inputValue());
+		expect(pinnedY).toBeGreaterThan(0);
+
+		// Arrives selected, so the move handle is already usable.
+		await expect(page.getByRole('button', { name: 'Move block on the page' })).toBeVisible();
+
+		// Insert and pin are one undo step: a single undo removes the block, rather
+		// than stranding an unpinned copy the author never saw.
+		await page.getByRole('button', { name: 'Undo' }).click();
+		await expect(placed).toHaveCount(0);
+		await expect(page.locator('.canvas-page-blocks .canvas-block')).toHaveCount(1);
+
+		// A page break exists purely to split the flow, so it is the exception.
+		await page.getByRole('button', { name: '+ Add block' }).click();
+		await page.getByRole('menuitem', { name: 'Page break' }).click();
+		await expect(page.locator('.block-page-break')).toBeVisible();
+		await expect(placed).toHaveCount(0);
+	});
+
 	test('pins where the block already is, moves by drag and by typed coordinates, and persists', async ({ page }) => {
 		await openNewTemplate(page);
 

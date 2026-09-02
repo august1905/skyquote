@@ -77,6 +77,67 @@ describe('RichTextView', () => {
 		expect(screen.getByRole('textbox')).toBeDisabled();
 	});
 
+	it('renders the textStyle mark as inline font-size, color and line-height — the template-to-document fidelity bug', () => {
+		render(
+			<RichTextView
+				doc={doc([
+					{
+						type: 'paragraph',
+						content: [{ type: 'text', text: 'Big red', marks: [{ type: 'textStyle', attrs: { fontSize: '48px', color: '#c0392b', lineHeight: '1.2' } }] }],
+					},
+				])}
+				viewerRoleId={null}
+			/>
+		);
+		const span = screen.getByText('Big red');
+		expect(span.tagName).toBe('SPAN');
+		expect(span.style.fontSize).toBe('48px');
+		expect(span.style.color).toBe('rgb(192, 57, 43)');
+		expect(span.style.lineHeight).toBe('1.2');
+	});
+
+	it('a textStyle mark with no renderable attrs adds no wrapper at all', () => {
+		render(<RichTextView doc={doc([{ type: 'paragraph', content: [{ type: 'text', text: 'plain', marks: [{ type: 'textStyle', attrs: {} }] }] }])} viewerRoleId={null} />);
+		expect(screen.getByText('plain').tagName).toBe('P');
+	});
+
+	it('renders highlight as <mark> with its color, and superscript/subscript as sup/sub', () => {
+		render(
+			<RichTextView
+				doc={doc([
+					{
+						type: 'paragraph',
+						content: [
+							{ type: 'text', text: 'lit', marks: [{ type: 'highlight', attrs: { color: '#fff3a3' } }] },
+							{ type: 'text', text: 'up', marks: [{ type: 'superscript' }] },
+							{ type: 'text', text: 'down', marks: [{ type: 'subscript' }] },
+						],
+					},
+				])}
+				viewerRoleId={null}
+			/>
+		);
+		const highlighted = screen.getByText('lit');
+		expect(highlighted.tagName).toBe('MARK');
+		expect(highlighted.style.backgroundColor).toBe('rgb(255, 243, 163)');
+		expect(screen.getByText('up').tagName).toBe('SUP');
+		expect(screen.getByText('down').tagName).toBe('SUB');
+	});
+
+	it('applies textAlign from paragraph and heading attrs', () => {
+		render(
+			<RichTextView
+				doc={doc([
+					{ type: 'paragraph', attrs: { textAlign: 'center' }, content: [{ type: 'text', text: 'centered' }] },
+					{ type: 'heading', attrs: { level: 2, textAlign: 'right' }, content: [{ type: 'text', text: 'flushed' }] },
+				])}
+				viewerRoleId={null}
+			/>
+		);
+		expect(screen.getByText('centered').style.textAlign).toBe('center');
+		expect(screen.getByRole('heading', { level: 2 }).style.textAlign).toBe('right');
+	});
+
 	it('degrades an unrecognized node type to just its children rather than throwing', () => {
 		render(<RichTextView doc={doc([{ type: 'someFutureNode', content: [{ type: 'text', text: 'still here' }] }])} viewerRoleId={null} />);
 		expect(screen.getByText('still here')).toBeInTheDocument();

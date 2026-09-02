@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, unpinSelectedBlock } from './templateFixture';
 
 // Real backend, no mocking, same convention as the rest of this suite. §4.2's
 // multi-select. Drag-marquee and dragging the whole selection as one group
@@ -41,15 +41,19 @@ test.describe('Multi-select', () => {
 	test('bulk Delete removes every selected block, and bulk Duplicate clones every selected block', async ({ page }) => {
 		await openNewTemplate(page);
 
+		// "Clone lands after its own source" is a *flow-order* concept, so this test
+		// unpins each new block (they arrive pinned by default) before exercising it.
 		const editors = page.locator('.canvas-block .ProseMirror');
 		await editors.nth(0).click();
 		await page.keyboard.type('First');
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await unpinSelectedBlock(page);
 		await editors.nth(1).click();
 		await page.keyboard.type('Second');
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await unpinSelectedBlock(page);
 		await editors.nth(2).click();
 		await page.keyboard.type('Third');
 

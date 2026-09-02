@@ -1,6 +1,6 @@
 import { test, expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
-import { saveNow } from './templateFixture';
+import { saveNow, unpinSelectedBlock } from './templateFixture';
 
 // §3 ④'s Content panel — the block/field palette in the right rail — and §4.1's
 // two insertion paths through it: click a tile (path 2) and drag a tile onto the
@@ -146,9 +146,12 @@ test.describe('Content panel', () => {
 		await expect(blocks.nth(1).locator('.block-page-break')).toHaveCount(1);
 
 		// With the *first* block selected, the next tile lands between the two —
-		// §4.1 path 2's "insert after the currently selected block".
+		// §4.1 path 2's "insert after the currently selected block". The insert
+		// *index* is what's under test, and it's easiest to read in the flow, so
+		// the pinned-on-arrival block is unpinned back to it.
 		await page.locator('.canvas-block').first().click();
 		await tile(page, 'Table of contents').click();
+		await unpinSelectedBlock(page);
 		blocks = page.locator('.canvas-page-blocks > .canvas-block');
 		await expect(blocks).toHaveCount(3);
 		await expect(blocks.nth(1).locator('.block-toc')).toHaveCount(1);
@@ -249,7 +252,9 @@ test.describe('Content panel', () => {
 
 			await expect(page.locator('.block-image')).toHaveCount(1);
 			// Placed at the end of the page (nothing was selected), after the
-			// template's own blank text block.
+			// template's own blank text block. The index lives in the model even for
+			// a pinned-on-arrival block; unpinning reveals it in the flow.
+			await unpinSelectedBlock(page);
 			await expect(page.locator('.canvas-page-blocks > .canvas-block').nth(1).locator('.block-image')).toHaveCount(1);
 		} finally {
 			await cleanupFixtureImages(request, [upload]);
@@ -273,6 +278,8 @@ test.describe('Content panel', () => {
 			await picker.getByLabel('Upload images').setInputFiles(upload);
 			await picker.locator('.image-tile-highlight .image-tile-select').click({ timeout: 20000 });
 
+			// The drop's *destination index* is the claim; unpin to read it in the flow.
+			await unpinSelectedBlock(page);
 			const blocks = page.locator('.canvas-page-blocks > .canvas-block');
 			await expect(blocks).toHaveCount(2);
 			await expect(blocks.nth(0).locator('.block-image')).toHaveCount(1);

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate } from './templateFixture';
+import { openNewTemplate, unpinSelectedBlock } from './templateFixture';
 
 // Real backend, no mocking — same convention as the rest of this suite.
 // Each run creates a real Template row + Stratus object via "+ New template".
@@ -40,6 +40,9 @@ test.describe('Template editor canvas', () => {
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Text' }).click();
 		await expect(editors).toHaveCount(2);
+		// New blocks arrive pinned (movable) by default; this test is about *flow*
+		// behaviour — reorder by drag — so put the new block back in the flow.
+		await unpinSelectedBlock(page);
 		await editors.nth(1).click();
 		await page.keyboard.type('Second block');
 		await expect(editors.nth(1)).toContainText('Second block');

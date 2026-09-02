@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture';
+import { openNewTemplate, saveNow, skipWizardDealStep, unpinSelectedBlock } from './templateFixture';
 
 // §4.5's SmartContentBlock: a container shown/hidden by rules built against
 // variables, pricing totals, and field values. Real backend, no mocking.
@@ -23,15 +23,19 @@ test.describe('Smart content (§4.5)', () => {
 		await page.getByRole('button', { name: 'Create', exact: true }).click();
 		await page.getByRole('button', { name: 'Close variables panel' }).click();
 
-		// A plain block, always visible.
+		// A plain block, always visible. Unpinned (new blocks arrive pinned): this
+		// test composes blocks in the flow, and a pinned block floating over the
+		// wrapped one would intercept the rule chip's clicks.
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
+		await unpinSelectedBlock(page);
 		await page.locator('.canvas-block .ProseMirror').last().click();
 		await page.keyboard.type('Public content');
 
 		// A second block, to be wrapped.
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
+		await unpinSelectedBlock(page);
 		const perkEditor = page.locator('.canvas-block .ProseMirror').last();
 		await perkEditor.click();
 		await page.keyboard.type('VIP-only perk');

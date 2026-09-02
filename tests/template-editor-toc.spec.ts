@@ -1,13 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { openNewTemplate, saveNow, unpinSelectedBlock } from './templateFixture';
 
 // §4.5/§10: a non-editable list derived from headings, with page numbers
 // resolved from real pagination. Real backend, no mocking, same convention
 // as the rest of this suite.
+//
+// Every insert here unpins (new blocks arrive pinned by default): a TOC's page
+// numbers come from pagination, which is a flow concept — a pinned heading has
+// no page number to resolve.
 
 async function insertTextBlock(page: import('@playwright/test').Page) {
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Text' }).click();
+	await unpinSelectedBlock(page);
 	return page.locator('.canvas-block .ProseMirror').last();
 }
 
@@ -19,6 +24,7 @@ async function insertPageBreak(page: import('@playwright/test').Page) {
 async function insertToc(page: import('@playwright/test').Page) {
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Table of contents' }).click();
+	await unpinSelectedBlock(page);
 }
 
 /**

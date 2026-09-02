@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openNewTemplate, saveNow } from './templateFixture';
+import { openNewTemplate, saveNow, unpinSelectedBlock } from './templateFixture';
 
 // §10's real pagination, v1-scoped to whole-block granularity (see
 // distributePages.ts's own comment) — real backend, no mocking, same
@@ -11,6 +11,9 @@ const LONG_PARAGRAPH =
 async function insertTextBlock(page: import('@playwright/test').Page, text: string) {
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Text' }).click();
+	// Pagination is a *flow* concept and new blocks arrive pinned (out of the
+	// flow) by default, so put each one back before measuring how they spill.
+	await unpinSelectedBlock(page);
 	const editors = page.locator('.canvas-block .ProseMirror');
 	const newEditor = editors.last();
 	await newEditor.click();

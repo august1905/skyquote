@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from 'react';
+import { createElement, type CSSProperties, type ReactNode } from 'react';
 import type { FillableField, RichTextDoc, RichTextNode } from '../editor/types';
 import { FieldPreview, type FieldValue } from '../editor/fields/FieldPreview';
 
@@ -82,10 +82,10 @@ function RenderNode({
 }) {
 	switch (node.type) {
 		case 'paragraph':
-			return <p>{renderChildren(node, viewerRoleId, fieldInteraction)}</p>;
+			return <p style={blockNodeStyle(node)}>{renderChildren(node, viewerRoleId, fieldInteraction)}</p>;
 		case 'heading': {
 			const level = typeof node.attrs?.level === 'number' ? Math.min(Math.max(node.attrs.level, 1), 6) : 1;
-			return createElement(`h${level}`, null, renderChildren(node, viewerRoleId, fieldInteraction));
+			return createElement(`h${level}`, { style: blockNodeStyle(node) }, renderChildren(node, viewerRoleId, fieldInteraction));
 		}
 		case 'blockquote':
 			return <blockquote>{renderChildren(node, viewerRoleId, fieldInteraction)}</blockquote>;
@@ -133,6 +133,33 @@ function RenderNode({
 	}
 }
 
+/**
+ * `TextAlign` registers `textAlign` as a global attribute on paragraphs and
+ * headings — a block-node concern, unlike every mark below.
+ */
+function blockNodeStyle(node: RichTextNode): CSSProperties | undefined {
+	const textAlign = node.attrs?.textAlign;
+	return typeof textAlign === 'string' && textAlign ? ({ textAlign } as CSSProperties) : undefined;
+}
+
+/** The `textStyle` mark's attrs (`fontSize`, `color`, `lineHeight` — see `richTextExtensions.ts`) as inline CSS, or `undefined` when the mark carries nothing renderable. */
+function textStyleCss(attrs: Record<string, unknown> | undefined): CSSProperties | undefined {
+	const style: CSSProperties = {};
+	if (typeof attrs?.fontSize === 'string') style.fontSize = attrs.fontSize;
+	if (typeof attrs?.color === 'string') style.color = attrs.color;
+	if (typeof attrs?.lineHeight === 'string' || typeof attrs?.lineHeight === 'number') style.lineHeight = attrs.lineHeight;
+	return Object.keys(style).length > 0 ? style : undefined;
+}
+
+/**
+ * Every mark the editor's schema can produce (`richTextExtensions.ts`) has a
+ * branch here. The `default: break` swallows anything unknown, which is the
+ * right call for genuinely future marks — but it also means a mark added to the
+ * editor without a branch here **silently disappears from every document, PDF
+ * and signed agreement** while looking fine in the template. That happened:
+ * `textStyle` (font size, font color) had no branch, so a 48px headline in the
+ * template rendered at body size the moment a document was created.
+ */
 function renderMarks(node: RichTextNode): ReactNode {
 	let content: ReactNode = node.text ?? '';
 	for (const mark of node.marks ?? []) {
@@ -152,6 +179,22 @@ function renderMarks(node: RichTextNode): ReactNode {
 			case 'code':
 				content = <code>{content}</code>;
 				break;
+			case 'superscript':
+				content = <sup>{content}</sup>;
+				break;
+			case 'subscript':
+				content = <sub>{content}</sub>;
+				break;
+			case 'highlight': {
+				const color = typeof mark.attrs?.color === 'string' ? mark.attrs.color : undefined;
+				content = <mark style={color ? { backgroundColor: color } : undefined}>{content}</mark>;
+				break;
+			}
+			case 'textStyle': {
+				const style = textStyleCss(mark.attrs);
+				if (style) content = <span style={style}>{content}</span>;
+				break;
+			}
 			case 'link': {
 				const href = typeof mark.attrs?.href === 'string' ? mark.attrs.href : undefined;
 				content = (

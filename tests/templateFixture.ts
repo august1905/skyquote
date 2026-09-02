@@ -61,6 +61,23 @@ export async function saveNow(page: Page) {
 }
 
 /**
+ * Returns a just-inserted block to the flow.
+ *
+ * New top-level blocks arrive **pinned** (movable position) by design — Grayson,
+ * 2026-09-02 — and they arrive selected, so the Pin toggle in the toolbar is
+ * already pointing at them. Tests that exercise flow behaviour (reorder,
+ * pagination spill) unpin first. Waiting for `aria-pressed="true"` before
+ * clicking doubles as the assertion that the block really did arrive pinned —
+ * the pin lands a frame after the insert, so clicking blind could race it.
+ */
+export async function unpinSelectedBlock(page: Page) {
+	const pin = page.getByRole('button', { name: 'Pin block to the page' });
+	await expect(pin).toHaveAttribute('aria-pressed', 'true');
+	await pin.click();
+	await expect(pin).toHaveAttribute('aria-pressed', 'false');
+}
+
+/**
  * Asserts an element's `background-image` points at something the server
  * actually serves as an image — not merely that a `url(...)` is present.
  *

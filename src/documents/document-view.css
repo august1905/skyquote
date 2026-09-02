@@ -72,7 +72,10 @@
 	padding: 8px 10px;
 	border: 1px solid #ddd;
 	border-radius: 6px;
-	max-width: 320px;
+	/* No width cap: the editor's field block spans its column, and the document
+	   has to show what the author saw. This used to be `max-width: 320px`, which
+	   is why a signature block looked one size in the template and another in
+	   the document (and in the Zoho Sign request measured from it). */
 }
 
 .doc-view-field-name {
@@ -186,4 +189,22 @@
    this only stacks it above the flow content it overlaps. */
 .doc-view-placed {
 	z-index: 2;
+}
+
+/* Mirror of canvas.css's pinned-box fill: the recipient (and the PDF — the
+   print tree tags its placed wrapper with this class for exactly this rule)
+   sees the field at the size the author pinned, not at the field's own natural
+   size. `max-width: none` lifts the flow cap below; the author chose this
+   width explicitly. Zoho Sign's field geometry is measured from this same
+   element, so the signature box in the sign request follows the drawn box too. */
+.doc-view-placed > .doc-view-block,
+.doc-view-placed .doc-view-field-block {
+	height: 100%;
+	box-sizing: border-box;
+	max-width: none;
+}
+
+.doc-view-placed .field-block-box {
+	flex: 1 1 auto;
+	min-height: 0;
 }
