@@ -4,14 +4,26 @@
    styles that are collected alongside them. */
 
 .print-root {
-	/* Offscreen while it's being measured and serialized in the app. The
-	   serializer strips this positioning from the copy it sends — a page
-	   positioned at -20000px prints as blank sheets. */
-	position: absolute;
-	left: -20000px;
-	top: 0;
 	background: #fff;
 }
+
+/* **Nothing in this file may hide or move the print tree.** It used to: this rule
+   carried `position: absolute; left: -20000px` to park the tree offscreen inside
+   the app, with a comment claiming the serializer stripped it from the copy it
+   sends. It did not — `serializePrintTree` resets the element it is handed, which
+   is the *wrapper* around `.print-root`, not `.print-root` itself. So every
+   generated PDF had its content laid out 20,000px to the left of the paper:
+   correct page count, correct field coordinates, and completely blank sheets.
+
+   It stayed hidden for weeks because the signing PDF is never shown to anyone
+   (Zoho Sign only needs something to anchor a signature to) and the export test
+   asserted a download, not content. Grayson found it in the Zoho Sign viewer.
+
+   Parking the tree offscreen is an app concern, so it now lives with the two
+   components that mount it, as `OFFSCREEN_PRINT_TREE_STYLE` in
+   `serializeForPdf.ts` — right next to the code that undoes it. These rules are
+   inlined verbatim into the standalone HTML handed to SmartBrowz, so anything
+   here that affects visibility affects the client-facing PDF. */
 
 .print-page {
 	box-sizing: border-box;

@@ -11,6 +11,27 @@
  */
 
 /**
+ * Parks a mounted print tree offscreen, for the two components that mount one
+ * (`PdfExporter`, `SignatureSender`).
+ *
+ * **Applied to the wrapper element the ref points at — the same element handed to
+ * `serializePrintTree`, which is what undoes it.** That pairing is the whole
+ * point of this living here rather than in `print.css`: those rules are inlined
+ * into the HTML sent to SmartBrowz, so an offscreen rule there travels into the
+ * PDF. It did, for weeks — see the comment in `print.css`.
+ *
+ * The tree has to be in the real DOM (fonts resolved, layout settled, images
+ * fetchable with the live session) to be measured and serialized, so it cannot
+ * simply be `display: none` — that produces no layout and therefore no field
+ * coordinates.
+ */
+export const OFFSCREEN_PRINT_TREE_STYLE = {
+	position: 'absolute',
+	left: '-20000px',
+	top: 0,
+} as const;
+
+/**
  * Collects the app's own CSS out of the live document.
  *
  * Read from `document.styleSheets` rather than imported as text because Vite
@@ -35,10 +56,96 @@ export function collectDocumentCss(): string {
 	return chunks.join('\n');
 }
 
-/** Fetches one asset with the caller's own credentials and returns it as a `data:` URI. */
-async function toDataUri(url: string): Promise<string | null> {
+/**
+ * The `@font-face` rules the document needs, with the font files embedded.
+ *
+ * **Without this the PDF is set in the wrong typeface, and the signature lands in
+ * the wrong place.** Montserrat is served from `fonts.googleapis.com`, so its
+ * stylesheet is cross-origin: `collectDocumentCss` cannot read `cssRules` on it
+ * and skips it, no `@font-face` reaches the standalone HTML, and SmartBrowz falls
+ * back — measured, its output embedded `LiberationSans`.
+ *
+ * That is not only cosmetic. Fields are measured in *this* browser, with
+ * Montserrat loaded, and the PDF is laid out by SmartBrowz without it. Montserrat
+ * is the wider face, so text above a field wraps to more lines here than there.
+ * Measured at real page geometry (816px wide, 96px margins, 16px/1.5): **24px of
+ * drift per paragraph, cumulative — 48px after two.** A signature box is 48px
+ * tall, so a couple of paragraphs above one is enough to put the signature
+ * entirely outside the rectangle Zoho Sign was given.
+ *
+ * Only faces whose family is actually named in the print tree are kept, so the
+ * app's own chrome fonts (Poppins, Mulish) don't ride along, and only the Latin
+ * subsets — Google serves Cyrillic and Vietnamese ranges for the same family.
+ *
+ * Best-effort by design: a font that can't be fetched leaves its rule out and the
+ * PDF renders in the fallback, which is the situation today. Failing the whole
+ * send because a typeface didn't download would be worse than a substituted font.
+ */
+async function collectWebFontCss(usedIn: string): Promise<string> {
+	// The sheets `collectDocumentCss` had to skip are exactly the ones worth
+	// fetching by URL — a readable sheet is already inlined by that function.
+	const unreadable = Array.from(document.styleSheets)
+		.filter((sheet) => {
+			try {
+				void sheet.cssRules;
+				return false;
+			} catch {
+				return true;
+			}
+		})
+		.map((sheet) => sheet.href)
+		.filter((href): href is string => Boolean(href));
+
+	const blocks: string[] = [];
+	const cache = new Map<string, string | null>();
+
+	for (const href of unreadable) {
+		let cssText: string;
+		try {
+			const response = await fetch(href, { credentials: 'omit' });
+			if (!response.ok) continue;
+			cssText = await response.text();
+		} catch {
+			continue;
+		}
+
+		for (const [block] of cssText.matchAll(/@font-face\s*\{[^}]*\}/g)) {
+			const family = /font-family:\s*(['"]?)([^;'"]+)\1/.exec(block)?.[2]?.trim();
+			if (!family || !usedIn.includes(family)) continue;
+			// Google splits one family across unicode ranges. Basic Latin is the only
+			// one this app's documents need; keeping the rest multiplies the payload.
+			const range = /unicode-range:\s*([^;}]+)/.exec(block)?.[1];
+			if (range && !/U\+0{0,3}0-0{0,2}FF/i.test(range.replace(/\s/g, ''))) continue;
+
+			let rewritten = block;
+			let embeddedAll = true;
+			for (const url of cssUrls(block)) {
+				if (url.startsWith('data:')) continue;
+				if (!cache.has(url)) cache.set(url, await toDataUri(new URL(url, href).toString(), 'omit'));
+				const dataUri = cache.get(url) ?? null;
+				if (dataUri) rewritten = rewritten.split(url).join(dataUri);
+				else embeddedAll = false;
+			}
+			// A rule still pointing at a URL is worse than no rule: the renderer would
+			// try to fetch it, fail, and fall back anyway — having claimed the family.
+			if (embeddedAll) blocks.push(rewritten);
+		}
+	}
+
+	return blocks.join('\n');
+}
+
+/**
+ * Fetches one asset and returns it as a `data:` URI.
+ *
+ * `credentials` is a parameter because it has to differ by origin, and getting it
+ * wrong fails the fetch outright: this app's own asset routes need the session
+ * cookie, while Google Fonts answers with `Access-Control-Allow-Origin: *`, and
+ * a wildcard origin combined with credentialed mode is rejected by the browser.
+ */
+async function toDataUri(url: string, credentials: RequestCredentials = 'include'): Promise<string | null> {
 	try {
-		const response = await fetch(url, { credentials: 'include' });
+		const response = await fetch(url, { credentials });
 		if (!response.ok) return null;
 		const blob = await response.blob();
 		return await new Promise<string | null>((resolve) => {
@@ -53,26 +160,53 @@ async function toDataUri(url: string): Promise<string | null> {
 }
 
 /**
- * Rewrites every `<img>` in a *clone* of the print tree to a `data:` URI.
+ * Every `url(...)` target in a CSS value, with any quotes stripped.
+ *
+ * A value can hold more than one (layered backgrounds), so this returns a list.
+ * Browsers normalise `el.style.backgroundImage` to `url("…")`, but the regex
+ * accepts unquoted and single-quoted forms too rather than relying on that.
+ */
+function cssUrls(value: string): string[] {
+	return Array.from(value.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g), (match) => match[2]).filter(
+		(url): url is string => Boolean(url)
+	);
+}
+
+/**
+ * Rewrites every image in a *clone* of the print tree to a `data:` URI — both
+ * `<img src>` and `background-image` in an inline `style` attribute.
+ *
+ * **The `background-image` half was missing, and page backgrounds never appeared
+ * in any PDF because of it.** `readOnlyPageBackgroundStyle` emits a page's
+ * background as an inline `background-image: url(/assets/:id/file)` on the sheet,
+ * not as an `<img>`, so it was left pointing at a backend route that the headless
+ * Chromium doing the rendering cannot authenticate to — no session cookie and no
+ * recipient token. It fetched, got a 401 or an SPA fallback, and painted nothing.
+ * Reported by Grayson alongside the offscreen bug: "not any of the background
+ * images or text".
  *
  * Operates on a clone so the live tree is untouched — it may still be mounted,
  * and swapping its `src` values would make the app refetch every image for no
- * reason. An image that can't be fetched keeps its original `src` rather than
+ * reason. An image that can't be fetched keeps its original reference rather than
  * being removed: a broken image in the PDF is a visible, diagnosable failure,
  * where a silently deleted one looks like the template never had it.
  */
 export async function inlineImages(root: HTMLElement): Promise<{ inlined: number; failed: number }> {
-	const images = Array.from(root.querySelectorAll('img'));
 	let inlined = 0;
 	let failed = 0;
 	// Deduplicated by URL: the same logo on twelve pages is one fetch and one
-	// data URI, which matters because these end up in the request body.
+	// data URI, which matters because these end up in the request body. Shared
+	// across both passes, since a background and an `<img>` can be the same asset.
 	const cache = new Map<string, string | null>();
-	for (const image of images) {
+	async function dataUriFor(reference: string): Promise<string | null> {
+		if (!cache.has(reference)) cache.set(reference, await toDataUri(new URL(reference, window.location.href).toString()));
+		return cache.get(reference) ?? null;
+	}
+
+	for (const image of Array.from(root.querySelectorAll('img'))) {
 		const src = image.getAttribute('src');
 		if (!src || src.startsWith('data:')) continue;
-		if (!cache.has(src)) cache.set(src, await toDataUri(new URL(src, window.location.href).toString()));
-		const dataUri = cache.get(src) ?? null;
+		const dataUri = await dataUriFor(src);
 		if (dataUri) {
 			image.setAttribute('src', dataUri);
 			inlined += 1;
@@ -80,6 +214,28 @@ export async function inlineImages(root: HTMLElement): Promise<{ inlined: number
 			failed += 1;
 		}
 	}
+
+	// `root` itself is included: it carries an inline style of its own (the
+	// offscreen positioning this serializer resets), and a caller could put a
+	// background there too.
+	const styled = [root, ...Array.from(root.querySelectorAll<HTMLElement>('[style]'))];
+	for (const element of styled) {
+		const value = element.style.backgroundImage;
+		if (!value || value === 'none') continue;
+		let rewritten = value;
+		for (const reference of cssUrls(value)) {
+			if (reference.startsWith('data:')) continue;
+			const dataUri = await dataUriFor(reference);
+			if (dataUri) {
+				rewritten = rewritten.split(reference).join(dataUri);
+				inlined += 1;
+			} else {
+				failed += 1;
+			}
+		}
+		if (rewritten !== value) element.style.backgroundImage = rewritten;
+	}
+
 	return { inlined, failed };
 }
 
@@ -99,8 +255,11 @@ export interface SerializedPrintDocument {
  */
 export async function serializePrintTree(root: HTMLElement, title: string): Promise<SerializedPrintDocument> {
 	const clone = root.cloneNode(true) as HTMLElement;
-	// The live tree is parked offscreen; the copy must not be, or every sheet
-	// renders blank.
+	// Undoes `OFFSCREEN_PRINT_TREE_STYLE`: the live tree is parked offscreen, and
+	// the copy must not be, or every sheet renders blank. This resets the element
+	// it was handed — so whatever carries the offscreen positioning has to be that
+	// same element, which is why the style is a constant shared with the two
+	// callers instead of a CSS rule that could sit on a descendant.
 	clone.style.position = 'static';
 	clone.style.left = '0';
 	clone.style.top = '0';
@@ -108,10 +267,18 @@ export async function serializePrintTree(root: HTMLElement, title: string): Prom
 	const { inlined, failed } = await inlineImages(clone);
 
 	const css = collectDocumentCss();
+	const body = clone.outerHTML;
+	// Filtered against the tree's own markup, not `css`: the print tree names the
+	// families it actually uses in its inline custom properties, whereas the app
+	// stylesheet also mentions the chrome fonts, which no document renders in.
+	const fontCss = await collectWebFontCss(body);
 	const html = [
 		'<!doctype html>',
 		'<html><head><meta charset="utf-8">',
 		`<title>${escapeHtml(title)}</title>`,
+		// Fonts first, so a later rule in the app's own CSS can still override
+		// anything here, and so the faces are declared before they're referenced.
+		`<style>${fontCss}</style>`,
 		`<style>${css}</style>`,
 		// `margin: 0` for the same reason as print.css's own rule: each sheet div
 		// already carries the template's real margins, and a page-box margin on top
@@ -126,7 +293,7 @@ export async function serializePrintTree(root: HTMLElement, title: string): Prom
 		// effect would be a lie in the source about where the paper comes from.
 		'<style>@page { margin: 0 } body { margin: 0 }</style>',
 		'</head><body>',
-		clone.outerHTML,
+		body,
 		'</body></html>',
 	].join('');
 

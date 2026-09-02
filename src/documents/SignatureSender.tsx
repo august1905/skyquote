@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { PrintTemplate } from '../print/PrintTemplate';
-import { serializePrintTree } from '../print/serializeForPdf';
+import { serializePrintTree, OFFSCREEN_PRINT_TREE_STYLE } from '../print/serializeForPdf';
 import { collectFieldGeometry, signableFields } from '../print/fieldGeometry';
 import { pageDimensions } from '../editor/pagination/pageDimensions';
 import { resolveAssetUrl, assetFileRelativePath } from '../api/assets';
@@ -113,7 +113,7 @@ export function SignatureSender({ documentId, body, blockPageNumbers, onFinished
 	}, [documentId, body, blockPageNumbers, onFinished, send]);
 
 	return (
-		<div ref={rootRef} aria-hidden="true" data-testid="signature-print-tree">
+		<div ref={rootRef} aria-hidden="true" data-testid="signature-print-tree" style={OFFSCREEN_PRINT_TREE_STYLE}>
 			<PrintTemplate
 				body={body}
 				blockPageNumbers={blockPageNumbers}

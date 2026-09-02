@@ -18,7 +18,22 @@ import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture'
  * what gets rendered to PDF and signed.
  *
  * Not `@core` — it builds a template and a document, which is expensive.
+ *
+ * **Why the timeout is raised, measured rather than guessed.** Every test here runs
+ * `authorQuoteTemplate` + `createDocumentFor` first: a pricing table with two items,
+ * a quote-builder group, a role, a signature block, a save, then the five-step
+ * create-document wizard — and only then does the recipient flow start, in a second
+ * browser context. On 2026-09-01 the first test failed at the default 30s, and the
+ * trace showed **section 1 did not open until 31.78s**: the setup alone had consumed
+ * the whole budget, so the section-2 assertion got 0.65s of its 10s instead of
+ * failing on its merits. Every section-1 assertion in between had passed.
+ *
+ * So this is a budget fix, not a retry papering over a flake: the work is genuinely
+ * this slow, and it is worst for whichever test runs first while Vite is still
+ * compiling and the other worker is competing. Same reasoning and same mechanism as
+ * `template-autosave.spec.ts`'s `test.setTimeout(70_000)`.
  */
+test.describe.configure({ timeout: 90_000 });
 
 async function addRole(page: import('@playwright/test').Page, name: string) {
 	await page.getByRole('button', { name: 'Recipients / Roles' }).click();

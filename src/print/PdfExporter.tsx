@@ -4,7 +4,7 @@ import { assetFileRelativePath, resolveAssetUrl } from '../api/assets';
 import { EMPTY_SMART_CONTENT_CONTEXT } from '../smartContent/evaluateRules';
 import type { BlockId, TemplateBody } from '../editor/types';
 import { PrintTemplate } from './PrintTemplate';
-import { serializePrintTree } from './serializeForPdf';
+import { serializePrintTree, OFFSCREEN_PRINT_TREE_STYLE } from './serializeForPdf';
 
 interface PdfExporterProps {
 	body: TemplateBody;
@@ -92,7 +92,7 @@ export function PdfExporter({ body, blockPageNumbers, filename, onFinished }: Pd
 	}, [body, filename, onFinished]);
 
 	return (
-		<div ref={rootRef} aria-hidden="true" data-testid="pdf-print-tree">
+		<div ref={rootRef} aria-hidden="true" data-testid="pdf-print-tree" style={OFFSCREEN_PRINT_TREE_STYLE}>
 			<PrintTemplate
 				body={body}
 				blockPageNumbers={blockPageNumbers}

@@ -45,24 +45,56 @@ export default async function globalTeardown(): Promise<void> {
 
 		const removed = { templates: 0, documents: 0 };
 
+		/**
+		 * Deletes in bounded batches rather than one at a time.
+		 *
+		 * A full run leaves ~160 rows behind, and deleting them serially was **60-90s
+		 * of pure wall clock on the end of every suite** — each `DELETE` is a real
+		 * round trip, and a template's is a cascade (versions, comments, Stratus
+		 * objects). Nothing here is order-dependent within a kind, so the only reason
+		 * it was serial was the shape of the loop.
+		 *
+		 * Capped at 6 in flight, not unbounded: `catalyst serve` is a single process,
+		 * and firing 160 concurrent cascades at it trades a slow teardown for an
+		 * unreliable one. 6 is well inside what the suite's own 2 workers already
+		 * push through it.
+		 */
+		async function deleteAll(paths: string[]): Promise<number> {
+			const CONCURRENCY = 6;
+			let done = 0;
+			const queue = [...paths];
+			await Promise.all(
+				Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+					for (let next = queue.pop(); next; next = queue.pop()) {
+						// Individually guarded: one 404 (another run swept it first) must not
+						// abandon the rest of the batch.
+						try {
+							if ((await ctx.delete(next)).ok()) done += 1;
+						} catch {
+							/* leave it for the next run's sweep */
+						}
+					}
+				})
+			);
+			return done;
+		}
+
 		// Documents first: a document is created *from* a template, and deleting
 		// the template it came from doesn't take it with it.
 		const documentsRes = await ctx.get('/api/documents');
 		if (documentsRes.ok()) {
 			const { documents } = (await documentsRes.json()) as { documents: { id: string; createdBy: string }[] };
-			for (const doc of documents) {
-				if (doc.createdBy !== user.id) continue;
-				if ((await ctx.delete(`/api/documents/${doc.id}`)).ok()) removed.documents += 1;
-			}
+			removed.documents = await deleteAll(
+				documents.filter((doc) => doc.createdBy === user.id).map((doc) => `/api/documents/${doc.id}`)
+			);
 		}
 
 		const templatesRes = await ctx.get('/api/templates');
 		if (templatesRes.ok()) {
 			const { templates } = (await templatesRes.json()) as { templates: { id: string; createdBy: string }[] };
-			for (const template of templates) {
-				if (template.createdBy !== user.id) continue;
-				if ((await ctx.delete(`/api/templates/${template.id}`)).ok()) removed.templates += 1;
-			}
+			removed.templates = await deleteAll(
+				templates.filter((template) => template.createdBy === user.id).map((template) => `/api/templates/${template.id}`)
+			);
 		}
 
 		if (removed.templates || removed.documents) {

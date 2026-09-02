@@ -107,7 +107,23 @@ async function openFolderMenu(page: Page, name: string) {
 }
 
 test.describe('Templates list', () => {
-	test.beforeEach(async ({ request }) => {
+	/**
+	 * Once for the file, not once per test.
+	 *
+	 * The sweep exists for two different reasons and they need different
+	 * frequencies. Recovering from a **previous run** that died before its cleanup
+	 * is a once-per-file job — that is this hook. Keeping one test's fixtures out of
+	 * the next one's assertions is a per-test job, and that is `afterEach` below,
+	 * which Playwright runs even when a test fails or times out.
+	 *
+	 * Running the full sweep in both hooks meant 22 passes for 11 tests, and each
+	 * pass is a paged `GET /templates` *with* its owner-name lookup plus a
+	 * `GET /folders`. This is the most expensive file in the suite (95.6s measured),
+	 * and half of that cleanup was buying nothing: every fixture here is named with a
+	 * per-test suffix and every assertion is scoped through the search box, so a
+	 * leftover from one test cannot match another's query.
+	 */
+	test.beforeAll(async ({ request }) => {
 		await cleanupFixtures(request);
 	});
 
