@@ -50,3 +50,25 @@ export function listCrmDeals(search?: string): Promise<{ deals: CrmDealSummary[]
 export function getCrmDeal(id: string): Promise<{ deal: CrmDeal }> {
 	return apiFetch<{ deal: CrmDeal }>(`/zoho-crm/deals/${encodeURIComponent(id)}`);
 }
+
+/** One line of an accepted CRM quote. `price` is **integer cents** — unlike a deal's `amount`, these become `PricingItem.price` directly. */
+export interface CrmQuoteItem {
+	name: string;
+	description: string;
+	qty: number;
+	price: number;
+}
+
+export interface CrmDealQuote {
+	id: string;
+	number: string | null;
+	subject: string | null;
+	/** Quote-level discount in cents; 0 when the quote has none. */
+	discount: number;
+	items: CrmQuoteItem[];
+}
+
+/** The deal's accepted quote, or `{ quote: null }` when it has none — a normal state, not an error. Needs `quotes.READ` on the `zohocrm` connection; without it the backend answers 502. */
+export function getCrmDealQuote(dealId: string): Promise<{ quote: CrmDealQuote | null }> {
+	return apiFetch<{ quote: CrmDealQuote | null }>(`/zoho-crm/deals/${encodeURIComponent(dealId)}/quote`);
+}

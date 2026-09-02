@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { ApiError } from '../../api/client';
 import { createDocument, type CreateDocumentResult, type DocumentBody } from '../../api/documents';
 import { getTemplate, type TemplateEnvelope } from '../../api/templates';
-import { getCrmDeal, type CrmDeal, type CrmDealSummary } from '../../api/zohoCrm';
+import { getCrmDeal, getCrmDealQuote, type CrmDeal, type CrmDealSummary } from '../../api/zohoCrm';
+import { applyQuoteToBody } from './importQuote';
 import { collectVariableKeys } from '../../editor/variables/collectVariableKeys';
 import { allVariables } from '../../editor/variables/systemVariables';
 import { computeTotals } from '../../pricing/computeTotals';
@@ -162,6 +163,19 @@ export function CreateDocumentWizard({ template: initialTemplate, onClose, onCre
 			setDeal(full);
 			setVariableValues(dealVariableValues(full, currency));
 			setRecipients((current) => prefillFirstRecipient(current, full));
+			// The deal's accepted CRM quote fills the template's pricing table — see
+			// `applyQuoteToBody`. Non-fatal by design: a deal with no accepted quote,
+			// a template with no pricing table, or the `quotes.READ` scope missing on
+			// the connection all leave the template's own pricing alone, and the
+			// sender can still fill it in by hand at the pricing step.
+			try {
+				const { quote } = await getCrmDealQuote(summary.id);
+				if (quote) {
+					setWorkingBody((current) => (current ? (applyQuoteToBody(current, quote)?.body ?? current) : current));
+				}
+			} catch (err) {
+				console.error('quote import skipped', err);
+			}
 			goNext();
 		} catch {
 			setStepError('Could not read that deal from Zoho CRM.');
