@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { addRole, createRole, defaultRoleColor, deleteFieldsForRole, moveRole, nextRoleName, reassignFieldsRole, recolorRole, removeRole, renameRole, setIsSender, setSigningOrder } from '../commands';
+import { addRole, createRole, defaultRoleColor, deleteFieldsForRole, nextRoleName, reassignFieldsRole, recolorRole, removeRole, renameRole, setIsSender, setSigningOrder } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { collectAllFields } from '../fields/collectFields';
 import type { Role, RoleId } from '../types';
@@ -105,18 +105,14 @@ export function RolesPanel({ onClose }: RolesPanelProps) {
 				</div>
 			)}
 			<ul className="roles-panel-list">
-				{roles.map((role, index) => (
+				{roles.map((role) => (
 					<RoleRow
 						key={role.id}
 						role={role}
-						canMoveUp={index > 0}
-						canMoveDown={index < roles.length - 1}
 						onRename={(name) => runCommand(renameRole(role.id, name), { coalesceKey: `role-name-${role.id}` })}
 						onRecolor={(color) => runCommand(recolorRole(role.id, color))}
 						onToggleSender={(isSender) => runCommand(setIsSender(role.id, isSender))}
 						onSigningOrderChange={(signingOrder) => runCommand(setSigningOrder(role.id, signingOrder), { coalesceKey: `role-signing-order-${role.id}` })}
-						onMoveUp={() => runCommand(moveRole(role.id, index - 1))}
-						onMoveDown={() => runCommand(moveRole(role.id, index + 1))}
 						onRemove={() => handleRemoveClick(role)}
 						onBlur={endCoalescing}
 					/>
@@ -131,19 +127,29 @@ export function RolesPanel({ onClose }: RolesPanelProps) {
 
 interface RoleRowProps {
 	role: Role;
-	canMoveUp: boolean;
-	canMoveDown: boolean;
 	onRename: (name: string) => void;
 	onRecolor: (color: string) => void;
 	onToggleSender: (isSender: boolean) => void;
 	onSigningOrderChange: (signingOrder: number | undefined) => void;
-	onMoveUp: () => void;
-	onMoveDown: () => void;
 	onRemove: () => void;
 	onBlur: () => void;
 }
 
-function RoleRow({ role, canMoveUp, canMoveDown, onRename, onRecolor, onToggleSender, onSigningOrderChange, onMoveUp, onMoveDown, onRemove, onBlur }: RoleRowProps) {
+/**
+ * The name is the row — everything else is a secondary control beneath it.
+ *
+ * It used to share one line with a colour swatch, a two-button ↑/↓ pair and a
+ * full-width "Remove", which left the field itself about 45px wide: "Contact
+ * (Signer)" rendered as "Conta". Grayson, 2026-09-03: "the styling in
+ * recipients/roles is almost unusable. Remove the little arrows and just make
+ * this reasonable."
+ *
+ * The arrows are gone rather than restyled. They reordered `body.roles`, which
+ * is not the order anything downstream reads — `signingOrder` on the row below
+ * is what actually sequences the signers, and every template is seeded with its
+ * two roles already in the order they're signed in.
+ */
+function RoleRow({ role, onRename, onRecolor, onToggleSender, onSigningOrderChange, onRemove, onBlur }: RoleRowProps) {
 	return (
 		<li className="roles-panel-row">
 			<div className="roles-panel-row-main">
@@ -154,29 +160,26 @@ function RoleRow({ role, canMoveUp, canMoveDown, onRename, onRecolor, onToggleSe
 					onChange={(e) => onRecolor(e.target.value)}
 				/>
 				<input type="text" aria-label="Role name" value={role.name} onChange={(e) => onRename(e.target.value)} onBlur={onBlur} />
-				<div className="roles-panel-row-move">
-					<button type="button" aria-label="Move role up" onClick={onMoveUp} disabled={!canMoveUp}>
-						↑
-					</button>
-					<button type="button" aria-label="Move role down" onClick={onMoveDown} disabled={!canMoveDown}>
-						↓
-					</button>
-				</div>
-				<button type="button" aria-label={`Remove ${role.name}`} onClick={onRemove}>
-					Remove
+				{/* Still `Remove {name}` to a screen reader — only the visible label
+				    shrank to a glyph, and the name is what tells two rows apart. */}
+				<button type="button" className="roles-panel-row-remove" aria-label={`Remove ${role.name}`} onClick={onRemove} title={`Remove ${role.name}`}>
+					×
 				</button>
 			</div>
 			<div className="roles-panel-row-details">
-				<label>
+				<label className="roles-panel-row-check">
 					<input type="checkbox" checked={role.isSender} onChange={(e) => onToggleSender(e.target.checked)} />
 					Sender
 				</label>
-				<label>
-					Signing order
+				<label className="roles-panel-row-order">
+					<span>Signing order</span>
 					<input
 						type="number"
 						min={1}
 						aria-label="Signing order"
+						// Placeholder rather than a defaulted value: blank genuinely
+						// means "no explicit order", which is a different state from 1.
+						placeholder="–"
 						value={role.signingOrder ?? ''}
 						onChange={(e) => {
 							const raw = e.target.value;

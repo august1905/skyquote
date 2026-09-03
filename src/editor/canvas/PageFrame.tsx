@@ -10,6 +10,7 @@ import { usePagePagination } from '../pagination/usePagePagination';
 import { AddBlockMenu } from './AddBlockMenu';
 import { AddPageMenu } from './AddPageMenu';
 import { BlockContainerDropRegion } from './BlockContainerDropRegion';
+import { PageDropSurface } from './PageDropSurface';
 import { PageMenu } from './PageMenu';
 import { PlacedBlock } from './PlacedBlock';
 import { SortableBlock } from './SortableBlock';
@@ -146,6 +147,10 @@ export function PageFrame({
 						// as one array every time, not a stable list of independently
 						// identified items being reordered.
 						<div className="canvas-page" key={physicalPageIndex} style={editorPageBackgroundStyle(page, themeBackground)}>
+							{/* The sheet itself, so a tile dropped on open paper lands where it
+							    was dropped instead of nowhere. Rendered first so it paints
+							    under the content; it never takes the pointer either way. */}
+							<PageDropSurface container={container} appendIndex={appendIndexAfter(page, physicalPageBlockIds)} />
 							{/* §4.1 path 1's drop target for this page. Per *physical* page, so
 							    dropping onto the whitespace of the second sheet appends after the
 							    blocks on that sheet rather than at the end of the logical page. */}

@@ -1,6 +1,7 @@
 import type { Block, RichTextDoc, RichTextNode, TemplateBody, VariableDef } from '../editor/types';
 import { allVariables } from '../editor/variables/systemVariables';
 import { collectVariableKeys } from '../editor/variables/collectVariableKeys';
+import { findTextStyle } from '../editor/textStyles';
 import type { DocumentTotals } from '../pricing/computeTotals';
 import { formatMoney } from '../pricing/formatMoney';
 
@@ -73,7 +74,16 @@ function resolveNode(node: RichTextNode, values: ResolvedVariableValues): RichTe
 		// A ProseMirror text node can't hold an empty string — `values` should
 		// always carry a non-empty placeholder for every key (see
 		// computeResolvedVariableValues), this is just a defensive backstop.
-		return { type: 'text', text: values[key] || ' ' };
+		const text: RichTextNode = { type: 'text', text: values[key] || ' ' };
+		// A chip's house style is an attribute while it's a placeholder and a
+		// `textStyle` mark once it's real text — the same mark hand-formatted text
+		// carries, so the recipient's view, the PDF and the frozen agreement all
+		// render it without knowing merge fields exist. Marks already on the node
+		// (bold in the surrounding sentence, say) are kept alongside it.
+		const style = findTextStyle(typeof node.attrs.styleId === 'string' ? node.attrs.styleId : null);
+		const inherited = node.marks ?? [];
+		if (!style) return inherited.length > 0 ? { ...text, marks: inherited } : text;
+		return { ...text, marks: [...inherited, { type: 'textStyle', attrs: { color: style.color.hex, fontSize: `${style.sizePx}px` } }] };
 	}
 	if (node.content) return { ...node, content: node.content.map((child) => resolveNode(child, values)) };
 	return node;

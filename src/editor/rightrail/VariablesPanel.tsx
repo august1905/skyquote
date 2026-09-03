@@ -1,5 +1,7 @@
+import { useDraggable } from '@dnd-kit/core';
 import { useState } from 'react';
 import { addVariable, customVariableKey, removeVariable } from '../commands';
+import type { PaletteDragData } from '../content/palette';
 import { useEditorStore } from '../store/editorStore';
 import { getActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 import { SYSTEM_VARIABLES } from '../variables/systemVariables';
@@ -62,9 +64,7 @@ export function VariablesPanel({ onClose }: VariablesPanelProps) {
 					<ul>
 						{grouped[source]!.map((variable) => (
 							<li key={variable.key} className="variables-panel-row">
-								<button type="button" className="variables-panel-insert" onClick={() => insert(variable)}>
-									{variable.label}
-								</button>
+								<VariableInsertButton variable={variable} onClick={() => insert(variable)} />
 								{variable.source === 'custom' && (
 									<button
 										type="button"
@@ -95,6 +95,37 @@ export function VariablesPanel({ onClose }: VariablesPanelProps) {
 				</button>
 			)}
 		</div>
+	);
+}
+
+/**
+ * One variable: a button that inserts at the caret, and a drag source that
+ * places it wherever it's dropped.
+ *
+ * Both gestures on one element, exactly like `PaletteTile` — the pointer sensor
+ * only starts a drag after 8px of movement, so a click never becomes a drag and
+ * a drag never fires the click. The `id` is prefixed because dnd-kit ids are
+ * global to the context and a variable key ("Client.Company") could otherwise
+ * collide with some other draggable's id.
+ */
+function VariableInsertButton({ variable, onClick }: { variable: VariableDef; onClick: () => void }) {
+	const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
+		id: `variable-${variable.key}`,
+		data: { kind: 'paletteVariable', variableKey: variable.key } satisfies PaletteDragData,
+	});
+
+	return (
+		<button
+			type="button"
+			ref={setNodeRef}
+			className={`variables-panel-insert${isDragging ? ' variables-panel-insert-dragging' : ''}`}
+			onClick={onClick}
+			title={`${variable.label} — click to insert at the cursor, or drag it onto the page`}
+			{...attributes}
+			{...listeners}
+		>
+			{variable.label}
+		</button>
 	);
 }
 

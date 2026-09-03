@@ -83,3 +83,50 @@ export function subscribeActiveRichTextEditor(listener: () => void): () => void 
 export function getActiveRichTextEditorVersion(): number {
 	return version;
 }
+
+/**
+ * Every rich-text editor currently mounted — separate from {@link active},
+ * which is about focus history.
+ *
+ * This exists for one gesture: dragging a merge field out of the Variables
+ * panel and dropping it into the middle of a sentence. The drop knows only a
+ * screen coordinate, and the only way back from a coordinate to a ProseMirror
+ * position is through the `EditorView` that owns that DOM — which nothing
+ * publishes. "Last focused" is no help either: a drag never focuses anything,
+ * and the field is usually headed for a block the author hasn't touched.
+ */
+const mounted = new Set<Editor>();
+
+/** Call on mount; the returned function unregisters. Owners already have an unmount effect for {@link clearActiveRichTextEditorIf} — this belongs in the same one. */
+export function registerRichTextEditor(editor: Editor): () => void {
+	mounted.add(editor);
+	return () => {
+		mounted.delete(editor);
+	};
+}
+
+/**
+ * The editable rich-text editor under a client point, innermost first — a table
+ * cell rather than the table block containing it.
+ *
+ * Rect containment rather than `document.elementFromPoint`, because during a
+ * drag the topmost element at the pointer is dnd-kit's own drag overlay.
+ * Locked blocks are skipped: they render an editor with `editable: false`, and
+ * dropping content into something the author locked is exactly what the lock is
+ * for.
+ */
+export function richTextEditorAtPoint(x: number, y: number): Editor | null {
+	let innermost: Editor | null = null;
+	let smallestArea = Infinity;
+	for (const editor of mounted) {
+		if (editor.isDestroyed || !editor.isEditable) continue;
+		const rect = editor.view.dom.getBoundingClientRect();
+		if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) continue;
+		const area = rect.width * rect.height;
+		if (area < smallestArea) {
+			innermost = editor;
+			smallestArea = area;
+		}
+	}
+	return innermost;
+}

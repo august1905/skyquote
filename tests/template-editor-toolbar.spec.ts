@@ -145,6 +145,28 @@ test.describe('Formatting toolbar (§2)', () => {
 		await expect(editor.locator('ul')).toHaveCount(0);
 	});
 
+	test('the text style selector applies a house colour and size together, and reports the one in force', async ({ page }) => {
+		const editor = await newTemplateWithText(page, 'Headline');
+
+		// Applied from a caret, like Font size: a text-level control with nothing
+		// selected means this block (see FontSizeControl for why).
+		await editor.click();
+		await page.getByLabel('Text style').selectOption('navy-48');
+		await expect(editor.locator('[style*="font-size: 48px"]')).toHaveCount(1);
+		await expect(editor.locator('[style*="color: rgb(9, 77, 130)"]')).toHaveCount(1);
+
+		// The two marks *are* the style, so the selector recognises it on the way
+		// back in rather than resetting to blank whenever the caret moves.
+		await editor.click();
+		await expect(page.getByLabel('Text style')).toHaveValue('navy-48');
+
+		// A size the catalogue doesn't contain isn't a house style, and the
+		// selector says so instead of naming the nearest one.
+		await page.getByLabel('Font size', { exact: true }).fill('47');
+		await editor.click();
+		await expect(page.getByLabel('Text style')).toHaveValue('');
+	});
+
 	test('font size/colour, the overflow group, Clear formatting (selected and collapsed), and links', async ({ page }) => {
 		const editor = await newTemplateWithText(page, 'Styled run');
 

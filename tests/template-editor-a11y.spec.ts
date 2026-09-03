@@ -103,6 +103,36 @@ test.describe('Keyboard operation and focus (§13)', () => {
 		expect(parseFloat(outlineWidth)).toBeGreaterThan(0);
 	});
 
+	test('every rail icon sits centred in its own button', async ({ page }) => {
+		await newTemplate(page);
+
+		// Reported as "sidebar icons are not centered in their containers"
+		// (Grayson, 2026-09-03). The cause was index.css's global
+		// `button { padding: 0.6em 1.2em }`, which `.right-rail-icon` never
+		// overrode: at 1.2em the horizontal padding alone outgrew the button's
+		// declared 40px width, leaving a zero-width content box that the icon
+		// overflowed to the right of — and turning the circular `+` into an
+		// ellipse. Geometry, because that is exactly what was wrong and no
+		// assertion about classes or styles would have caught it.
+		const offsets = await page.evaluate(() =>
+			[...document.querySelectorAll('.right-rail-icon')].map((button) => {
+				const glyph = button.querySelector('svg') ?? button;
+				const a = button.getBoundingClientRect();
+				const b = glyph.getBoundingClientRect();
+				return {
+					label: button.getAttribute('aria-label'),
+					dx: Math.round(b.left + b.width / 2 - (a.left + a.width / 2)),
+					dy: Math.round(b.top + b.height / 2 - (a.top + a.height / 2)),
+					square: Math.round(a.width) === Math.round(a.height),
+				};
+			})
+		);
+		expect(offsets.length).toBeGreaterThan(0);
+		for (const icon of offsets) {
+			expect(icon, `${icon.label} icon should be centred in a square button`).toEqual({ label: icon.label, dx: 0, dy: 0, square: true });
+		}
+	});
+
 	test('every rail icon and canvas control carries an accessible name', async ({ page }) => {
 		await newTemplate(page);
 

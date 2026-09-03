@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import type { RichTextDoc } from '../types';
 import { richTextExtensions } from '../richtext/richTextExtensions';
 import { docsEqual, normalizeDoc } from '../richtext/docNormalization';
-import { clearActiveRichTextEditorIf, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
+import { clearActiveRichTextEditorIf, registerRichTextEditor, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 
 function toJSONContent(doc: RichTextDoc): JSONContent {
 	return doc;
@@ -62,10 +62,15 @@ export function TableCellEditor({ doc, onChange, onBlur, locked }: TableCellEdit
 	}, [editor, locked]);
 
 	// See TextBlockView's identical cleanup — a removed row/column destroys
-	// this cell's editor, which must not stay the toolbar's target.
+	// this cell's editor, which must not stay the toolbar's target, nor a
+	// candidate for a merge field dropped at a coordinate.
 	useEffect(() => {
 		if (!editor) return;
-		return () => clearActiveRichTextEditorIf(editor);
+		const unregister = registerRichTextEditor(editor);
+		return () => {
+			unregister();
+			clearActiveRichTextEditorIf(editor);
+		};
 	}, [editor]);
 
 	return <EditorContent editor={editor} className="block-table-cell" />;

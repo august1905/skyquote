@@ -6,6 +6,8 @@ import { useActiveRichTextEditor } from '../richtext/useActiveRichTextEditor';
 import { useCloseOnEscape } from '../a11y/useCloseOnEscape';
 import { BlockPlacementControls } from './BlockPlacementControls';
 import { FontSizeControl } from './FontSizeControl';
+import { TextStyleSelect } from './TextStyleSelect';
+import { findTextStyle, matchTextStyle } from '../textStyles';
 import {
 	LINE_HEIGHT_OPTIONS,
 	PARAGRAPH_STYLE_OPTIONS,
@@ -114,6 +116,25 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 	const fontColor = (editor?.getAttributes('textStyle').color as string | undefined) ?? '#000000';
 	const inList = isActive('bulletList') || isActive('orderedList');
 
+	/**
+	 * Applies a house style as the two marks it *is* — colour and size — so text
+	 * styled this way is indistinguishable downstream from text formatted by
+	 * hand, and every renderer that already draws a `textStyle` mark draws it
+	 * with no changes at all.
+	 *
+	 * With a collapsed caret this means the whole block, the same rule
+	 * `FontSizeControl` and Clear formatting follow: a text-level control with
+	 * nothing selected that quietly set stored marks would look broken (see that
+	 * component for the measurement behind it).
+	 */
+	function applyTextStyle(styleId: string) {
+		const style = findTextStyle(styleId);
+		if (!editor || !style) return;
+		const chain = editor.chain().focus();
+		if (editor.state.selection.empty) chain.selectAll();
+		chain.setColor(style.color.hex).setFontSize(`${style.sizePx}px`).run();
+	}
+
 	/** Runs an overflow-menu action against the active editor and dismisses the menu. */
 	function runAndClose(action: (editor: Editor) => void) {
 		if (editor) action(editor);
@@ -166,6 +187,17 @@ export function EditorToolbar({ pagesOpen, onTogglePages }: EditorToolbarProps) 
 					</option>
 				))}
 			</select>
+
+			{/* The house styles, beside the two controls they set at once. Font
+			    size and Font color stay: a style is the fast, on-brand path, not
+			    the only one — §2's own controls still allow anything. */}
+			<TextStyleSelect
+				className="editor-toolbar-text-style"
+				label="Text style"
+				value={matchTextStyle(editor?.getAttributes('textStyle').color as string | undefined, fontSize)}
+				disabled={disabled}
+				onChange={applyTextStyle}
+			/>
 
 			<FontSizeControl editor={editor} value={fontSize} disabled={disabled} />
 

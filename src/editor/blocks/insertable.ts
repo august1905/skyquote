@@ -39,6 +39,22 @@ export function createImageBlockFromAsset(asset: UploadedAsset): Block {
 	return createImageBlock({ assetId: asset.id, url: assetFileRelativePath(asset.id), alt: '', width, height });
 }
 
+/**
+ * A text block holding nothing but one merge-field chip — what a variable
+ * dragged onto open paper becomes.
+ *
+ * A variable has no block type of its own; it's an inline node, so placing one
+ * "at a spot on the page" means giving it the smallest block that can carry it.
+ * Dropped *into* existing text it never comes through here at all — see
+ * `insertVariableAtPoint`, which puts the chip in the sentence instead.
+ */
+export function createTextBlockWithVariable(variableKey: string): Block {
+	return {
+		...createBlankTextBlock(),
+		doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'variable', attrs: { key: variableKey, fallback: null } }] }] },
+	};
+}
+
 async function createVideoBlockFromUrl(url: string): Promise<Block> {
 	const { provider, thumbnailUrl } = await fetchOEmbed(url);
 	return createVideoBlock({ provider, url, thumbnailUrl });

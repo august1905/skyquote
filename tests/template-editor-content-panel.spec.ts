@@ -88,6 +88,35 @@ async function dragTileTo(page: Page, source: Locator, target: { x: number; y: n
 	await page.waitForTimeout(150);
 }
 
+/**
+ * Drags a tile onto open paper and reports where, in page px, it was released.
+ *
+ * Measured live at the pointer immediately before the release rather than
+ * computed from the page's position beforehand: dnd-kit auto-scrolls the canvas
+ * while a drag is near the viewport's edge, so a rect read at the start of the
+ * gesture describes a page that has since moved.
+ */
+async function dropOnPaper(page: Page, source: Locator, target: { x: number; y: number }) {
+	const box = await source.boundingBox();
+	if (!box) throw new Error('expected the palette tile to have a bounding box');
+	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+	await page.mouse.down();
+	await page.waitForTimeout(100);
+	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 15, { steps: 5 });
+	await page.waitForTimeout(100);
+	await page.mouse.move(target.x, target.y, { steps: 20 });
+	await page.waitForTimeout(150);
+	const released = await page.evaluate((pointer) => {
+		const surface = document.querySelector('.canvas-page-drop-surface-over');
+		if (!surface) return null;
+		const rect = surface.getBoundingClientRect();
+		return { x: Math.round(pointer.x - rect.left), y: Math.round(pointer.y - rect.top) };
+	}, target);
+	await page.mouse.up();
+	await page.waitForTimeout(200);
+	return released;
+}
+
 /** A point inside `locator`, `fraction` of the way down it — 0.2 is the top fifth, which is what "insert before" means. */
 async function pointInside(locator: Locator, fraction: number) {
 	const box = await locator.boundingBox();
@@ -174,6 +203,36 @@ test.describe('Content panel', () => {
 		await saveNow(page);
 		await page.reload();
 		await expect(page.locator('.canvas-page-blocks > .canvas-block').nth(0).locator('.block-page-break')).toHaveCount(1);
+	});
+
+	test('a tile dropped on open paper is pinned exactly where it was dropped @core', async ({ page, request }) => {
+		// The whole sheet is a drop target, not just the strip the flow blocks
+		// occupy. Before `PageDropSurface`, a release anywhere else resolved to no
+		// droppable at all and silently did nothing — "they drag, but when I
+		// release they do not place" (Grayson, 2026-09-03).
+		await openFixtureTemplate(page, request, 'paper');
+
+		const pageBox = await page.locator('.canvas-page').first().boundingBox();
+		if (!pageBox) throw new Error('expected the page to have a bounding box');
+		// Left of centre and below the block column, with the pointer kept clear
+		// of the viewport's own edges so auto-scroll stays out of it.
+		const released = await dropOnPaper(page, tile(page, 'Text'), { x: pageBox.x + pageBox.width * 0.3, y: 520 });
+		expect(released, 'the release should have been over the page drop surface').not.toBeNull();
+
+		const placed = page.locator('.canvas-placed');
+		await expect(placed).toHaveCount(1);
+		const landed = await page.evaluate(() => {
+			const el = document.querySelector('.canvas-placed');
+			const sheet = el?.closest('.canvas-page');
+			if (!el || !sheet) return null;
+			const a = el.getBoundingClientRect();
+			const b = sheet.getBoundingClientRect();
+			return { x: Math.round(a.left - b.left), y: Math.round(a.top - b.top) };
+		});
+		// Not "somewhere on the page" — the same spot, to the pixel the drop point
+		// was rounded to. A block that lands 400px from where it was released is
+		// the failure this test exists for, and a loose assertion would pass it.
+		expect(landed).toEqual(released);
 	});
 
 	test('dragging a tile below an existing block inserts it after', async ({ page, request }) => {

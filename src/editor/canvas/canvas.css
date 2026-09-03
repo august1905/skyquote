@@ -365,12 +365,32 @@
 
 /* A region with no blocks in it has no height, and a zero-height rect can't be
    hit — dnd-kit ranks collisions by intersection area. `:empty` scopes this so
-   the only layout that moves during a drag is a page/container that had nothing
-   in it to move. (Columns and smart-content containers always render their own
-   "+ Add block" row, so they're never `:empty` and never need this.) */
-.canvas-page-blocks:empty.canvas-drop-region-armed,
+   the only layout that moves during a drag is a container that had nothing in it
+   to move. (Columns and smart-content containers always render their own
+   "+ Add block" row, so they're never `:empty` and never need this.)
+
+   Pages used to be listed here too, and no longer are: `PageDropSurface` covers
+   an empty page's whole sheet, which is both a bigger target and a truer one —
+   a drop anywhere on blank paper now lands where it was aimed instead of at the
+   top of a 72px strip. */
 .smart-content-children:empty.canvas-drop-region-armed {
 	min-height: 72px;
+}
+
+/* The paper as a drop target — see `PageDropSurface`. Covers the padding box,
+   which for a page is the sheet itself, and never takes the pointer: it exists
+   for dnd-kit's rect maths, and a click on the paper still has to reach the
+   page underneath it. */
+.canvas-page-drop-surface {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	border-radius: inherit;
+}
+
+.canvas-page-drop-surface-over {
+	background: color-mix(in srgb, var(--sky-blue) 5%, transparent);
+	box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--sky-blue) 45%, transparent);
 }
 
 .canvas-block-toolbar {

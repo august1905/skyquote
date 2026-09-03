@@ -112,6 +112,50 @@ describe('resolveVariablesInBody', () => {
 		expect(resolvedBlock.doc.content[0]!.content).toEqual([{ type: 'text', text: 'Hi ' }, { type: 'text', text: 'Casey' }]);
 	});
 
+	it('turns a styled chip’s house style into a textStyle mark on the text it becomes', () => {
+		// The style is an attribute while the chip is a placeholder and a mark once
+		// it's real text. Without this the whole feature would look right in the
+		// template and render at body size in every document, PDF and signed
+		// agreement — the exact way `textStyle` was lost once before (see
+		// RichTextView's `renderMarks`).
+		const textBlock: TextBlock = {
+			id: 'b1',
+			type: 'text',
+			locked: false,
+			style: {},
+			doc: {
+				type: 'doc',
+				content: [{ type: 'paragraph', content: [{ type: 'variable', attrs: { key: 'Client.Name', fallback: null, styleId: 'navy-48' } }] }],
+			},
+		};
+		const resolved = resolveVariablesInBody(makeBody([textBlock]), { 'Client.Name': 'Casey' });
+		expect((resolved.pages[0]!.blocks[0] as TextBlock).doc.content[0]!.content).toEqual([
+			{ type: 'text', text: 'Casey', marks: [{ type: 'textStyle', attrs: { color: '#094D82', fontSize: '48px' } }] },
+		]);
+	});
+
+	it('leaves an unstyled chip as bare text, and keeps marks the chip already carried', () => {
+		const textBlock: TextBlock = {
+			id: 'b1',
+			type: 'text',
+			locked: false,
+			style: {},
+			doc: {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [{ type: 'variable', attrs: { key: 'Client.Name', fallback: null }, marks: [{ type: 'bold' }] }],
+					},
+				],
+			},
+		};
+		const resolved = resolveVariablesInBody(makeBody([textBlock]), { 'Client.Name': 'Casey' });
+		expect((resolved.pages[0]!.blocks[0] as TextBlock).doc.content[0]!.content).toEqual([
+			{ type: 'text', text: 'Casey', marks: [{ type: 'bold' }] },
+		]);
+	});
+
 	it('resolves a variable inside a table cell and inside a nested column, leaving a fillableField node untouched', () => {
 		const tableBlock: TableBlock = {
 			id: 'table-1',

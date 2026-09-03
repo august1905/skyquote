@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { clampPlacement, defaultPageSettings, insertBlock, setBlockPlacement } from '../commands';
-import { measurePinnedLandingSpot } from '../canvas/measureBlockOnPage';
+import { measureDroppedPlacement, measurePinnedLandingSpot } from '../canvas/measureBlockOnPage';
 import { pageDimensions } from '../pagination/pageDimensions';
 import { useEditorStore } from '../store/editorStore';
 import type { Block } from '../types';
@@ -30,6 +30,9 @@ export function usePaletteInsert() {
 	 * template editor should be 'pinned' by default with the movable position. I
 	 * always want to move them like that."), captured at the spot it landed so
 	 * pinning never teleports it — the same rule the toolbar's Pin toggle follows.
+	 * A block dropped on open paper carries its own `dropPoint` and is pinned
+	 * exactly there instead: the author aimed, and "somewhere below the last
+	 * pinned block" would ignore the aim.
 	 * Insert and pin share one coalesce key, so a single undo removes the block
 	 * rather than stranding an unpinned copy.
 	 *
@@ -58,7 +61,9 @@ export function usePaletteInsert() {
 				const body = useEditorStore.getState().body;
 				const settings = body?.settings ?? defaultPageSettings();
 				const { width, height } = pageDimensions(settings.pageSize, settings.orientation);
-				const landing = measurePinnedLandingSpot(block.id, width, body?.settings.theme?.baseSpacing ?? 16);
+				const landing = target.dropPoint
+					? measureDroppedPlacement(block.id, width, settings.margins.right, target.dropPoint)
+					: measurePinnedLandingSpot(block.id, width, body?.settings.theme?.baseSpacing ?? 16);
 				if (landing) {
 					runCommand(setBlockPlacement(target.container.pageId, block.id, clampPlacement(landing, width, height)), { coalesceKey });
 				}

@@ -34,9 +34,11 @@ export function usePaletteDropHint(): PaletteDropHint | null {
 
 /**
  * The `BlockType` a palette drag would produce — a field tile always produces a
- * `FieldBlock`, whatever its field type. Used for §4.4's nesting check, which
- * cares about the block, not the field inside it.
+ * `FieldBlock` whatever its field type, and a merge field a `TextBlock` holding
+ * the chip. Used for §4.4's nesting check, which cares about the block, not
+ * what's inside it.
  */
 export function paletteDragBlockType(drag: PaletteDragData): BlockType {
-	return drag.kind === 'paletteBlock' ? drag.blockType : 'field';
+	if (drag.kind === 'paletteBlock') return drag.blockType;
+	return drag.kind === 'paletteVariable' ? 'text' : 'field';
 }

@@ -9,13 +9,16 @@ import {
 	type DragStartEvent,
 } from '@dnd-kit/core';
 import { useState, type ReactNode } from 'react';
-import { addPricingItemFromCatalog, containerBlocksOf, moveBlock, type BlockContainer } from '../commands';
+import { addPricingItemFromCatalog, containerBlocksOf, defaultPageSettings, moveBlock, type BlockContainer } from '../commands';
+import { pageDropPoint } from '../canvas/measureBlockOnPage';
+import { pageDimensions } from '../pagination/pageDimensions';
 import { useEditorStore } from '../store/editorStore';
 import type { CatalogItem } from '../types';
 import { formatMoney } from '../../pricing/formatMoney';
 import { BLOCK_ICONS, FIELD_ICONS, PALETTE_BLOCK_KINDS, paletteCanInsertInto, type InsertTarget, type PaletteDragData } from '../content/palette';
 import { usePaletteInsert } from '../content/usePaletteInsert';
 import { FIELD_TYPE_LABELS } from '../fields/fieldTypes';
+import { insertVariableAtPoint } from '../variables/insertVariableAtPoint';
 import { ActivePaletteDragContext, PaletteDropHintContext, paletteDragBlockType, type PaletteDropHint } from './dragContext';
 import '../catalog/catalog.css';
 import '../content/content.css';
@@ -41,10 +44,11 @@ type DragData = { kind: 'block'; container: BlockContainer } | { kind: 'catalogI
 type DropData =
 	| { kind: 'block'; container: BlockContainer }
 	| { kind: 'pricingTableDrop'; pageId: string; blockId: string }
-	| { kind: 'blockContainer'; container: BlockContainer; appendIndex: number };
+	| { kind: 'blockContainer'; container: BlockContainer; appendIndex: number }
+	| { kind: 'pageSurface'; container: BlockContainer; appendIndex: number };
 
 function isPaletteDrag(data: DragData | undefined): data is PaletteDragData {
-	return data?.kind === 'paletteBlock' || data?.kind === 'paletteField';
+	return data?.kind === 'paletteBlock' || data?.kind === 'paletteField' || data?.kind === 'paletteVariable';
 }
 
 /**
@@ -95,8 +99,28 @@ function sameHint(a: PaletteDropHint | null, b: PaletteDropHint | null): boolean
 	return a.blockId === b.blockId && a.insertBefore === b.insertBefore;
 }
 
+/**
+ * Where the pointer was when the drag ended, in client coordinates.
+ *
+ * dnd-kit doesn't publish the pointer, only the activating event and the
+ * translation since — which is the same thing, and stays right when the canvas
+ * scrolls mid-drag (`delta` carries the scroll adjustment). Null for a
+ * keyboard-initiated drag, which has no pointer to speak of; those fall back to
+ * an ordinary flow insert.
+ */
+function dropPointer(event: DragEndEvent): { x: number; y: number } | null {
+	const activator = event.activatorEvent;
+	if (!(typeof PointerEvent !== 'undefined' && activator instanceof PointerEvent) && !(activator instanceof MouseEvent)) return null;
+	return { x: activator.clientX + event.delta.x, y: activator.clientY + event.delta.y };
+}
+
 /** A label for the thing following the cursor — the tile has left the panel, so it has to say what it is. */
 function paletteDragLabel(drag: PaletteDragData): { icon: string; label: string } {
+	if (drag.kind === 'paletteVariable') {
+		// The key, not the friendly label: it's what the chip itself will read,
+		// so the thing under the cursor looks like the thing being placed.
+		return { icon: '⟨⟩', label: `[${drag.variableKey}]` };
+	}
 	if (drag.kind === 'paletteField') {
 		return { icon: FIELD_ICONS[drag.fieldType], label: FIELD_TYPE_LABELS[drag.fieldType] };
 	}
@@ -106,6 +130,7 @@ function paletteDragLabel(drag: PaletteDragData): { icon: string; label: string 
 
 export function EditorDndProvider({ children }: { children: ReactNode }) {
 	const pages = useEditorStore((s) => s.body?.pages ?? []);
+	const settings = useEditorStore((s) => s.body?.settings);
 	const runCommand = useEditorStore((s) => s.runCommand);
 	const { insertPaletteItem } = usePaletteInsert();
 	// Only ever set for a catalog-item drag — block drags move in place via
@@ -119,6 +144,9 @@ export function EditorDndProvider({ children }: { children: ReactNode }) {
 	// in the right rail, and the whole gesture is about arriving somewhere else.
 	const [paletteDrag, setPaletteDrag] = useState<PaletteDragData | null>(null);
 	const [dropHint, setDropHint] = useState<PaletteDropHint | null>(null);
+	// Only ever used to convert a drop on the paper into page px — the same
+	// conversion `usePaletteInsert` does for a placement, from the same source.
+	const { width: pageWidthPx } = pageDimensions(settings?.pageSize ?? defaultPageSettings().pageSize, settings?.orientation ?? defaultPageSettings().orientation);
 
 	// A small activation distance so a plain click (to select a block, or
 	// place a cursor in it) doesn't get eaten as a drag start — only the
@@ -158,8 +186,14 @@ export function EditorDndProvider({ children }: { children: ReactNode }) {
 		setDropHint((current) => (sameHint(current, next) ? current : next));
 	}
 
-	/** Where a palette drop lands: the gap beside the hovered block, or the end of a hovered container. */
+	/** Where a palette drop lands: the gap beside the hovered block, the end of a hovered container, or an exact spot on the paper. */
 	function paletteDropTarget(event: DragEndEvent, overData: DropData): InsertTarget | null {
+		if (overData.kind === 'pageSurface') {
+			const target: InsertTarget = { container: overData.container, index: overData.appendIndex };
+			const pointer = dropPointer(event);
+			const dropPoint = pointer ? pageDropPoint(String(event.over?.id), pointer, pageWidthPx) : null;
+			return dropPoint ? { ...target, dropPoint } : target;
+		}
 		if (overData.kind === 'blockContainer') {
 			return { container: overData.container, index: overData.appendIndex };
 		}
@@ -171,6 +205,13 @@ export function EditorDndProvider({ children }: { children: ReactNode }) {
 	}
 
 	function handlePaletteDrop(event: DragEndEvent, activeData: PaletteDragData, overData: DropData) {
+		// A merge field dropped onto text belongs *in* that text, at the character
+		// it was dropped between — not in a new block above or below it. Only when
+		// it misses every editor does it fall through to becoming a block.
+		if (activeData.kind === 'paletteVariable') {
+			const pointer = dropPointer(event);
+			if (pointer && insertVariableAtPoint(pointer, activeData.variableKey)) return;
+		}
 		const target = paletteDropTarget(event, overData);
 		if (!target) return;
 		if (!paletteCanInsertInto(paletteDragBlockType(activeData), target.container)) return;

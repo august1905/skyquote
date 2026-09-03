@@ -120,6 +120,13 @@
    A slider with the exact number beside it, replacing a six-option dropdown.
    See FontSizeControl for why the number box — not the slider — carries the
    "Font size" label. */
+/* A native select is as wide as its widest option, and "Sky blue bright 80px"
+   would push the rest of the toolbar along. The full name is still readable in
+   the open list, which is where it's read. */
+.editor-toolbar-text-style {
+	max-width: 118px;
+}
+
 .toolbar-font-size {
 	display: inline-flex;
 	align-items: center;

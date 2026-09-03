@@ -2,6 +2,8 @@ import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useEffect, useState } from 'react';
 import { useEditorStore } from '../store/editorStore';
 import { allVariables } from '../variables/systemVariables';
+import { findTextStyle, textStyleCss } from '../textStyles';
+import { TextStyleSelect } from '../toolbar/TextStyleSelect';
 import './richtext.css';
 
 /**
@@ -16,6 +18,7 @@ export function VariableChipView({ node, updateAttributes, deleteNode, selected 
 	const variables = allVariables(customVariables);
 	const key = node.attrs.key as string;
 	const fallback = (node.attrs.fallback as string | null) ?? '';
+	const style = findTextStyle(node.attrs.styleId as string | null);
 
 	// PM gives this atom node a real NodeSelection while it's clicked into;
 	// once the user selects/clicks anything else, `selected` goes false —
@@ -26,7 +29,14 @@ export function VariableChipView({ node, updateAttributes, deleteNode, selected 
 	}, [selected]);
 
 	return (
-		<NodeViewWrapper as="span" className={`rt-variable-chip${selected ? ' rt-variable-chip-selected' : ''}`}>
+		<NodeViewWrapper
+			as="span"
+			className={`rt-variable-chip${selected ? ' rt-variable-chip-selected' : ''}`}
+			// On the wrapper, not the button: the chip's own button inherits both
+			// (`font: inherit; color: inherit` in richtext.css), so the style shows
+			// through without fighting the chip's highlight.
+			style={style ? textStyleCss(style) : undefined}
+		>
 			<button type="button" className="rt-variable-chip-button" onClick={() => setOpen((o) => !o)}>
 				[{key}]
 			</button>
@@ -49,6 +59,19 @@ export function VariableChipView({ node, updateAttributes, deleteNode, selected 
 							aria-label="Fallback text"
 							value={fallback}
 							onChange={(e) => updateAttributes({ fallback: e.target.value || null })}
+						/>
+					</label>
+					{/* §'s house styles, per chip. A merge field is usually the one
+					    piece of a line that has to look different — a total, a
+					    client name in a headline — and styling it by selecting the
+					    chip in the text meant selecting an atom node, which is
+					    fiddly at chip size. */}
+					<label>
+						<span>Style</span>
+						<TextStyleSelect
+							label="Merge field style"
+							value={style}
+							onChange={(styleId) => updateAttributes({ styleId })}
 						/>
 					</label>
 					<div className="rt-variable-popover-actions">

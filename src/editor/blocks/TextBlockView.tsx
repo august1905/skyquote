@@ -5,7 +5,7 @@ import { setBlockDoc } from '../commands';
 import { useEditorStore } from '../store/editorStore';
 import { richTextExtensions } from '../richtext/richTextExtensions';
 import { docsEqual, normalizeDoc } from '../richtext/docNormalization';
-import { clearActiveRichTextEditorIf, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
+import { clearActiveRichTextEditorIf, registerRichTextEditor, setActiveRichTextEditor } from '../richtext/activeRichTextEditor';
 import type { BlockViewProps } from './types';
 
 // `@tiptap/react`'s JSONContent and our structural RichTextDoc describe the
@@ -78,7 +78,14 @@ export function TextBlockView({ pageId, block }: BlockViewProps<TextBlock>) {
 	// toolbar enabled and silently inert against a destroyed ProseMirror.
 	useEffect(() => {
 		if (!editor) return;
-		return () => clearActiveRichTextEditorIf(editor);
+		// Registered for as long as it's mounted, so a merge field dragged from
+		// the Variables panel can find this editor by the coordinate it was
+		// dropped on — see `richTextEditorAtPoint`.
+		const unregister = registerRichTextEditor(editor);
+		return () => {
+			unregister();
+			clearActiveRichTextEditorIf(editor);
+		};
 	}, [editor]);
 
 	return (

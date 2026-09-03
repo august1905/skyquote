@@ -1,6 +1,7 @@
 import type { Block, BlockType, FieldType, Page, TemplateBody } from '../types';
-import { INSERTABLE_BLOCK_KINDS, createFieldBlockOfType, type InsertableBlockKind } from '../blocks/insertable';
+import { INSERTABLE_BLOCK_KINDS, createFieldBlockOfType, createTextBlockWithVariable, type InsertableBlockKind } from '../blocks/insertable';
 import { collectAllFields } from '../fields/collectFields';
+import { allVariables } from '../variables/systemVariables';
 import { isContainerBlockType, type BlockContainer } from '../commands/blockTree';
 
 /**
@@ -88,12 +89,29 @@ export const FIELD_ICONS: Record<FieldType, string> = {
 export interface InsertTarget {
 	container: BlockContainer;
 	index: number;
+	/**
+	 * Where on the paper it was dropped, in page px from the paper's top-left —
+	 * set only by a drop on a page's open area (see `PageDropSurface`), where
+	 * "put it *here*" is the whole point of the gesture. A drop into a gap
+	 * between blocks, or a click in the panel, leaves it unset and the block
+	 * lands wherever the flow puts it.
+	 */
+	dropPoint?: { x: number; y: number };
 }
 
-/** dnd-kit `data` for a dragged palette tile. A field carries its role because §6.1 rule 1 never lets a field exist without one. */
+/**
+ * dnd-kit `data` for a dragged palette tile. A field carries its role because
+ * §6.1 rule 1 never lets a field exist without one.
+ *
+ * A variable is a palette drag even though it lives in a different panel: it
+ * produces a block on the page by the same rules as every tile, and sharing
+ * this type is what lets it reuse the drop targets, the nesting check and the
+ * drop-point placement rather than growing a second, parallel drag system.
+ */
 export type PaletteDragData =
 	| { kind: 'paletteBlock'; blockType: BlockType }
-	| { kind: 'paletteField'; fieldType: FieldType; roleId: string };
+	| { kind: 'paletteField'; fieldType: FieldType; roleId: string }
+	| { kind: 'paletteVariable'; variableKey: string };
 
 /** Structural, rather than importing the store's `Selection` — this module would otherwise import the store that imports it. */
 interface SelectionLike {
@@ -204,6 +222,17 @@ export type PaletteResolution =
 	| { status: 'unavailable'; reason: string };
 
 export function resolvePaletteInsert(data: PaletteDragData, body: TemplateBody): PaletteResolution {
+	if (data.kind === 'paletteVariable') {
+		// Same staleness guard as a field's role: the Variables panel can delete a
+		// custom variable while one is mid-flight, and a chip pointing at a
+		// variable that no longer exists renders as an unresolved placeholder in
+		// the recipient's document.
+		if (!allVariables(body.variables).some((variable) => variable.key === data.variableKey)) {
+			return { status: 'unavailable', reason: 'That variable no longer exists.' };
+		}
+		return { status: 'ready', block: createTextBlockWithVariable(data.variableKey) };
+	}
+
 	if (data.kind === 'paletteField') {
 		// The role selector can go stale mid-drag: roles are edited in a
 		// different panel, and §6.1 rule 1 forbids a field with no valid role

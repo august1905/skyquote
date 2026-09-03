@@ -192,6 +192,25 @@ describe('resolvePaletteInsert', () => {
 		expect(result).toEqual({ status: 'unavailable', reason: 'That recipient role no longer exists.' });
 	});
 
+	it('creates a text block holding just the chip for a dragged merge field', () => {
+		const result = resolvePaletteInsert({ kind: 'paletteVariable', variableKey: 'Client.Name' }, makeBody());
+		expect(result.status).toBe('ready');
+		if (result.status === 'ready' && result.block.type === 'text') {
+			expect(result.block.doc).toEqual({
+				type: 'doc',
+				content: [{ type: 'paragraph', content: [{ type: 'variable', attrs: { key: 'Client.Name', fallback: null } }] }],
+			});
+		}
+	});
+
+	it('refuses a merge field whose custom variable was deleted mid-drag', () => {
+		// Same staleness as a field's role, and the same reason to refuse: a chip
+		// pointing at a variable nobody defines renders as "[… not provided]" in
+		// the recipient's document.
+		const result = resolvePaletteInsert({ kind: 'paletteVariable', variableKey: 'Custom.Gone' }, makeBody());
+		expect(result).toEqual({ status: 'unavailable', reason: 'That variable no longer exists.' });
+	});
+
 	it('names the field uniquely against fields already in the template', () => {
 		const body = withRoles(makeBody(), [role('role-1')]);
 		const first = resolvePaletteInsert({ kind: 'paletteField', fieldType: 'signature', roleId: 'role-1' }, body);
