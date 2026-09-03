@@ -11,9 +11,9 @@ test.describe('Multi-select', () => {
 
 		// Get to three blocks: the template's own default text block, plus two more.
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 
 		const blocks = page.locator('.canvas-block');
 		await expect(blocks).toHaveCount(3);
@@ -47,12 +47,12 @@ test.describe('Multi-select', () => {
 		await editors.nth(0).click();
 		await page.keyboard.type('First');
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 		await unpinSelectedBlock(page);
 		await editors.nth(1).click();
 		await page.keyboard.type('Second');
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 		await unpinSelectedBlock(page);
 		await editors.nth(2).click();
 		await page.keyboard.type('Third');
@@ -82,7 +82,7 @@ test.describe('Multi-select', () => {
 		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 
 		const blocks = page.locator('.canvas-block');
 		await blocks.nth(1).click();

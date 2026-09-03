@@ -3,14 +3,14 @@ import { money } from '../../editor/types';
 import type { PricingItem, PricingTableBlock, TemplateBody, TemplateSettings, TextBlock } from '../../editor/types';
 import type { CrmDealQuote } from '../../api/zohoCrm';
 import { computeTotals } from '../../pricing/computeTotals';
-import { selectableItemIds } from '../../pricing/recipientSelections';
-import { applyQuoteToBody } from './importQuote';
+import { packageSectionKey, selectableItemIds } from '../../pricing/recipientSelections';
+import { applyQuotesToBody } from './importQuote';
 
 /**
  * The import decides what a customer is quoted, so the tests are about money
- * and the checkable-boxes contract: every imported line must be tickable
- * (optional + offered), a discount must not be untickable away, and the
- * document's total must equal the CRM quote's.
+ * and the package contract: one section per CRM quote, only the sections are
+ * choosable (a package is all-or-nothing), each package's own total matches
+ * its CRM quote's, and the document total is the preselected package's alone.
  */
 
 function makeSettings(): TemplateSettings {
@@ -59,15 +59,29 @@ function body(blocks: TemplateBody['pages'][number]['blocks']): TemplateBody {
 function quote(overrides: Partial<CrmDealQuote> = {}): CrmDealQuote {
 	return {
 		id: 'q1',
-		number: 'Q-101',
-		subject: 'Cleaning Packages - One Time',
+		name: '(SW) Siding',
+		number: null,
+		subject: '(SW) Siding - The Brad Belstra Residence',
+		status: 'Pending',
 		discount: 0,
-		items: [
-			{ name: 'Interior Window Cleaning', description: 'All interior glass and frames.', qty: 1, price: 59200 },
-			{ name: 'Exterior Window Cleaning', description: '', qty: 1, price: 25000 },
-		],
+		total: 110200,
+		items: [{ name: 'RES Softwash', description: '', qty: 1, price: 96200 }],
 		...overrides,
 	};
+}
+
+function secondQuote(overrides: Partial<CrmDealQuote> = {}): CrmDealQuote {
+	return quote({
+		id: 'q2',
+		name: 'Package 2 - Siding + Windows',
+		subject: 'Package 2 - Siding + Windows - The Brad Belstra Residence',
+		total: 121600,
+		items: [
+			{ name: 'RES Softwash', description: '', qty: 1, price: 96200 },
+			{ name: 'RES Windows Exterior', description: '', qty: 1, price: 25400 },
+		],
+		...overrides,
+	});
 }
 
 function firstTable(b: TemplateBody): PricingTableBlock {
@@ -76,47 +90,76 @@ function firstTable(b: TemplateBody): PricingTableBlock {
 	return block;
 }
 
-describe('applyQuoteToBody', () => {
-	it('replaces the first pricing table’s items with the quote’s, every one optional, selected, and offered to the recipient', () => {
+describe('applyQuotesToBody', () => {
+	it('turns the first pricing table into a package selection: one named section per quote, rows all-or-nothing', () => {
 		const scaffold = body([textBlock('t'), table('pt', [item('placeholder', 100)])]);
-		const result = applyQuoteToBody(scaffold, quote());
+		const result = applyQuotesToBody(scaffold, [quote(), secondQuote()]);
 		expect(result).not.toBeNull();
 		const imported = firstTable(result!.body);
-		expect(imported.items.map((i) => [i.name, i.price, i.optional, i.selected])).toEqual([
-			['Interior Window Cleaning', 59200, true, true],
-			['Exterior Window Cleaning', 25000, true, true],
-		]);
-		expect(imported.settings.allowRecipientSelectOptional).toBe(true);
-		// The checkable-boxes contract: every imported row is one the recipient can tick.
-		expect(selectableItemIds(result!.body).size).toBe(2);
+
+		expect(imported.settings.packageSelection).toBe(true);
+		expect(imported.settings.allowRecipientSelectOptional).toBe(false);
+		expect(imported.sections.map((s) => s.name)).toEqual(['(SW) Siding', 'Package 2 - Siding + Windows']);
+		// Every row belongs to its quote's section, none is individually optional.
+		expect(imported.items.every((i) => i.sectionId !== null && !i.optional)).toBe(true);
+		expect(imported.items.some((i) => i.name === 'placeholder')).toBe(false);
+
+		// The only choosable things are the packages themselves.
+		const ids = selectableItemIds(result!.body);
+		expect(ids.size).toBe(2);
+		for (const section of imported.sections) expect(ids.has(packageSectionKey(section.id))).toBe(true);
 		expect(result!.imported).toBe(2);
 	});
 
-	it('matches the CRM quote’s total, and a quote-level discount lands as one non-optional negative line', () => {
-		const result = applyQuoteToBody(body([table('pt', [])]), quote({ discount: 2550 }));
+	it('preselects the first package by default, and the document total is that package alone', () => {
+		const result = applyQuotesToBody(body([table('pt', [])]), [quote(), secondQuote()]);
 		const imported = firstTable(result!.body);
-		const discountLine = imported.items[imported.items.length - 1]!;
-		expect(discountLine.name).toBe('Discount');
-		expect(discountLine.price).toBe(-2550);
-		expect(discountLine.optional).toBe(false);
-		// 592.00 + 250.00 − 25.50
-		expect(computeTotals(result!.body).total).toBe(59200 + 25000 - 2550);
-		// A discount is not a choice — it must never appear as a tickable row.
-		expect(selectableItemIds(result!.body).has(discountLine.id)).toBe(false);
+		expect(imported.selectedSectionId).toBe(imported.sections[0]!.id);
+		// 962.00 — the chosen package, not the sum of both packages.
+		expect(computeTotals(result!.body).total).toBe(96200);
+	});
+
+	it('preselects an already-accepted CRM quote instead of the first', () => {
+		const result = applyQuotesToBody(body([table('pt', [])]), [quote(), secondQuote({ status: 'Accepted' })]);
+		const imported = firstTable(result!.body);
+		expect(imported.selectedSectionId).toBe(imported.sections[1]!.id);
+		expect(computeTotals(result!.body).total).toBe(96200 + 25400);
+	});
+
+	it('lands a quote-level discount inside its own package, so each package total matches its CRM quote', () => {
+		const result = applyQuotesToBody(body([table('pt', [])]), [quote({ discount: 2550 }), secondQuote()]);
+		const imported = firstTable(result!.body);
+		const first = imported.sections[0]!;
+		const discountLine = imported.items.find((i) => i.name === 'Discount');
+		expect(discountLine).toBeDefined();
+		expect(discountLine!.sectionId).toBe(first.id);
+		expect(discountLine!.price).toBe(-2550);
+		// The chosen (first) package: 962.00 − 25.50. The other package untouched.
+		expect(computeTotals(result!.body).total).toBe(96200 - 2550);
 	});
 
 	it('targets only the FIRST pricing table; a second one keeps its own items', () => {
 		const scaffold = body([table('pt1', [item('scaffold-row', 100)]), table('pt2', [item('keep-me', 200)])]);
-		const result = applyQuoteToBody(scaffold, quote());
+		const result = applyQuotesToBody(scaffold, [quote()]);
 		expect(firstTable(result!.body).items.some((i) => i.name === 'scaffold-row')).toBe(false);
 		const second = result!.body.pages[0]!.blocks[1] as PricingTableBlock;
 		expect(second.items.map((i) => i.name)).toEqual(['keep-me']);
+		expect(second.settings.packageSelection).toBeUndefined();
 	});
 
-	it('returns null when the template has no pricing table, or the quote has no lines — and never mutates its input', () => {
-		expect(applyQuoteToBody(body([textBlock('t')]), quote())).toBeNull();
+	it('returns null when the template has no pricing table, or no quote has lines — and never mutates its input', () => {
+		expect(applyQuotesToBody(body([textBlock('t')]), [quote()])).toBeNull();
 		const scaffold = body([table('pt', [item('placeholder', 100)])]);
-		expect(applyQuoteToBody(scaffold, quote({ items: [] }))).toBeNull();
+		expect(applyQuotesToBody(scaffold, [quote({ items: [] })])).toBeNull();
+		expect(applyQuotesToBody(scaffold, [])).toBeNull();
 		expect(firstTable(scaffold).items[0]!.name).toBe('placeholder');
+	});
+
+	it('drops an empty quote but keeps the rest, falling back to subject then a numbered name', () => {
+		const unnamed = secondQuote({ name: null, subject: null });
+		const result = applyQuotesToBody(body([table('pt', [])]), [quote({ items: [] }), unnamed]);
+		const imported = firstTable(result!.body);
+		expect(imported.sections.map((s) => s.name)).toEqual(['Package 1']);
+		expect(result!.imported).toBe(1);
 	});
 });

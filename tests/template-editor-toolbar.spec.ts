@@ -48,7 +48,19 @@ async function addTextBlock(page: Page, text: string) {
  * tests are about the toolbar.
  */
 async function selectParagraph(page: Page, editor?: Locator) {
-	await (editor ?? page.locator('.canvas-block .ProseMirror').first()).click({ clickCount: 3 });
+	const target = editor ?? page.locator('.canvas-block .ProseMirror').first();
+	// A single click at a *different* point first, which is what makes the
+	// triple-click below a triple-click. Chrome counts consecutive clicks at
+	// the same point within ~500ms as one escalating gesture, so two of these
+	// calls in quick succession send clicks 4, 5 and 6 instead — and those
+	// collapse the selection to a caret. The mark then applies as a stored
+	// mark: the toolbar reads `aria-pressed="true"` while the document is
+	// untouched, which is exactly what the failing runs showed. Clicking
+	// elsewhere resets the browser's counter by position, so each selection
+	// starts from one again no matter how fast the assertions before it
+	// resolved.
+	await target.click({ position: { x: 4, y: 4 } });
+	await target.click({ clickCount: 3 });
 }
 
 /** Selects the paragraph, opens §2's `…` overflow group, and chooses one item. */
@@ -306,12 +318,8 @@ test.describe('Keyboard shortcuts (§9.3)', () => {
 	test('Cmd+P toggles previewing as a role on and off', async ({ page }) => {
 		await openNewTemplate(page);
 
-		// The toggle only exists once there's a role to preview as.
-		await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-		await page.getByRole('button', { name: '+ Add role' }).click();
-		await page.locator('.roles-panel-row').last().getByLabel('Role name').fill('Client');
-		await page.getByRole('button', { name: 'Close roles panel' }).click();
-
+		// The toggle only exists once there's a role to preview as — satisfied
+		// from the start by the two roles every new template is seeded with.
 		const previewSelect = page.locator('.preview-role-toggle select');
 		await expect(previewSelect).toHaveValue('');
 

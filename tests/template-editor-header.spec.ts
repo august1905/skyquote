@@ -67,18 +67,21 @@ test.describe('Header bar (§3 ①)', () => {
 
 	test('the role avatar stack shows initials per role and Manage opens the roles panel', async ({ page }) => {
 		await newTemplate(page);
-		// No roles yet: an empty stack would be noise, so there's nothing to show.
-		await expect(page.locator('.role-avatar-chip')).toHaveCount(0);
+		// A new template is seeded with two roles, so the stack shows their two
+		// chips from the start rather than sitting empty.
+		await expect(page.locator('.role-avatar-chip')).toHaveCount(2);
 
 		await addRole(page, 'Casey Client');
 		await addRole(page, 'Sales Rep');
 
 		const chips = page.locator('.role-avatar-chip');
-		await expect(chips).toHaveCount(2);
-		await expect(chips.nth(0)).toHaveText('CC');
-		await expect(chips.nth(1)).toHaveText('SR');
+		await expect(chips).toHaveCount(4);
+		// The stack reads in signing order, so the added roles land after the
+		// seeded pair.
+		await expect(chips.nth(2)).toHaveText('CC');
+		await expect(chips.nth(3)).toHaveText('SR');
 		// The initials alone aren't reachable by anything but sight.
-		await expect(chips.nth(0)).toHaveAttribute('aria-label', 'Casey Client');
+		await expect(chips.nth(2)).toHaveAttribute('aria-label', 'Casey Client');
 
 		// §3: Manage "opens role management panel" — the same rail panel the 👥
 		// icon opens, not a second copy of it.
@@ -207,7 +210,8 @@ test.describe('Header bar (§3 ①)', () => {
 		// §3/§11.1 say must block document creation. New fields are auto-numbered
 		// ("Signature 1", "Initials 1"), so the collision has to be forced by
 		// renaming — the same way template-editor-validation.spec.ts does it.
-		await addRole(page, 'Client');
+		// Both fields default to the seeded 'Contact (Signer)' role; any role
+		// will do here, so none is added.
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Signature' }).click();
 		await page.getByRole('button', { name: '+ Add block' }).click();

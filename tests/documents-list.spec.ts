@@ -10,7 +10,7 @@ import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture'
 
 const CONTENT = 'Scope of work: quarterly window cleaning';
 
-/** Creates a template with one line of real content, then a document from it. Returns the document title and the recipient's link. */
+/** Creates a template with one line of real content, then a document from it. Returns the document title and the contact recipient's link. */
 async function createDocument(page: Page): Promise<{ title: string; link: string }> {
 	await openNewTemplate(page);
 
@@ -19,18 +19,13 @@ async function createDocument(page: Page): Promise<{ title: string; link: string
 	await page.keyboard.type(CONTENT);
 	await saveNow(page);
 
-	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-	await page.getByRole('button', { name: '+ Add role' }).click();
-	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill('Client');
-	await page.getByRole('button', { name: 'Close roles panel' }).click();
-
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');
 	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
 
-	await page.getByLabel('Client name').fill('Casey Client');
-	await page.getByLabel('Client email').fill('casey@example.com');
+	await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+	await page.getByLabel('Contact (Signer) email').fill('casey@example.com');
 	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
 	await wizard.getByRole('button', { name: 'Next' }).click(); // variables
 	await wizard.getByRole('button', { name: 'Next' }).click(); // pricing
@@ -72,11 +67,14 @@ test('a created document shows up in the list and opens as the actual document, 
 	await expect(page.locator('.doc-view-page [contenteditable="true"]')).toHaveCount(0);
 
 	// The metadata the old modal carried lives in the side tab rail now.
-	// Recipients opens by default: the customer row, with status.
+	// Recipients opens by default: one row per role — Casey the contact, then
+	// the Skyline signer (the logged-in user, whose name varies, so only
+	// Casey's row is pinned down).
 	const recipientsPanel = page.locator('.recipients-rail-panel');
-	await expect(recipientsPanel.getByText('Casey Client')).toBeVisible();
-	await expect(recipientsPanel.getByText('casey@example.com')).toBeVisible();
-	await expect(recipientsPanel.locator('.recipients-panel-status')).toHaveText('Pending');
+	await expect(recipientsPanel.locator('.recipients-panel-row')).toHaveCount(2);
+	const caseyRow = recipientsPanel.locator('.recipients-panel-row', { hasText: 'Casey Client' });
+	await expect(caseyRow.getByText('casey@example.com')).toBeVisible();
+	await expect(caseyRow.locator('.recipients-panel-status')).toHaveText('Pending');
 
 	// The audit trail is the other tab: creating the document is its first entry,
 	// stamped with who did it — the trail's whole reason to exist.
@@ -99,7 +97,10 @@ test('a lost recipient link can be regenerated from the document, and the old on
 	await firstRow(page).getByRole('button', { name: 'Open' }).click();
 	await page.waitForURL(/\/documents\/\d+$/);
 
-	await page.getByRole('button', { name: 'Regenerate link' }).click();
+	// Every recipient row has its own Regenerate link button now — Casey's, not
+	// the Skyline signer's.
+	const caseyRow = page.locator('.recipients-panel-row', { hasText: 'Casey Client' });
+	await caseyRow.getByRole('button', { name: 'Regenerate link' }).click();
 	const newLinkInput = page.getByLabel('Casey Client link');
 	await expect(newLinkInput).toBeVisible();
 	const newLink = await newLinkInput.inputValue();
@@ -113,7 +114,7 @@ test('a lost recipient link can be regenerated from the document, and the old on
 	await expect(recipientPage.getByRole('alert')).toHaveText('This link is invalid or has expired.');
 
 	await recipientPage.goto(newLink);
-	await expect(recipientPage.getByText('Viewing as Casey Client (Client)')).toBeVisible();
+	await expect(recipientPage.getByText('Viewing as Casey Client (Contact (Signer))')).toBeVisible();
 
 	await recipientContext.close();
 });
@@ -167,13 +168,8 @@ test('Create document on the Documents screen chooses a template, offers the CRM
 
 	await page.locator('.canvas-block .ProseMirror').first().click();
 	await page.keyboard.type(CONTENT);
-	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-	await page.getByRole('button', { name: '+ Add role' }).click();
-	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill('Client');
-	await page.getByRole('button', { name: 'Close roles panel' }).click();
-	// Saved *after* the role is added, unlike the editor-based helper above: this
-	// flow reads the template back from the server, so an unsaved role would
-	// simply not be there and the Recipients step would have nothing to bind.
+	// Saved before leaving the editor: this flow reads the template back from
+	// the server, so unsaved content would simply not be there.
 	await saveNow(page);
 
 	await page.goto('/documents');
@@ -192,8 +188,8 @@ test('Create document on the Documents screen chooses a template, offers the CRM
 	await skipWizardDealStep(wizard);
 
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
-	await page.getByLabel('Client name').fill('Casey Client');
-	await page.getByLabel('Client email').fill('casey@example.com');
+	await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+	await page.getByLabel('Contact (Signer) email').fill('casey@example.com');
 	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
 	await wizard.getByRole('button', { name: 'Next' }).click(); // variables
 	await wizard.getByRole('button', { name: 'Next' }).click(); // pricing

@@ -20,7 +20,7 @@ export function CatalogItemCard({ catalogItem }: CatalogItemCardProps) {
 			{...attributes}
 			{...listeners}
 			className={`catalog-item-card${isDragging ? ' catalog-item-card-dragging' : ''}`}
-			aria-label={`Drag ${catalogItem.name} into a pricing table`}
+			aria-label={`Drag ${catalogItem.name} into a Package selection block`}
 		>
 			<div className="catalog-item-card-main">
 				<span className="catalog-item-card-name">{catalogItem.name}</span>

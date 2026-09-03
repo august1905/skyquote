@@ -10,7 +10,7 @@ const LONG_PARAGRAPH =
 
 async function insertTextBlock(page: import('@playwright/test').Page, text: string) {
 	await page.getByRole('button', { name: '+ Add block' }).click();
-	await page.getByRole('menuitem', { name: 'Text' }).click();
+	await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 	// Pagination is a *flow* concept and new blocks arrive pinned (out of the
 	// flow) by default, so put each one back before measuring how they spill.
 	await unpinSelectedBlock(page);

@@ -146,6 +146,53 @@ describe('computePricingTableTotals — sections (§7.1: rows → sections → b
 	});
 });
 
+describe('computePricingTableTotals — package selection (one section is billed)', () => {
+	const packages = makePricingTable({
+		sections: [
+			{ id: 'pkg-1', name: '(SW) Siding', order: 0 },
+			{ id: 'pkg-2', name: 'Package 2', order: 1 },
+		],
+		selectedSectionId: 'pkg-2',
+		items: [
+			makeItem({ id: 'a', sectionId: 'pkg-1', price: money(96200) }),
+			makeItem({ id: 'b', sectionId: 'pkg-2', price: money(96200) }),
+			makeItem({ id: 'c', sectionId: 'pkg-2', price: money(25400) }),
+		],
+		settings: {
+			allowRecipientQtyEdit: false,
+			allowRecipientSelectOptional: false,
+			packageSelection: true,
+			showSubtotal: true,
+			showDiscount: true,
+			showTax: true,
+			showTotal: true,
+		},
+	});
+
+	it('bills only the chosen section; unchosen packages report included: false', () => {
+		const result = computePricingTableTotals(packages);
+		expect(result.total).toBe(money(96200 + 25400));
+		expect(result.lines.find((l) => l.itemId === 'a')!.included).toBe(false);
+		expect(result.lines.find((l) => l.itemId === 'b')!.included).toBe(true);
+	});
+
+	it('section totals stay unfiltered — each is what that package would cost, for the chooser to print', () => {
+		const result = computePricingTableTotals(packages);
+		expect(result.sections.find((s) => s.sectionId === 'pkg-1')!.total).toBe(money(96200));
+		expect(result.sections.find((s) => s.sectionId === 'pkg-2')!.total).toBe(money(96200 + 25400));
+	});
+
+	it('a sectionless row (a table-wide line) is billed regardless of the chosen package', () => {
+		const withGlobal = { ...packages, items: [...packages.items, makeItem({ id: 'g', sectionId: null, price: money(100) })] };
+		expect(computePricingTableTotals(withGlobal).total).toBe(money(96200 + 25400 + 100));
+	});
+
+	it('no chosen section bills only sectionless rows — a package table with no default charges for no package', () => {
+		const noneChosen = { ...packages, selectedSectionId: null };
+		expect(computePricingTableTotals(noneChosen).total).toBe(money(0));
+	});
+});
+
 describe('computeQuoteBuilderTotals', () => {
 	it('flattens every group\'s options into one set of lines', () => {
 		const block: QuoteBuilderBlock = {

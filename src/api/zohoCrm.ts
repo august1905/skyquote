@@ -51,7 +51,7 @@ export function getCrmDeal(id: string): Promise<{ deal: CrmDeal }> {
 	return apiFetch<{ deal: CrmDeal }>(`/zoho-crm/deals/${encodeURIComponent(id)}`);
 }
 
-/** One line of an accepted CRM quote. `price` is **integer cents** — unlike a deal's `amount`, these become `PricingItem.price` directly. */
+/** One line of a CRM quote. `price` is **integer cents** — unlike a deal's `amount`, these become `PricingItem.price` directly. */
 export interface CrmQuoteItem {
 	name: string;
 	description: string;
@@ -59,16 +59,23 @@ export interface CrmQuoteItem {
 	price: number;
 }
 
+/** One CRM quote = one package the customer can pick in the document. */
 export interface CrmDealQuote {
 	id: string;
+	/** The package label — `Subject` with the deal-name suffix this org appends stripped off. */
+	name: string | null;
 	number: string | null;
 	subject: string | null;
+	/** The CRM's `Customer_Selection_Status` ("Accepted", "Pending", …); an accepted quote becomes the preselected package. */
+	status: string | null;
 	/** Quote-level discount in cents; 0 when the quote has none. */
 	discount: number;
+	/** The CRM's own grand total in cents — ordering only; the app re-derives totals per line. */
+	total: number;
 	items: CrmQuoteItem[];
 }
 
-/** The deal's accepted quote, or `{ quote: null }` when it has none — a normal state, not an error. Needs `quotes.READ` on the `zohocrm` connection; without it the backend answers 502. */
-export function getCrmDealQuote(dealId: string): Promise<{ quote: CrmDealQuote | null }> {
-	return apiFetch<{ quote: CrmDealQuote | null }>(`/zoho-crm/deals/${encodeURIComponent(dealId)}/quote`);
+/** Every quote on the deal, cheapest first, or `{ quotes: [] }` when it has none — a normal state, not an error. Needs `quotes.READ` on the `zohocrm` connection; without it the backend answers 502. */
+export function getCrmDealQuotes(dealId: string): Promise<{ quotes: CrmDealQuote[] }> {
+	return apiFetch<{ quotes: CrmDealQuote[] }>(`/zoho-crm/deals/${encodeURIComponent(dealId)}/quotes`);
 }

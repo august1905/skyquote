@@ -67,7 +67,7 @@ test.describe('Pinning a block to the page', () => {
 		// default Grayson asked for (2026-09-02: "Items in the template editor
 		// should be pinned by default with the movable position").
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 		const placed = page.locator('.canvas-placed');
 		await expect(placed).toHaveCount(1);
 		await expect(page.getByRole('button', { name: 'Pin block to the page' })).toHaveAttribute('aria-pressed', 'true');

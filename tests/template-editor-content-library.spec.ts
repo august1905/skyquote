@@ -293,6 +293,9 @@ test.describe('Content Library (§8)', () => {
 			await page.getByRole('button', { name: 'Close roles panel' }).click();
 
 			await page.getByRole('button', { name: '+ Add block' }).click();
+			// New fields default to the seeded 'Contact (Signer)' — pick the added
+			// role explicitly so the saved field really belongs to 'Signer A'.
+			await page.getByLabel('Fields for').selectOption({ label: 'Signer A' });
 			await page.getByRole('menuitem', { name: 'Text field' }).click();
 			const fieldBlock = page.locator('.canvas-block').filter({ has: page.locator('.field-block') });
 			await fieldBlock.first().click();

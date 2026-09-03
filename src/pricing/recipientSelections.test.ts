@@ -225,3 +225,68 @@ describe('unsatisfiedGroups', () => {
 		expect(unsatisfiedGroups(b, { weekly: true, monthly: false, windows: false })).toEqual([]);
 	});
 });
+
+describe('package selection (one section is the choice, all-or-nothing)', () => {
+	function packageTable(selectedSectionId: string | null = 'pkg-1'): PricingTableBlock {
+		const block = table(
+			'pt',
+			[
+				item('a', 96200, { sectionId: 'pkg-1' }),
+				item('b', 96200, { sectionId: 'pkg-2' }),
+				item('c', 25400, { sectionId: 'pkg-2' }),
+				item('note', 0, { sectionId: null }),
+			],
+			false
+		);
+		block.sections = [
+			{ id: 'pkg-1', name: '(SW) Siding', order: 0 },
+			{ id: 'pkg-2', name: 'Package 2', order: 1 },
+		];
+		block.selectedSectionId = selectedSectionId;
+		block.settings.packageSelection = true;
+		return block;
+	}
+
+	it('offers the sections as the choosable things, never the rows', () => {
+		const b = body([packageTable()]);
+		expect([...selectableItemIds(b)].sort()).toEqual(['section:pkg-1', 'section:pkg-2']);
+		expect(hasRecipientChoices(b)).toBe(true);
+	});
+
+	it('seeds defaults with the preselected package chosen and the others not', () => {
+		const b = body([packageTable()]);
+		const defaults = defaultSelections(b);
+		expect(defaults['section:pkg-1']).toBe(true);
+		expect(defaults['section:pkg-2']).toBe(false);
+	});
+
+	it('applyPricingSelections resolves the picked package onto the block, keeps every row, and computeTotals bills only that package', () => {
+		const b = body([packageTable()]);
+		const applied = applyPricingSelections(b, { 'section:pkg-1': false, 'section:pkg-2': true });
+		const block = applied.pages[0]!.blocks[0] as PricingTableBlock;
+		expect(block.selectedSectionId).toBe('pkg-2');
+		expect(block.items).toHaveLength(4);
+		expect(computeTotals(applied).total).toBe(96200 + 25400);
+	});
+
+	it('falls back to the preselected default when the stored map has no section keys', () => {
+		const applied = applyPricingSelections(body([packageTable()]), {});
+		expect((applied.pages[0]!.blocks[0] as PricingTableBlock).selectedSectionId).toBe('pkg-1');
+	});
+
+	it('configuredBodyForAgreement keeps only the chosen package — plus sectionless rows — and settles what stays', () => {
+		const agreement = configuredBodyForAgreement(body([packageTable()]), { 'section:pkg-2': true });
+		const block = agreement.pages[0]!.blocks[0] as PricingTableBlock;
+		expect(block.sections.map((s) => s.id)).toEqual(['pkg-2']);
+		expect(block.items.map((i) => i.id).sort()).toEqual(['b', 'c', 'note']);
+		expect(block.items.every((i) => !i.optional && i.selected)).toBe(true);
+		expect(computeTotals(agreement).total).toBe(96200 + 25400);
+	});
+
+	it('unsatisfiedGroups treats the table as one required single-selection group', () => {
+		const b = body([packageTable(null)]);
+		expect(unsatisfiedGroups(b, {})[0]).toMatchObject({ groupId: 'pt', groupName: 'Package selection', reason: 'none-chosen' });
+		expect(unsatisfiedGroups(b, { 'section:pkg-1': true, 'section:pkg-2': true })[0]).toMatchObject({ reason: 'too-many-chosen' });
+		expect(unsatisfiedGroups(b, { 'section:pkg-1': true })).toEqual([]);
+	});
+});

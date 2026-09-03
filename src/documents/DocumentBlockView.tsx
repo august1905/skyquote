@@ -1,7 +1,7 @@
 import { embedUrlFor } from '../editor/blocks/videoEmbed';
 import { FieldPreview } from '../editor/fields/FieldPreview';
 import { computePricingTableTotals, computeQuoteBuilderTotals, type LineTotal } from '../pricing/computeTotals';
-import type { PricingSelections } from '../pricing/recipientSelections';
+import { packageSectionKey, type PricingSelections } from '../pricing/recipientSelections';
 import { formatMoney } from '../pricing/formatMoney';
 import type { Block, PricingItem, PricingTableBlock, QuoteBuilderBlock } from '../editor/types';
 import { evaluateSmartContent, type SmartContentContext } from '../smartContent/evaluateRules';
@@ -273,7 +273,82 @@ function DocumentPricingLines({
 	);
 }
 
+/**
+ * A package-selection table: each section is a package, and picking one is the
+ * whole interaction. Rendered as cards — every package stays fully priced and
+ * on screen (the menu is the point) — with a radio when a live
+ * `PricingInteraction` is present. The body this renders has already been
+ * through `applyPricingSelections`, so `selectedSectionId` *is* the current
+ * choice; the radio writes the `section:` keys back into the shared
+ * selections map.
+ */
+function DocumentPackageTableView({ block, pricing }: { block: PricingTableBlock; pricing?: PricingInteraction | undefined }) {
+	const totals = computePricingTableTotals(block);
+	const sectionTotalById = new Map(totals.sections.map((s) => [s.sectionId, s] as const));
+	const lineByItemId = new Map(totals.lines.map((l) => [l.itemId, l] as const));
+	const sections = [...block.sections].sort((a, b) => a.order - b.order);
+	const chosenId = block.selectedSectionId ?? null;
+
+	function pick(sectionId: string) {
+		if (!pricing) return;
+		const next = { ...pricing.selections };
+		for (const section of sections) next[packageSectionKey(section.id)] = section.id === sectionId;
+		pricing.onChange(next);
+	}
+
+	return (
+		<div className="doc-view-pricing-table doc-view-package-table">
+			{sections.map((section) => {
+				const chosen = section.id === chosenId;
+				const sectionTotal = sectionTotalById.get(section.id);
+				const items = block.items.filter((item) => item.sectionId === section.id);
+				return (
+					<label key={section.id} className={`doc-view-package${chosen ? ' doc-view-package-chosen' : ''}`}>
+						<div className="doc-view-package-header">
+							{pricing && (
+								<input
+									className="doc-view-pricing-choice"
+									type="radio"
+									name={`package-${block.id}`}
+									checked={chosen}
+									disabled={pricing.readOnly}
+									aria-label={section.name || 'Package'}
+									onChange={() => pick(section.id)}
+								/>
+							)}
+							<span className="doc-view-package-name">{section.name}</span>
+							{sectionTotal && <span className="doc-view-package-total">{formatMoney(sectionTotal.total, block.currency)}</span>}
+						</div>
+						<div className="doc-view-package-lines">
+							{items.map((item) => {
+								const line = lineByItemId.get(item.id);
+								return (
+									<div key={item.id} className="doc-view-pricing-row">
+										<span className="doc-view-pricing-name">{item.name}</span>
+										{item.description && <span className="doc-view-pricing-description">{item.description}</span>}
+										<span className="doc-view-pricing-qty">×{item.qty}</span>
+										<span className="doc-view-pricing-line-total">{line ? formatMoney(line.total, block.currency) : null}</span>
+									</div>
+								);
+							})}
+						</div>
+					</label>
+				);
+			})}
+			{block.settings.showTotal && (
+				<div className="doc-view-pricing-footer">
+					<div className="doc-view-pricing-footer-row doc-view-pricing-footer-total">
+						<span>Total</span>
+						<span>{formatMoney(totals.total, block.currency)}</span>
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
 function DocumentPricingTableBlockView({ block, pricing }: { block: PricingTableBlock; pricing?: PricingInteraction | undefined }) {
+	if (block.settings.packageSelection) return <DocumentPackageTableView block={block} pricing={pricing} />;
 	const totals = computePricingTableTotals(block);
 	const lineByItemId = new Map(totals.lines.map((l) => [l.itemId, l] as const));
 	// Independent tick-boxes: a table's optional rows have no relationship to each

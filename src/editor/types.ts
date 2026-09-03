@@ -217,9 +217,23 @@ export interface PricingTableBlock extends BlockBase {
 	columns: PricingColumn[];
 	sections: PricingSection[];
 	items: PricingItem[];
+	/**
+	 * Only meaningful with `settings.packageSelection`: the section whose items
+	 * count toward the total — the sender's preselected default in a stored
+	 * body, the live choice in a body that's been through
+	 * `applyPricingSelections`.
+	 */
+	selectedSectionId?: string | null;
 	settings: {
 		allowRecipientQtyEdit: boolean;
 		allowRecipientSelectOptional: boolean;
+		/**
+		 * The table is a one-of-N package choice: each section is a package
+		 * (the CRM quote import authors these), the recipient picks exactly
+		 * one, and only the chosen section's items are billed. A package is
+		 * all-or-nothing — its rows are not individually deselectable.
+		 */
+		packageSelection?: boolean;
 		showSubtotal: boolean;
 		showDiscount: boolean;
 		showTax: boolean;

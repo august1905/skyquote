@@ -95,13 +95,6 @@ async function pointInside(locator: Locator, fraction: number) {
 	return { x: box.x + box.width / 2, y: box.y + box.height * fraction };
 }
 
-async function addRole(page: Page, name: string) {
-	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-	await page.getByRole('button', { name: '+ Add role' }).click();
-	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill(name);
-	await page.getByRole('button', { name: 'Close roles panel' }).click();
-}
-
 test.describe('Content panel', () => {
 	test.afterAll(async ({ request }) => {
 		await cleanupFixtureTemplates(request);
@@ -116,7 +109,7 @@ test.describe('Content panel', () => {
 			'Image',
 			'Video',
 			'Table (2×2)',
-			'Pricing table',
+			'Package selection',
 			'Quote builder',
 			'Table of contents',
 			'Page break',
@@ -213,19 +206,16 @@ test.describe('Content panel', () => {
 		await expect(page.locator('.block-column').nth(1).locator('.block-page-break')).toHaveCount(0);
 	});
 
-	test('field tiles wait for a role, then carry it onto the block they create', async ({ page, request }) => {
+	test('field tiles are offered immediately, scoped to the seeded roles, and carry one onto the block they create', async ({ page, request }) => {
 		await openFixtureTemplate(page, request, 'fields');
 
-		// §6.1 rule 1: a field can't exist without a role, so there's nothing
-		// honest to offer until one does.
-		await expect(page.getByText('every field has to belong to someone')).toBeVisible();
-		await expect(tile(page, 'Signature')).toHaveCount(0);
-
-		// Adding a role goes via the Recipients panel, which replaces this one —
-		// one panel open at a time, per §3.
-		await addRole(page, 'Client');
-		await page.getByRole('button', { name: 'Content', exact: true }).click();
-		await expect(panel(page).getByLabel('Role that new fields belong to')).toHaveValue(/.+/);
+		// §6.1 rule 1 — a field can't exist without a role — is satisfied from
+		// birth: every new template is seeded with 'Contact (Signer)' and
+		// 'Skyline Signer', so the tiles are available right away rather than
+		// behind an empty state.
+		const roleSelect = panel(page).getByLabel('Role that new fields belong to');
+		await expect(roleSelect.locator('option')).toHaveText(['Contact (Signer)', 'Skyline Signer']);
+		await expect(roleSelect).toHaveValue(/.+/);
 
 		await tile(page, 'Signature').click();
 		const fieldBlock = page.locator('.field-block').first();

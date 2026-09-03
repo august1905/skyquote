@@ -11,7 +11,7 @@ import { openNewTemplate, saveNow, unpinSelectedBlock } from './templateFixture'
 
 async function insertTextBlock(page: import('@playwright/test').Page) {
 	await page.getByRole('button', { name: '+ Add block' }).click();
-	await page.getByRole('menuitem', { name: 'Text' }).click();
+	await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 	await unpinSelectedBlock(page);
 	return page.locator('.canvas-block .ProseMirror').last();
 }

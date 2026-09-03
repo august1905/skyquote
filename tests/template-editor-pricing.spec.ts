@@ -8,7 +8,7 @@ test.describe('Pricing table block', () => {
 		await openNewTemplate(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Pricing table' }).click();
+		await page.getByRole('menuitem', { name: 'Package selection' }).click();
 
 		const block = page.locator('.block-pricing-table');
 		await expect(block).toBeVisible();
@@ -116,7 +116,7 @@ test.describe('Header total (§7.4)', () => {
 		await expect(page.locator('.template-editor-header-total')).toHaveCount(0);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Pricing table' }).click();
+		await page.getByRole('menuitem', { name: 'Package selection' }).click();
 		const table = page.locator('.block-pricing-table');
 		await table.click();
 		await table.getByRole('button', { name: '+ Item' }).click();
@@ -126,7 +126,7 @@ test.describe('Header total (§7.4)', () => {
 
 		// A second pricing block (§7.5: "multiple pricing tables... must sum correctly") adds to the same header total.
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Pricing table' }).click();
+		await page.getByRole('menuitem', { name: 'Package selection' }).click();
 		const secondTable = page.locator('.block-pricing-table').nth(1);
 		await secondTable.click();
 		await secondTable.getByRole('button', { name: '+ Item' }).click();

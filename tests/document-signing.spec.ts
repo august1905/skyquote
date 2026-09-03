@@ -23,16 +23,8 @@ import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture'
  * Deliberately not `@core`: it builds a template and a document.
  */
 
-async function addRole(page: import('@playwright/test').Page, name: string) {
-	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-	await page.getByRole('button', { name: '+ Add role' }).click();
-	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill(name);
-	await page.getByRole('button', { name: 'Close roles panel' }).click();
-}
-
 test('a signature field on a document that never reached Zoho Sign says so, and is not a fake toggle', async ({ page, context }) => {
 	await openNewTemplate(page);
-	await addRole(page, 'Client');
 
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Signature' }).click();
@@ -48,8 +40,8 @@ test('a signature field on a document that never reached Zoho Sign says so, and 
 	const wizard = page.locator('.wizard-card');
 	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
-	await page.getByLabel('Client name').fill('Casey Client');
-	await page.getByLabel('Client email').fill('casey@example.com');
+	await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+	await page.getByLabel('Contact (Signer) email').fill('casey@example.com');
 	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
 	await wizard.getByRole('button', { name: 'Next' }).click(); // variables
 	await wizard.getByRole('button', { name: 'Next' }).click(); // pricing

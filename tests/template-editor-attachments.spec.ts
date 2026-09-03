@@ -75,11 +75,6 @@ test.describe('Attachments (§3)', () => {
 	test('an attached file reaches the recipient as a download on their document', async ({ page, context }) => {
 		await newTemplate(page);
 
-		await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-		await page.getByRole('button', { name: '+ Add role' }).click();
-		await page.locator('.roles-panel-row').last().getByLabel('Role name').fill('Client');
-		await page.getByRole('button', { name: 'Close roles panel' }).click();
-
 		await openAttachments(page);
 		await page.getByLabel('Add attachment').setInputFiles(PDF_FIXTURE);
 		await page.locator('.attachments-item').first().getByLabel('Name for test-attachment.pdf').fill('Scope of work');
@@ -90,8 +85,8 @@ test.describe('Attachments (§3)', () => {
 		const wizard = page.locator('.wizard-card');
 		await skipWizardDealStep(wizard);
 		await wizard.getByRole('button', { name: 'Next' }).click(); // name
-		await page.getByLabel('Client name').fill('Casey Client');
-		await page.getByLabel('Client email').fill('casey@example.com');
+		await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+		await page.getByLabel('Contact (Signer) email').fill('casey@example.com');
 		await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
 		await wizard.getByRole('button', { name: 'Next' }).click(); // variables
 		await wizard.getByRole('button', { name: 'Next' }).click(); // pricing

@@ -34,7 +34,7 @@ const registry: { [K in BlockType]: BlockRegistryEntry<Extract<Block, { type: K 
 	image: { label: 'Image', View: ImageBlockView },
 	video: { label: 'Video', View: VideoBlockView },
 	table: { label: 'Table', View: TableBlockView },
-	pricing_table: { label: 'Pricing table', View: PricingTableBlockView },
+	pricing_table: { label: 'Package selection', View: PricingTableBlockView },
 	quote_builder: { label: 'Quote builder', View: QuoteBuilderBlockView },
 	toc: { label: 'Table of contents', View: TableOfContentsBlockView },
 	page_break: { label: 'Page break', View: PageBreakBlockView },

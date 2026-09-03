@@ -16,9 +16,23 @@ async function addRole(page: import('@playwright/test').Page, name: string) {
 	await page.getByRole('button', { name: 'Close roles panel' }).click();
 }
 
+// New templates are seeded with 'Contact (Signer)' and 'Skyline Signer'.
+// Tests whose intent needs an exact role set remove them first; the seeded
+// roles have no fields, so removal is immediate (no reassign prompt).
+async function removeSeededRoles(page: import('@playwright/test').Page) {
+	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
+	for (const name of ['Contact (Signer)', 'Skyline Signer']) {
+		const row = page.locator('.roles-panel-row').filter({ has: page.locator(`[aria-label="${name} color"]`) });
+		await row.getByRole('button', { name: /Remove/ }).click();
+	}
+	await page.getByRole('button', { name: 'Close roles panel' }).click();
+}
+
 test.describe('Fillable fields', () => {
 	test('the field palette is hidden until a role exists, then placing a field creates a role-tinted standalone block @core', async ({ page }) => {
 		await newTemplate(page);
+		// This test is about the zero-role state, so drop the seeded roles.
+		await removeSeededRoles(page);
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await expect(page.getByText('Add a role (Recipients / Roles panel) before placing fields.')).toBeVisible();
@@ -145,13 +159,17 @@ test.describe('Fillable fields', () => {
 
 		await prompt.getByRole('button', { name: 'Reassign fields & remove role' }).click();
 		await expect(prompt).toHaveCount(0);
-		await expect(page.locator('.roles-panel-row')).toHaveCount(1);
+		// The two seeded roles plus Sales Rep remain.
+		await expect(page.locator('.roles-panel-row')).toHaveCount(3);
 		// The field survived, reassigned rather than deleted.
 		await expect(page.locator('.field-block')).toHaveCount(1);
 	});
 
 	test('deleting a role and choosing "delete fields" removes the field entirely, inline and standalone', async ({ page }) => {
 		await newTemplate(page);
+		// This test needs Client to be the only role, so both fields land on
+		// it and reassignment isn't offered when it's removed.
+		await removeSeededRoles(page);
 		await addRole(page, 'Client');
 
 		await page.getByRole('button', { name: '+ Add block' }).click();

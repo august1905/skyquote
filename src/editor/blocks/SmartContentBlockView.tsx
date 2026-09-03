@@ -193,7 +193,7 @@ export function SmartContentBlockView({ pageId, block, selected }: BlockViewProp
 	const pricingRefs: PricingRef[] = body
 		? collectPricingBlocksByPage(body).map(({ pageId: refPageId, block: refBlock }) => ({
 				id: refBlock.id,
-				label: `${refBlock.type === 'pricing_table' ? 'Pricing table' : 'Quote builder'} — ${body.pages.find((p) => p.id === refPageId)?.name ?? 'page'}`,
+				label: `${refBlock.type === 'pricing_table' ? 'Package selection' : 'Quote builder'} — ${body.pages.find((p) => p.id === refPageId)?.name ?? 'page'}`,
 			}))
 		: [];
 

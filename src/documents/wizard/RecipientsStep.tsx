@@ -5,7 +5,13 @@ import type { RecipientDraft } from './types';
 
 interface RecipientsStepProps {
 	recipients: RecipientDraft[];
-	onChange: (recipients: RecipientDraft[]) => void;
+	/**
+	 * Takes an updater, not a value. The sender prefill below lands a beat after
+	 * this step mounts, so a value-taking `onChange` let a keystroke in the
+	 * customer's row race it: whichever handler was holding the older array
+	 * overwrote the other, and the row that lost was silently the countersigner's.
+	 */
+	onChange: (update: (current: RecipientDraft[]) => RecipientDraft[]) => void;
 }
 
 /**
@@ -47,19 +53,20 @@ export function RecipientsStep({ recipients, onChange }: RecipientsStepProps) {
 	// this person's name and email.
 	useEffect(() => {
 		if (!currentUser) return;
-		if (!recipients.some((r) => r.isSender && !r.email)) return;
-		onChange(
-			recipients.map((r) =>
-				r.isSender && !r.email
-					? { ...r, name: [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.email, email: currentUser.email }
-					: r,
-			),
+		onChange((current) =>
+			current.some((r) => r.isSender && !r.email)
+				? current.map((r) =>
+						r.isSender && !r.email
+							? { ...r, name: [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.email, email: currentUser.email }
+							: r,
+					)
+				: current,
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- prefill runs when the user context lands, not on every keystroke in the sibling rows
 	}, [currentUser]);
 
 	function update(index: number, patch: Partial<RecipientDraft>) {
-		onChange(recipients.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+		onChange((current) => current.map((r, i) => (i === index ? { ...r, ...patch } : r)));
 	}
 
 	if (recipients.length === 0) {

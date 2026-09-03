@@ -80,7 +80,7 @@ export const INSERTABLE_BLOCK_KINDS: InsertableBlockKind[] = [
 	{ type: 'smart_content', label: 'Smart content', create: () => createSmartContentBlock() },
 	{ type: 'columns', label: 'Columns (2)', create: () => createColumnsBlock(2) },
 	{ type: 'table', label: 'Table (2×2)', create: () => createTableBlock(2, 2) },
-	{ type: 'pricing_table', label: 'Pricing table', create: createPricingTableBlock },
+	{ type: 'pricing_table', label: 'Package selection', create: createPricingTableBlock },
 	{ type: 'quote_builder', label: 'Quote builder', create: createQuoteBuilderBlock },
 	{ type: 'image', label: 'Image', picksFromLibrary: true },
 	{

@@ -54,14 +54,14 @@ test.describe('Catalog integration', () => {
 			await openNewTemplate(page);
 
 			await page.getByRole('button', { name: '+ Add block' }).click();
-			await page.getByRole('menuitem', { name: 'Pricing table' }).click();
+			await page.getByRole('menuitem', { name: 'Package selection' }).click();
 			const block = page.locator('.block-pricing-table');
 			await expect(block).toBeVisible();
 
 			// Browse + search.
 			await page.getByRole('button', { name: 'Catalog / Pricing' }).click();
 			const panel = page.locator('.catalog-panel');
-			const card = panel.getByRole('button', { name: `Drag ${catalogItem.name} into a pricing table` });
+			const card = panel.getByRole('button', { name: `Drag ${catalogItem.name} into a Package selection block` });
 			await expect(card).toBeVisible();
 			await expect(card).toContainText('$150.00');
 

@@ -53,6 +53,29 @@ function tableIsChoosable(block: PricingTableBlock): boolean {
 }
 
 /**
+ * A package-selection table's choice is stored in the same selections map as
+ * item ticks, keyed `section:<sectionId>` — section ids are uuids like item
+ * ids, so the prefix is what keeps a section choice from ever colliding with
+ * (or being read as) an item choice.
+ *
+ * Mirrored in `spqbackend/.../utils/pricingSelections.js` — change both together.
+ */
+export function packageSectionKey(sectionId: string): string {
+	return `section:${sectionId}`;
+}
+
+function isPackageTable(block: PricingTableBlock): boolean {
+	return Boolean(block.settings.packageSelection);
+}
+
+/** The section the customer picked — first by section order with its key set — falling back to the sender's preselected default. */
+function chosenSectionIdOf(block: PricingTableBlock, selections: PricingSelections): string | null {
+	const sections = [...block.sections].sort((a, b) => a.order - b.order);
+	for (const section of sections) if (selections[packageSectionKey(section.id)]) return section.id;
+	return block.selectedSectionId ?? null;
+}
+
+/**
  * The ids a recipient may actually toggle.
  *
  * Two different rules, because the two blocks mean different things. A pricing
@@ -67,6 +90,11 @@ export function selectableItemIds(body: TemplateBody): Set<string> {
 		body.pages.flatMap((p) => p.blocks),
 		(block) => {
 			if (block.type === 'pricing_table') {
+				// A package-selection table: the choosable things are its sections
+				// (one package each), not its rows — a package is all-or-nothing.
+				if (isPackageTable(block)) {
+					for (const section of block.sections) ids.add(packageSectionKey(section.id));
+				}
 				if (!tableIsChoosable(block)) return;
 				for (const item of block.items) if (item.optional) ids.add(item.id);
 				return;
@@ -95,6 +123,11 @@ export function defaultSelections(body: TemplateBody): PricingSelections {
 		body.pages.flatMap((p) => p.blocks),
 		(block) => {
 			if (block.type === 'pricing_table') {
+				if (isPackageTable(block)) {
+					for (const section of block.sections) {
+						selections[packageSectionKey(section.id)] = section.id === (block.selectedSectionId ?? null);
+					}
+				}
 				for (const item of block.items) selections[item.id] = !item.optional || item.selected;
 				return;
 			}
@@ -126,6 +159,18 @@ export function unsatisfiedGroups(body: TemplateBody, selections: PricingSelecti
 	eachPricingBlock(
 		body.pages.flatMap((p) => p.blocks),
 		(block) => {
+			// A package table behaves like one required single-selection group:
+			// no package picked would charge for nothing, two would charge twice.
+			if (block.type === 'pricing_table') {
+				if (!isPackageTable(block) || block.sections.length === 0) return;
+				const chosen = block.sections.filter((section) => selections[packageSectionKey(section.id)]).length;
+				if (chosen === 0) {
+					problems.push({ blockId: block.id, groupId: block.id, groupName: 'Package selection', reason: 'none-chosen' });
+				} else if (chosen > 1) {
+					problems.push({ blockId: block.id, groupId: block.id, groupName: 'Package selection', reason: 'too-many-chosen' });
+				}
+				return;
+			}
 			if (block.type !== 'quote_builder') return;
 			for (const group of block.groups) {
 				const chosen = group.options.filter((option) => selections[option.id]).length;
@@ -167,6 +212,12 @@ function withSelection(item: PricingItem, included: boolean, forceOptional: bool
 export function applyPricingSelections(body: TemplateBody, selections: PricingSelections): TemplateBody {
 	return mapBodyBlocks(body, (block) => {
 		if (block.type === 'pricing_table') {
+			// A package table's live choice resolves onto `selectedSectionId`,
+			// which is all `computeTotals` needs — every row stays present so
+			// the unchosen packages remain on screen to pick from.
+			if (isPackageTable(block)) {
+				return { ...block, selectedSectionId: chosenSectionIdOf(block, selections) };
+			}
 			if (!tableIsChoosable(block)) return block;
 			return { ...block, items: block.items.map((item) => withSelection(item, selections[item.id] ?? item.selected, false)) };
 		}
@@ -209,6 +260,18 @@ export function configuredBodyForAgreement(body: TemplateBody, selections: Prici
 
 	return mapBodyBlocks(body, (block) => {
 		if (block.type === 'pricing_table') {
+			// A package-selection table freezes to the chosen package alone:
+			// the other packages were a menu, and the agreement is not a menu.
+			// Rows with no section survive regardless (a table-wide line).
+			if (isPackageTable(block)) {
+				const chosen = chosenSectionIdOf(block, selections);
+				return {
+					...block,
+					selectedSectionId: chosen,
+					sections: block.sections.filter((section) => section.id === chosen),
+					items: block.items.filter((item) => item.sectionId == null || item.sectionId === chosen).map(settle),
+				};
+			}
 			// An author who never turned on recipient selection gets their table
 			// exactly as written — including its own unselected optional rows, which
 			// are the sender's decision and not the customer's to have made.

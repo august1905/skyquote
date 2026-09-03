@@ -38,7 +38,7 @@ test.describe('Template editor canvas', () => {
 		await expect(editors.nth(0)).toContainText('First block');
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 		await expect(editors).toHaveCount(2);
 		// New blocks arrive pinned (movable) by default; this test is about *flow*
 		// behaviour — reorder by drag — so put the new block back in the flow.

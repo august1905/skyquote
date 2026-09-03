@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState } from 'react';
 import { cleanup, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RecipientDraft } from './types';
@@ -34,6 +35,22 @@ function drafts(): RecipientDraft[] {
 	];
 }
 
+/**
+ * Renders the step the way the wizard does — over real state — so an updater
+ * actually lands. A `vi.fn()` `onChange` can only show what a handler *asked*
+ * for, which is exactly the distinction the prefill/typing race turned on.
+ */
+function renderStateful(initial: RecipientDraft[] = drafts()) {
+	const seen: RecipientDraft[][] = [];
+	function Harness() {
+		const [recipients, setRecipients] = useState(initial);
+		seen.push(recipients);
+		return <RecipientsStep recipients={recipients} onChange={setRecipients} />;
+	}
+	render(<Harness />);
+	return { current: () => seen[seen.length - 1]! };
+}
+
 beforeEach(() => {
 	listAppUsers.mockResolvedValue({ users: USERS });
 	useAuth.mockReturnValue({
@@ -59,25 +76,46 @@ describe('RecipientsStep', () => {
 	});
 
 	it('defaults an empty sender row to whoever is creating the document', () => {
+		const { current } = renderStateful();
+		expect(current()[1]).toMatchObject({ name: 'Grayson Wiesner', email: 'grayson@skylineclean.com' });
+		// The customer row is not touched by the default.
+		expect(current()[0]).toMatchObject({ name: '', email: '' });
+	});
+
+	it('writes updaters, so a prefill and a keystroke raised from the same snapshot both survive', () => {
+		// The regression this guards: both writes used to be built from an array
+		// captured at render time, so whichever landed second silently discarded
+		// the other — in practice the countersigner's row, which left the
+		// wizard's Next disabled with nothing on screen explaining why.
+		//
+		// Asserted at the seam rather than by racing the two in jsdom: React's
+		// test renderer flushes effects before any event can interleave, so the
+		// real ordering can't be reproduced here (the e2e wizard walk does hit
+		// it). What *is* checkable is the property that makes the race
+		// impossible — every write is a function of current state, so replaying
+		// them against one base still merges.
 		const onChange = vi.fn();
 		render(<RecipientsStep recipients={drafts()} onChange={onChange} />);
-		const updated = onChange.mock.calls[0]?.[0] as RecipientDraft[];
-		expect(updated[1]).toMatchObject({ name: 'Grayson Wiesner', email: 'grayson@skylineclean.com' });
-		// The customer row is not touched by the default.
-		expect(updated[0]).toMatchObject({ name: '', email: '' });
+		fireEvent.change(screen.getByLabelText('Client name'), { target: { value: 'Casey Client' } });
+
+		expect(onChange.mock.calls.length).toBeGreaterThanOrEqual(2);
+		const merged = onChange.mock.calls.reduce((acc: RecipientDraft[], [write]) => {
+			expect(typeof write).toBe('function');
+			return (write as (current: RecipientDraft[]) => RecipientDraft[])(acc);
+		}, drafts());
+		expect(merged[0]).toMatchObject({ name: 'Casey Client' });
+		expect(merged[1]).toMatchObject({ name: 'Grayson Wiesner', email: 'grayson@skylineclean.com' });
 	});
 
 	it('binds the chosen user into the draft on selection', async () => {
-		const onChange = vi.fn();
 		// Already-assigned sender, so the current-user default effect stays quiet
-		// and the only onChange comes from the pick itself.
+		// and the only change comes from the pick itself.
 		const assigned = drafts().map((d) => (d.isSender ? { ...d, name: 'Grayson Wiesner', email: 'grayson@skylineclean.com' } : d));
-		render(<RecipientsStep recipients={assigned} onChange={onChange} />);
+		const { current } = renderStateful(assigned);
 		const select = screen.getByLabelText<HTMLSelectElement>('Countersigner user');
 		await waitFor(() => expect(select.disabled).toBe(false));
 		fireEvent.change(select, { target: { value: 'u2' } });
-		const updated = onChange.mock.calls[onChange.mock.calls.length - 1]?.[0] as RecipientDraft[];
-		expect(updated[1]).toMatchObject({ name: 'Mariah LaRonge', email: 'mariah@skylineclean.com' });
+		expect(current()[1]).toMatchObject({ name: 'Mariah LaRonge', email: 'mariah@skylineclean.com' });
 	});
 
 	it('falls back to free-text inputs when the user list cannot load', async () => {

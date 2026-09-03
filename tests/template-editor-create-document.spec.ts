@@ -11,11 +11,8 @@ import { cleanupFixtureImages, uniqueImageUpload } from './imageLibrary';
 test("creating a document produces a per-recipient link that opens with no login, with that role's own field live and the pricing table's frozen total shown @core", async ({ page, context, request }) => {
 	await openNewTemplate(page);
 
-	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-	await page.getByRole('button', { name: '+ Add role' }).click();
-	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill('Client');
-	await page.getByRole('button', { name: 'Close roles panel' }).click();
-
+	// No role setup: every template arrives with the seeded 'Contact (Signer)'
+	// and 'Skyline Signer' roles, and a new field auto-assigns to the contact.
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Text field' }).click();
 
@@ -32,7 +29,7 @@ test("creating a document produces a per-recipient link that opens with no login
 	await page.getByLabel('Position W').fill('408');
 
 	await page.getByRole('button', { name: '+ Add block' }).click();
-	await page.getByRole('menuitem', { name: 'Pricing table' }).click();
+	await page.getByRole('menuitem', { name: 'Package selection' }).click();
 	const table = page.locator('.block-pricing-table');
 	await table.click();
 	await table.getByRole('button', { name: '+ Item' }).click();
@@ -62,9 +59,10 @@ test("creating a document produces a per-recipient link that opens with no login
 	// Name step — leave the default title as-is.
 	await wizard.getByRole('button', { name: 'Next' }).click();
 
-	// Recipients step.
-	await page.getByLabel('Client name').fill('Casey Client');
-	await page.getByLabel('Client email').fill('casey@example.com');
+	// Recipients step — the contact by hand; the 'Skyline Signer' row is a user
+	// dropdown that defaults itself to the logged-in user.
+	await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+	await page.getByLabel('Contact (Signer) email').fill('casey@example.com');
 	await wizard.getByRole('button', { name: 'Next' }).click();
 
 	// Variables step — this template uses none.
@@ -93,7 +91,7 @@ test("creating a document produces a per-recipient link that opens with no login
 	await recipientPage.goto(link);
 
 	await expect(recipientPage.locator('h1')).toBeVisible();
-	await expect(recipientPage.getByText('Viewing as Casey Client (Client)')).toBeVisible();
+	await expect(recipientPage.getByText('Viewing as Casey Client (Contact (Signer))')).toBeVisible();
 
 	const fieldInput = recipientPage.locator('.doc-view-field-block input[type="text"]');
 	await expect(fieldInput).toBeEnabled();

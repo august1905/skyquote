@@ -132,7 +132,7 @@ test.describe('Columns block', () => {
 
 		// Add a second text block to column 0 so there's something to reorder.
 		await columns.nth(0).getByRole('button', { name: '+ Add block' }).click();
-		await page.getByRole('menuitem', { name: 'Text' }).click();
+		await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
 		const column0Editors = columns.nth(0).locator('.ProseMirror');
 		await expect(column0Editors).toHaveCount(2);
 		await column0Editors.nth(1).click();

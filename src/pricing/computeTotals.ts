@@ -112,13 +112,29 @@ function rollupOf(lines: LineTotal[]): RollupTotals {
  * doesn't match any of `block.sections` (never assigned one, or its section
  * was since removed) still counts toward the block's own total below, it
  * just has no `SectionTotal` entry of its own to show a subheading footer for.
+ *
+ * With `settings.packageSelection` the sections are packages and exactly one
+ * is billed: a line outside the chosen section (`selectedSectionId`) is
+ * reported `included: false`, same as an unticked optional row. The
+ * `SectionTotal`s stay **unfiltered** on purpose — each one is what that
+ * package would cost, which is the number the package chooser has to print
+ * next to every option, chosen or not.
  */
 export function computePricingTableTotals(block: PricingTableBlock): BlockTotals {
-	const lines = block.items.map(computeLine);
-	const lineByItemId = new Map(lines.map((l) => [l.itemId, l] as const));
+	const chosenSectionId = block.settings.packageSelection ? (block.selectedSectionId ?? null) : undefined;
+	const rawLines = block.items.map(computeLine);
+	const lines =
+		chosenSectionId === undefined
+			? rawLines
+			: block.items.map((item, i) => {
+					const line = rawLines[i]!;
+					if (item.sectionId !== null && item.sectionId !== chosenSectionId) return { ...line, included: false };
+					return line;
+				});
+	const rawLineByItemId = new Map(rawLines.map((l) => [l.itemId, l] as const));
 	const bySection = new Map<string | null, LineTotal[]>();
 	for (const item of block.items) {
-		const line = lineByItemId.get(item.id);
+		const line = rawLineByItemId.get(item.id);
 		if (!line) continue;
 		const arr = bySection.get(item.sectionId) ?? [];
 		arr.push(line);

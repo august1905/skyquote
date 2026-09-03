@@ -8,11 +8,9 @@ test.describe('Validation surface', () => {
 	test('is absent on a clean template, then appears and lists a duplicate-field-name issue', async ({ page }) => {
 		await openNewTemplate(page);
 
+		// "Clean" includes the two seeded roles — a role with zero fields is not
+		// an issue, so the badge stays absent.
 		await expect(page.locator('.validation-indicator-badge')).toHaveCount(0);
-
-		await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-		await page.getByRole('button', { name: '+ Add role' }).click();
-		await page.getByRole('button', { name: 'Close roles panel' }).click();
 
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Signature' }).click();

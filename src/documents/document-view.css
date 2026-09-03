@@ -180,6 +180,58 @@
 	padding-top: 4px;
 }
 
+/* Package selection: one card per package, the chosen one carrying the accent
+   border. `label` wrapping makes the whole card click-to-pick when the radio is
+   present; without a `pricingInteraction` the same markup renders statically. */
+.doc-view-package {
+	display: block;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	padding: 10px 12px;
+	margin-bottom: 10px;
+}
+
+.doc-view-package:has(.doc-view-pricing-choice:not(:disabled)) {
+	cursor: pointer;
+}
+
+.doc-view-package-chosen {
+	border-color: var(--navy);
+	box-shadow: 0 0 0 1px var(--navy);
+}
+
+.doc-view-package-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.doc-view-package-name {
+	flex: 1;
+	font-weight: 600;
+}
+
+.doc-view-package-total {
+	font-weight: 600;
+	min-width: 80px;
+	text-align: right;
+}
+
+.doc-view-package-lines {
+	margin-top: 6px;
+}
+
+.doc-view-package-lines .doc-view-pricing-row:last-child {
+	border-bottom: none;
+}
+
+/* The packages not picked stay fully readable — they're the menu, not
+   declined rows — so no muting; only the price column softens. */
+.doc-view-package:not(.doc-view-package-chosen) .doc-view-package-total {
+	color: #7b8794;
+	font-weight: 500;
+}
+
 .rt-view-field-chip {
 	display: inline-block;
 	vertical-align: middle;

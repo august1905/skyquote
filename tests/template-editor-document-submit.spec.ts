@@ -19,10 +19,10 @@ async function addRole(page: import('@playwright/test').Page, name: string) {
 
 test('a recipient must fill required fields before submitting, and the document completes once every recipient has @core', async ({ page, context }) => {
 	await newTemplate(page);
-	await addRole(page, 'Client');
 	await addRole(page, 'Sales Rep');
 
-	// Client's field is required.
+	// The client is the seeded 'Contact (Signer)' role; new blocks default to it.
+	// Their field is required.
 	await page.getByRole('button', { name: '+ Add block' }).click();
 	await page.getByRole('menuitem', { name: 'Text field' }).click();
 	await page.locator('.field-block').first().click();
@@ -41,8 +41,8 @@ test('a recipient must fill required fields before submitting, and the document 
 	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
 
-	await page.getByLabel('Client name').fill('Casey Client');
-	await page.getByLabel('Client email').fill('casey@example.com');
+	await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+	await page.getByLabel('Contact (Signer) email').fill('casey@example.com');
 	await page.getByLabel('Sales Rep name').fill('Sam Rep');
 	await page.getByLabel('Sales Rep email').fill('sam@example.com');
 	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
@@ -92,15 +92,14 @@ test('a recipient must fill required fields before submitting, and the document 
 
 test('a recipient can decline a document with no fields of their own', async ({ page, context }) => {
 	await newTemplate(page);
-	await addRole(page, 'Client');
 
 	await page.getByRole('button', { name: 'Create document' }).click();
 	const wizard = page.locator('.wizard-card');
 	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
 
-	await page.getByLabel('Client name').fill('Casey Client');
-	await page.getByLabel('Client email').fill('casey@example.com');
+	await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+	await page.getByLabel('Contact (Signer) email').fill('casey@example.com');
 	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
 	await wizard.getByRole('button', { name: 'Next' }).click(); // variables
 	await wizard.getByRole('button', { name: 'Next' }).click(); // pricing

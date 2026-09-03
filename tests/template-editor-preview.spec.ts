@@ -7,26 +7,19 @@ async function newTemplate(page: import('@playwright/test').Page) {
 	await openNewTemplate(page);
 }
 
-async function addRole(page: import('@playwright/test').Page, name: string) {
-	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-	await page.getByRole('button', { name: '+ Add role' }).click();
-	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill(name);
-	await page.getByRole('button', { name: 'Close roles panel' }).click();
-}
-
 test.describe('Preview as role', () => {
 	test('the previewed role\'s fields become live/fillable; every other role\'s fields stay inert', async ({ page }) => {
 		await newTemplate(page);
-		await addRole(page, 'Client');
-		await addRole(page, 'Sales Rep');
+		// The two seeded roles are enough here — no need to add any.
 
-		// A standalone Text field, defaulted to the first role (Client).
+		// A standalone Text field, defaulted to the first seeded role
+		// (Contact (Signer)).
 		await page.getByRole('button', { name: '+ Add block' }).click();
 		await page.getByRole('menuitem', { name: 'Text field' }).click();
 
-		// A standalone Checkbox field, explicitly for Sales Rep.
+		// A standalone Checkbox field, explicitly for Skyline Signer.
 		await page.getByRole('button', { name: '+ Add block' }).click();
-		await page.getByLabel('Fields for').selectOption({ label: 'Sales Rep' });
+		await page.getByLabel('Fields for').selectOption({ label: 'Skyline Signer' });
 		await page.getByRole('menuitem', { name: 'Checkbox' }).click();
 
 		const textField = page.locator('.field-block').filter({ hasText: 'Text field 1' });
@@ -35,9 +28,9 @@ test.describe('Preview as role', () => {
 		await expect(checkboxField.locator('input[type="checkbox"]')).toBeDisabled();
 
 		await expect(page.getByLabel('Preview as')).toBeVisible();
-		await page.getByLabel('Preview as').selectOption({ label: 'Client' });
+		await page.getByLabel('Preview as').selectOption({ label: 'Contact (Signer)' });
 
-		// Client's own field is now live...
+		// The contact's own field is now live...
 		const liveTextInput = textField.locator('input[type="text"]');
 		await expect(liveTextInput).toBeEnabled();
 		await liveTextInput.fill('Hello from preview');
@@ -46,14 +39,14 @@ test.describe('Preview as role', () => {
 		// ...clicking it no longer opens settings...
 		await expect(page.locator('.field-settings-popover')).toHaveCount(0);
 
-		// ...while Sales Rep's field is untouched: still inert, still opens settings on click.
+		// ...while Skyline Signer's field is untouched: still inert, still opens settings on click.
 		await expect(checkboxField.locator('input[type="checkbox"]')).toBeDisabled();
 		await checkboxField.click();
 		await expect(page.locator('.field-settings-popover')).toBeVisible();
 		await page.mouse.click(10, 10); // outside click closes it (FieldSettingsPopover's own convention)
 
-		// Switching the preview to Sales Rep flips which field is live.
-		await page.getByLabel('Preview as').selectOption({ label: 'Sales Rep' });
+		// Switching the preview to Skyline Signer flips which field is live.
+		await page.getByLabel('Preview as').selectOption({ label: 'Skyline Signer' });
 		await expect(textField.locator('input[type="text"]')).toBeDisabled();
 		const liveCheckbox = checkboxField.locator('input[type="checkbox"]');
 		await expect(liveCheckbox).toBeEnabled();
@@ -68,7 +61,6 @@ test.describe('Preview as role', () => {
 
 	test('an inline field also goes live while previewing its role, and nothing typed in preview persists through a reload', async ({ page }) => {
 		await newTemplate(page);
-		await addRole(page, 'Client');
 
 		const editor = page.locator('.canvas-block .ProseMirror').first();
 		await editor.click();
@@ -78,7 +70,9 @@ test.describe('Preview as role', () => {
 		const chipButton = editor.locator('.rt-field-chip-button');
 		await expect(chipButton).toBeVisible();
 
-		await page.getByLabel('Preview as').selectOption({ label: 'Client' });
+		// An inline field is assigned to the first role — the seeded
+		// 'Contact (Signer)' (see insertSuggestion.ts).
+		await page.getByLabel('Preview as').selectOption({ label: 'Contact (Signer)' });
 		await expect(chipButton).toHaveCount(0); // swapped for the live control while previewing
 
 		const liveRadios = editor.locator('.rt-field-chip-live input[type="radio"]');

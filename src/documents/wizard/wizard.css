@@ -170,6 +170,27 @@
 	text-align: right;
 }
 
+/* One row per package: radio, name, what that package would cost. Same row
+   grammar as .wizard-pricing-item so the two table kinds read alike. */
+.wizard-pricing-package {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.85rem;
+	padding: 6px 8px;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+
+.wizard-pricing-package:has(input:checked) {
+	border-color: var(--navy);
+}
+
+.wizard-pricing-package input[type='radio'] {
+	accent-color: var(--navy);
+}
+
 .wizard-pricing-total {
 	font-weight: 700;
 	text-align: right;

@@ -52,7 +52,7 @@ export function CatalogPanel({ onClose }: CatalogPanelProps) {
 					))}
 				</div>
 			)}
-			<p className="catalog-panel-hint">Drag an item onto a pricing table to add it as a row.</p>
+			<p className="catalog-panel-hint">Drag an item onto a Package selection block to add it as a row.</p>
 		</div>
 	);
 }

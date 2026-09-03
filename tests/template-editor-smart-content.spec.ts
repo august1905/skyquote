@@ -93,11 +93,6 @@ test.describe('Smart content (§4.5)', () => {
 	test('a recipient sees smart content only when the resolved variable makes its rule true', async ({ page, context }) => {
 		await openNewTemplate(page);
 
-		await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-		await page.getByRole('button', { name: '+ Add role' }).click();
-		await page.locator('.roles-panel-row').last().getByLabel('Role name').fill('Client');
-		await page.getByRole('button', { name: 'Close roles panel' }).click();
-
 		await page.getByRole('button', { name: 'Variables' }).click();
 		await page.getByRole('button', { name: '+ Create custom variable' }).click();
 		await page.getByLabel('Variable label').fill('Deal type');
@@ -132,8 +127,8 @@ test.describe('Smart content (§4.5)', () => {
 			await skipWizardDealStep(wizard);
 			await wizard.getByRole('button', { name: 'Next' }).click();
 
-			await page.getByLabel('Client name').fill('Casey Client');
-			await page.getByLabel('Client email').fill(recipientEmail);
+			await page.getByLabel('Contact (Signer) name').fill('Casey Client');
+			await page.getByLabel('Contact (Signer) email').fill(recipientEmail);
 			await wizard.getByRole('button', { name: 'Next' }).click();
 
 			await page.getByLabel('Deal type').fill(dealType);

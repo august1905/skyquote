@@ -21,7 +21,7 @@ import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture'
  *
  * **Why the timeout is raised, measured rather than guessed.** Every test here runs
  * `authorQuoteTemplate` + `createDocumentFor` first: a pricing table with two items,
- * a quote-builder group, a role, a signature block, a save, then the five-step
+ * a quote-builder group, a signature block, a save, then the five-step
  * create-document wizard — and only then does the recipient flow start, in a second
  * browser context. On 2026-09-01 the first test failed at the default 30s, and the
  * trace showed **section 1 did not open until 31.78s**: the setup alone had consumed
@@ -35,20 +35,12 @@ import { openNewTemplate, saveNow, skipWizardDealStep } from './templateFixture'
  */
 test.describe.configure({ timeout: 90_000 });
 
-async function addRole(page: import('@playwright/test').Page, name: string) {
-	await page.getByRole('button', { name: 'Recipients / Roles' }).click();
-	await page.getByRole('button', { name: '+ Add role' }).click();
-	await page.locator('.roles-panel-row').last().getByLabel('Role name').fill(name);
-	await page.getByRole('button', { name: 'Close roles panel' }).click();
-}
-
 /** A quote with a base service, an optional add-on the recipient may pick, and a signature line. */
 async function authorQuoteTemplate(page: import('@playwright/test').Page) {
 	await openNewTemplate(page);
-	await addRole(page, 'Client');
 
 	await page.getByRole('button', { name: '+ Add block' }).click();
-	await page.getByRole('menuitem', { name: 'Pricing table' }).click();
+	await page.getByRole('menuitem', { name: 'Package selection' }).click();
 	const block = page.locator('.block-pricing-table');
 	await block.click();
 
@@ -83,8 +75,10 @@ async function createDocumentFor(page: import('@playwright/test').Page, name: st
 	const wizard = page.locator('.wizard-card');
 	await skipWizardDealStep(wizard);
 	await wizard.getByRole('button', { name: 'Next' }).click(); // name
-	await page.getByLabel('Client name').fill(name);
-	await page.getByLabel('Client email').fill(email);
+	await page.getByLabel('Contact (Signer) name').fill(name);
+	await page.getByLabel('Contact (Signer) email').fill(email);
+	// The 'Skyline Signer user' dropdown defaults to the logged-in user, so its row
+	// is already valid; Next enables once the contact fields above are filled.
 	await wizard.getByRole('button', { name: 'Next' }).click(); // recipients
 	await wizard.getByRole('button', { name: 'Next' }).click(); // variables
 	await wizard.getByRole('button', { name: 'Next' }).click(); // pricing
