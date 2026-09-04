@@ -298,3 +298,90 @@
 .templates-menu-confirm span {
 	color: var(--grey-700);
 }
+
+/* ── Import from a PandaDoc .docx export ─────────────────────────────────── */
+
+/* A label wrapping a hidden input rather than a styled button: the picker *is*
+   the control, so it keeps the native keyboard and label behaviour. */
+.templates-import {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0.6em 1.2em;
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-sm);
+	background: var(--grey-100);
+	color: var(--grey-900);
+	font-weight: 600;
+	font-size: 1em;
+	cursor: pointer;
+	transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.templates-import:hover {
+	border-color: var(--border-strong);
+}
+
+.templates-import-busy {
+	cursor: progress;
+	opacity: 0.7;
+}
+
+.templates-import input[type='file'] {
+	display: none;
+}
+
+.templates-import-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	align-items: flex-start;
+	margin-bottom: 16px;
+	padding: 14px 16px;
+	border: 1px solid color-mix(in srgb, var(--sky-blue) 40%, transparent);
+	background: color-mix(in srgb, var(--sky-blue) 6%, #fff);
+	border-radius: var(--radius-md);
+	font-size: 0.9rem;
+}
+
+.templates-import-summary p {
+	margin: 0;
+	color: var(--grey-700);
+}
+
+.templates-import-summary-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	width: 100%;
+}
+
+.templates-import-summary-head button {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	display: grid;
+	place-items: center;
+	border: none;
+	background: transparent;
+	color: var(--grey-500);
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+/* Warnings sit inside the success panel on purpose — a partial import is still
+   an import, and the caveats belong with the result, not in a separate alert
+   that can be dismissed independently of it. */
+.templates-import-warning {
+	color: var(--grey-800);
+	background: color-mix(in srgb, var(--warning) 18%, #fff);
+	border-radius: var(--radius-xs);
+	padding: 6px 8px;
+}
+
+.templates-import-error {
+	color: var(--danger);
+	font-size: 0.9rem;
+}

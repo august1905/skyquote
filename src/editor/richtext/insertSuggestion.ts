@@ -69,6 +69,19 @@ export const InsertSuggestion = Extension.create({
 				// `@username` mention), silently exiting the suggestion
 				// before the rest of a multi-word label is even typed.
 				allowSpaces: true,
+				/**
+				 * Only in the block being typed in.
+				 *
+				 * The plugin matches on document *changes*, not on keystrokes, so
+				 * mounting an editor whose stored text contains a literal `[` opens
+				 * the picker in a block nobody touched. A `.docx` import made that
+				 * routine rather than theoretical — PandaDoc writes its merge fields
+				 * as literal `[Client.LastName]` text, and one imported cover page
+				 * opened three pickers at once, over the content they were
+				 * obscuring. A picker is a response to typing, and typing needs
+				 * focus.
+				 */
+				allow: ({ editor }: { editor: import('@tiptap/core').Editor }) => editor.isFocused,
 				items: ({ query }: { query: string }): InsertSuggestionItem[] => buildItems(query),
 				command: ({
 					editor,

@@ -5,6 +5,7 @@ import { createTemplate, listTemplates, patchTemplate } from '../api/templates';
 import AppShell from '../components/AppShell';
 import { MoveToFolderDialog } from '../components/MoveToFolderDialog';
 import type { TemplateMeta } from '../editor/types';
+import { importDocxAsTemplate, type DocxImportOutcome, type DocxImportProgress } from '../import/docx/importDocx';
 import { FolderRowMenu } from '../templates/FolderRowMenu';
 import { TemplateRowMenu } from '../templates/TemplateRowMenu';
 import {
@@ -41,6 +42,13 @@ import './Templates.css';
  *   ambiguity to resolve on every request. The trade-off is that a folder isn't
  *   linkable yet; the fix, when it's wanted, is `/templates/folder/:id`.
  */
+/** Import progress as a label — uploads are the slow part and the only stage with a count worth showing. */
+function importProgressLabel(progress: DocxImportProgress): string {
+	if (progress.stage === 'parsing') return 'Reading…';
+	if (progress.stage === 'saving') return 'Saving…';
+	return `Uploading ${progress.done ?? 0}/${progress.total ?? 0}…`;
+}
+
 function Templates() {
 	const navigate = useNavigate();
 	const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -58,6 +66,9 @@ function Templates() {
 	const [moveBusy, setMoveBusy] = useState(false);
 	const [moveError, setMoveError] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [importProgress, setImportProgress] = useState<DocxImportProgress | null>(null);
+	const [importSummary, setImportSummary] = useState<DocxImportOutcome | null>(null);
+	const [importError, setImportError] = useState<string | null>(null);
 
 	/**
 	 * Refetches both lists. Every mutation calls this rather than patching local
@@ -126,6 +137,34 @@ function Templates() {
 		} catch {
 			setError('Could not create a template.');
 			setCreating(false);
+		}
+	}
+
+	/**
+	 * Imports a PandaDoc `.docx` export as a new template.
+	 *
+	 * Parsed in the browser (see `import/docx`), so the only backend traffic is
+	 * the create, the save, and one upload per distinct image. Filed into the
+	 * open folder for the same reason a new template is.
+	 *
+	 * The summary is left on screen rather than navigating straight into the
+	 * editor: an import can be partial — unmapped merge tokens, an image that
+	 * didn't upload — and those are things to read before editing, not to
+	 * discover later in a document a client is reading.
+	 */
+	async function handleImportDocx(file: File) {
+		setImportError(null);
+		setImportSummary(null);
+		setImportProgress({ stage: 'parsing' });
+		try {
+			const outcome = await importDocxAsTemplate(file, setImportProgress);
+			if (currentFolderId) await patchTemplate(outcome.templateId, { folderId: currentFolderId });
+			setImportSummary(outcome);
+			await refresh();
+		} catch (cause) {
+			setImportError(cause instanceof Error ? cause.message : 'Could not import that file.');
+		} finally {
+			setImportProgress(null);
 		}
 	}
 
@@ -212,6 +251,24 @@ function Templates() {
 				<div className="templates-header">
 					<h1>Templates</h1>
 					<div className="templates-header-actions">
+						{/* A label wrapping a hidden input, not a button that clicks one:
+						    the file picker is the whole interaction, and this keeps it
+						    keyboard-reachable and labelled without a ref. */}
+						<label className={`templates-import${importProgress ? ' templates-import-busy' : ''}`}>
+							{importProgress ? importProgressLabel(importProgress) : 'Import .docx'}
+							<input
+								type="file"
+								accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+								aria-label="Import a PandaDoc .docx export"
+								disabled={importProgress !== null}
+								onChange={(event) => {
+									const file = event.target.files?.[0];
+									// Cleared so picking the same file twice still fires a change.
+									event.target.value = '';
+									if (file) void handleImportDocx(file);
+								}}
+							/>
+						</label>
 						<button type="button" onClick={() => setNewFolderName('')}>
 							+ New folder
 						</button>
@@ -299,6 +356,42 @@ function Templates() {
 				)}
 
 				{status === 'loading' && <p>Loading…</p>}
+				{importError && (
+					<p className="templates-import-error" role="alert">
+						{importError}
+					</p>
+				)}
+
+				{importSummary && (
+					<div className="templates-import-summary" role="status">
+						<div className="templates-import-summary-head">
+							<strong>Imported {importSummary.counts.pages} pages</strong>
+							<button type="button" aria-label="Dismiss import summary" onClick={() => setImportSummary(null)}>
+								×
+							</button>
+						</div>
+						<p>
+							{importSummary.counts.textBlocks} text blocks, {importSummary.counts.images} images,{' '}
+							{importSummary.counts.tables} tables, {importSummary.counts.backgrounds} page backgrounds.
+						</p>
+						{/* Stated, not buried: an import that quietly leaves merge fields
+						    as dead text would look finished and behave wrong. */}
+						{importSummary.unmappedTokens.length > 0 && (
+							<p className="templates-import-warning">
+								Left as plain text — no variable in SkyQuotes matches: {importSummary.unmappedTokens.join(', ')}.
+							</p>
+						)}
+						{importSummary.missingImages > 0 && (
+							<p className="templates-import-warning">
+								{importSummary.missingImages} image{importSummary.missingImages === 1 ? '' : 's'} could not be uploaded.
+							</p>
+						)}
+						<button type="button" className="templates-primary" onClick={() => void navigate(`/templates/${importSummary.templateId}/edit`)}>
+							Open in the editor
+						</button>
+					</div>
+				)}
+
 				{status === 'error' && <p role="alert">Couldn&apos;t load templates.</p>}
 
 				{status === 'ready' && isEmpty && (
